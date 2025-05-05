@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
 
 const Header: React.FC = () => {
-  const { token, user, isLoading, logout } = useAuth(); // Get auth state and functions
+  // Remove unused 'user' from destructuring
+  const { token, isLoading, logout } = useAuth(); // Get auth state and functions
 
   const handleLogout = () => {
     logout();

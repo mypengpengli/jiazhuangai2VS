@@ -80,7 +80,8 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
     );
   }
 
-  const { articles, total, page, totalPages } = articlesData;
+  // 从 articlesData 解构时移除未使用的 total
+  const { articles, page, totalPages } = articlesData;
 
   return (
     <div>
