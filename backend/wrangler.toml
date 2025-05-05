@@ -1,0 +1,14 @@
+name = "jiazhuangai-backend" # Worker 名称
+main = "src/index.ts" # 入口文件 (稍后创建)
+compatibility_date = "2025-05-05" # 使用当前日期或根据需要调整
+
+[[d1_databases]]
+binding = "DB" # 在代码中访问数据库的绑定名称
+database_name = "jiazhuangai"
+database_id = "69c4b792-fca3-48f6-a280-1c9977ed1dee"
+[[r2_buckets]]
+binding = "BUCKET" # 在代码中访问存储桶的绑定名称
+bucket_name = "jiazhuangai-files"
+[[kv_namespaces]]
+binding = "KV" # 在代码中访问 KV 的绑定名称
+id = "a120d00a55da47e682ad94852b8ab4cb"
