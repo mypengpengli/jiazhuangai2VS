@@ -4,12 +4,11 @@ import Image from 'next/image'; // 用于显示文章图片
 import { Article } from '@/types/models'; // 复用类型定义
 
 // 定义页面 props 类型，包含从动态路由获取的 slug
-// 定义页面 props 类型，包含 params 和可选的 searchParams
+// 定义页面 props 类型，params 和 searchParams 都是 Promise
+// (即使我们不用 searchParams，也保持类型一致性)
 interface ArticleDetailPageProps {
-  params: {
-    slug: string;
-  };
-  searchParams?: { [key: string]: string | string[] | undefined };
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 // 在服务器组件中获取单篇文章数据
@@ -46,8 +45,12 @@ async function getArticleData(slug: string): Promise<Article | null> {
 }
 
 // 文章详情页面组件 (异步服务器组件)
-export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
-  const { slug } = params;
+export default async function ArticleDetailPage({ params, searchParams }: ArticleDetailPageProps) {
+  // 需要 await params 来获取实际的参数对象
+  const { slug } = await params;
+  // searchParams 也可以 await，但这里我们不需要它
+  // const sp = await searchParams;
+
   const article = await getArticleData(slug);
 
   // 如果获取数据失败或文章不存在，显示 404 页面
