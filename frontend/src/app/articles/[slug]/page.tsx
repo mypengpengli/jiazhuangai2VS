@@ -4,10 +4,12 @@ import Image from 'next/image'; // 用于显示文章图片
 import { Article } from '@/types/models'; // 复用类型定义
 
 // 定义页面 props 类型，包含从动态路由获取的 slug
+// 定义页面 props 类型，包含 params 和可选的 searchParams
 interface ArticleDetailPageProps {
   params: {
     slug: string;
   };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
 // 在服务器组件中获取单篇文章数据
