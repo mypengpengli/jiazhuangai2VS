@@ -2,5 +2,5 @@ name = "jiazhuangai2vs"
 compatibility_date = "2024-09-23" # 您可以根据需要调整此日期
 compatibility_flags = ["nodejs_compat"]
 
-[site]
-bucket = "./frontend/.vercel/output/static"
+# 使 wrangler.toml 对 Pages 有效的关键属性
+pages_build_output_dir = "./frontend/.vercel/output/static"
