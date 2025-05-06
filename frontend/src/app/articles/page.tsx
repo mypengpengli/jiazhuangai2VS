@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import React from 'react';
 import Link from 'next/link';
 import { Article } from '@/types/models'; // 假设类型已定义或将要定义

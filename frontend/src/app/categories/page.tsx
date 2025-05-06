@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import React from 'react';
 import Link from 'next/link';
 import { Category } from '@/types/models'; // 复用类型定义

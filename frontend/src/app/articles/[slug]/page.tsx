@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import React from 'react';
 import { notFound } from 'next/navigation';
 import Image from 'next/image'; // 用于显示文章图片
