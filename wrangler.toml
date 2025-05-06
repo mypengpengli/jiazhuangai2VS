@@ -1,6 +1,4 @@
 name = "jiazhuangai2vs"
-compatibility_date = "2024-09-23" # 您可以根据需要调整此日期
+compatibility_date = "2024-09-23" # 请确保这个日期与您 Cloudflare Pages UI 中的兼容日期一致或更新
 compatibility_flags = ["nodejs_compat"]
-
-# 使 wrangler.toml 对 Pages 有效的关键属性
-pages_build_output_dir = "./frontend/.vercel/output/static"
+pages_build_output_dir = "./frontend/.vercel/output/static" # 确保 Pages 读取此文件
