@@ -45,11 +45,10 @@ async function getArticleData(slug: string): Promise<Article | null> {
 }
 
 // 文章详情页面组件 (异步服务器组件)
-export default async function ArticleDetailPage({ params, searchParams }: ArticleDetailPageProps) {
+// 只解构需要的 params
+export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
   // 需要 await params 来获取实际的参数对象
   const { slug } = await params;
-  // searchParams 也可以 await，但这里我们不需要它
-  // const sp = await searchParams;
 
   const article = await getArticleData(slug);
 
