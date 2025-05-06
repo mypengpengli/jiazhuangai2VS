@@ -1,8 +1,5 @@
 name = "jiazhuangai2vs"
-pages_build_output_dir = "./frontend/.vercel/output/static" # 相对于 wrangler.toml 的路径
+pages_build_output_dir = "./frontend/.vercel/output/static" # 相对于 wrangler.toml (项目根目录) 的路径
 
 compatibility_date = "2024-09-23" # 您可以根据 Cloudflare 的建议更新此日期
 compatibility_flags = ["nodejs_compat"]
-
-[build.environment]
-NODE_VERSION = "20.14.2"
