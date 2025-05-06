@@ -1,0 +1,6 @@
+name = "jiazhuangai2vs"
+compatibility_date = "2024-09-23" # 您可以根据需要调整此日期
+compatibility_flags = ["nodejs_compat"]
+
+[site]
+bucket = "./frontend/.vercel/output/static"
