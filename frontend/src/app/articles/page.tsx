@@ -13,10 +13,11 @@ interface ArticlesApiResponse {
 
 // 定义页面 props 类型，包含 searchParams (page 和 category)
 interface ArticlesPageProps {
-  searchParams?: {
-    page?: string | string[] | undefined;
-    category?: string | string[] | undefined; // 添加 category slug
-   };
+  searchParams: Promise<{
+    page?: string;
+    category?: string;
+    [key: string]: string | string[] | undefined;
+  }>;
 }
 
 
@@ -58,8 +59,9 @@ async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Pro
 }
 
 // 文章列表页面组件 (异步服务器组件)
-export default async function ArticlesPage({ searchParams }: ArticlesPageProps) {
+export default async function ArticlesPage(props: ArticlesPageProps) {
   // 从 searchParams 获取页码和分类 slug
+  const searchParams = await props.searchParams;
   const currentPage = parseInt(searchParams?.page as string || '1', 10) || 1;
   const categorySlug = typeof searchParams?.category === 'string' ? searchParams.category : undefined;
   const limit = 10; // 每页数量
