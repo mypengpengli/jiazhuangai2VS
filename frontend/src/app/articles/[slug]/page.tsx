@@ -8,8 +8,8 @@ import { Article } from '@/types/models'; // 复用类型定义
 // 定义页面 props 类型，params 和 searchParams 都是 Promise
 // (即使我们不用 searchParams，也保持类型一致性)
 interface ArticleDetailPageProps {
-  params: { slug: string }; // params 直接是对象
-  searchParams?: { [key: string]: string | string[] | undefined }; // searchParams 也直接是对象
+  params: Promise<{ slug: string }>; // 恢复为 Promise 类型以满足 PageProps 约束
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>; // 保持一致
 }
 
 
@@ -49,8 +49,8 @@ async function getArticleData(slug: string): Promise<Article | null> {
 // 文章详情页面组件 (异步服务器组件)
 // 只解构需要的 params
 export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
-  // params 直接是对象，不需要 await
-  const { slug } = params;
+  // 恢复 await params
+  const { slug } = await params;
 
   const article = await getArticleData(slug);
 
