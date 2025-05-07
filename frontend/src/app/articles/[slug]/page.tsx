@@ -8,9 +8,10 @@ import { Article } from '@/types/models'; // 复用类型定义
 // 定义页面 props 类型，params 和 searchParams 都是 Promise
 // (即使我们不用 searchParams，也保持类型一致性)
 interface ArticleDetailPageProps {
-  params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+  params: { slug: string }; // params 直接是对象
+  searchParams?: { [key: string]: string | string[] | undefined }; // searchParams 也直接是对象
 }
+
 
 // 在服务器组件中获取单篇文章数据
 async function getArticleData(slug: string): Promise<Article | null> {
@@ -19,7 +20,7 @@ async function getArticleData(slug: string): Promise<Article | null> {
 
   try {
     console.log(`Fetching article details from: ${apiUrl}`);
-    const res = await fetch(apiUrl, { cache: 'no-store' }); // 暂时禁用缓存
+    const res = await fetch(apiUrl, { /* cache: 'no-store' */ }); // 移除 cache 选项
 
     if (res.status === 404) {
       console.log(`Article with slug '${slug}' not found (404).`);
@@ -48,8 +49,8 @@ async function getArticleData(slug: string): Promise<Article | null> {
 // 文章详情页面组件 (异步服务器组件)
 // 只解构需要的 params
 export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
-  // 需要 await params 来获取实际的参数对象
-  const { slug } = await params;
+  // params 直接是对象，不需要 await
+  const { slug } = params;
 
   const article = await getArticleData(slug);
 
