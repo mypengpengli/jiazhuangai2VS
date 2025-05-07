@@ -1,7 +1,7 @@
 'use client'; // 声明为客户端组件，因为我们需要处理表单和状态
 
 import React, { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation'; // 用于路由跳转
+// import { useRouter } from 'next/navigation'; // 暂时注释掉，因为未使用
 // 假设我们有一个 AuthContext 来处理认证状态和 Token
 // import { useAuth } from '@/context/AuthContext'; 
 
@@ -11,7 +11,7 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState<string | null>(null); // 用于显示获取到的 token
-  const router = useRouter();
+  // const router = useRouter(); // 暂时注释掉
   // const { login } = useAuth(); // 如果使用 AuthContext
 
   const handleSubmit = async (e: FormEvent) => {
@@ -46,9 +46,13 @@ const LoginPage = () => {
       // 简单起见，我们先不跳转，只显示 token
       // router.push('/profile'); // 登录成功后跳转到个人资料页或其他受保护页面
 
-    } catch (err: any) {
+    } catch (err: unknown) { // 使用 unknown 类型代替 any
       console.error('Login failed:', err);
-      setError(err.message || '发生未知错误');
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('发生未知错误');
+      }
     } finally {
       setLoading(false);
     }
