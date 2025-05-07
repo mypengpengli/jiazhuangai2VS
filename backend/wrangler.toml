@@ -2,6 +2,14 @@ name = "jiazhuangai-backend" # Worker 名称
 main = "src/index.ts" # 入口文件 (稍后创建)
 compatibility_date = "2025-05-05" # 使用当前日期或根据需要调整
 
+# [vars] 部分用于定义环境变量
+# 这些变量在本地开发 (wrangler dev) 时可用
+# 在生产环境中，您需要在 Cloudflare Dashboard 中设置这些变量
+[vars]
+# 重要：请将下面的 JWT_SECRET 替换为一个长而随机的、安全的字符串！
+# 例如，您可以使用 openssl rand -hex 32 来生成一个。
+JWT_SECRET = "replace-this-with-your-actual-strong-jwt-secret"
+
 [[d1_databases]]
 binding = "DB" # 在代码中访问数据库的绑定名称
 database_name = "jiazhuangai"
