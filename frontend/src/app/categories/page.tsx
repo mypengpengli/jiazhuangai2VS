@@ -13,7 +13,7 @@ async function getCategoriesData(): Promise<CategoriesApiResponse | null> {
 
   try {
     console.log(`Fetching categories from: ${apiUrl}`);
-    const res = await fetch(apiUrl, { cache: 'no-store' }); // 暂时禁用缓存
+    const res = await fetch(apiUrl, { /* cache: 'no-store' */ }); // 移除 cache 选项
 
     if (!res.ok) {
       console.error(`Failed to fetch categories: ${res.status} ${res.statusText}`);
