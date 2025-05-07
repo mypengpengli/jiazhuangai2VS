@@ -41,7 +41,7 @@ async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Pro
     console.log(`Fetching articles from: ${apiUrl}`);
     const res = await fetch(apiUrl, {
       // next: { revalidate: 60 } // 可选：设置 ISR 重新验证时间（秒）
-      cache: 'no-store', // 暂时禁用缓存，以便看到最新数据
+      // cache: 'no-store', // Cloudflare Edge Runtime 不支持此选项，移除
     });
 
     if (!res.ok) {
