@@ -64,3 +64,4 @@ app.onError((err, c) => {
 console.log('Hono app initialized'); // 确认应用初始化
 
 export default app;
+// Minor change to trigger redeploy
