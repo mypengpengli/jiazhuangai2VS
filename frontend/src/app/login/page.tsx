@@ -1,29 +1,30 @@
-'use client'; // 表单交互需要客户端组件
+'use client'; // 声明为客户端组件，因为我们需要处理表单和状态
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation'; // 取消注释 useRouter
-import { useAuth } from '@/context/AuthContext'; // 导入 useAuth
+import React, { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation'; // 用于路由跳转
+// 假设我们有一个 AuthContext 来处理认证状态和 Token
+// import { useAuth } from '@/context/AuthContext'; 
 
-export default function LoginPage() {
+const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter(); // 取消注释 router 初始化
-  const { login } = useAuth(); // 从 useAuth 获取 login 函数
+  const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState<string | null>(null); // 用于显示获取到的 token
+  const router = useRouter();
+  // const { login } = useAuth(); // 如果使用 AuthContext
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
     setError(null);
+    setLoading(true);
+    setToken(null);
 
-    // console.log('Login attempt with:', { username, password }); // 保留用于调试
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
+    const loginApiUrl = `${backendUrl}/api/auth/login`;
 
-    // --- Call API and Context ---
     try {
-      // 环境变量需要在 next.config.js 或 .env 文件中配置，并加上 NEXT_PUBLIC_ 前缀才能在客户端访问
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-      const res = await fetch(`${backendUrl}/api/auth/login`, {
+      const response = await fetch(loginApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,86 +32,79 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
+      const data = await response.json();
 
-      if (!res.ok) {
-        console.error('Login failed:', data);
-        setError(data.error || `登录失败 (${res.status})`);
-      } else {
-        console.log('Login successful, received token.');
-        // 调用 AuthContext 的 login 方法存储 token
-        // 后端 login 接口目前只返回 token，没有 user 数据
-        login(data.token);
-        // 登录成功后跳转到首页
-        router.push('/');
+      if (!response.ok) {
+        throw new Error(data.error || data.message || '登录失败');
       }
-    } catch (err) {
-      console.error('Login request error:', err);
-      setError('发生网络错误，请稍后重试。');
+
+      // 登录成功
+      console.log('Login successful:', data);
+      setToken(data.token); // 显示 token
+      // await login(data.token); // 如果使用 AuthContext，调用 context 的 login 方法
+      
+      // 简单起见，我们先不跳转，只显示 token
+      // router.push('/profile'); // 登录成功后跳转到个人资料页或其他受保护页面
+
+    } catch (err: any) {
+      console.error('Login failed:', err);
+      setError(err.message || '发生未知错误');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-    // --- End of API Call ---
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10">
-      <h1 className="text-3xl font-bold mb-6 text-center">用户登录</h1>
-      <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
-            用户名
-          </label>
-          <input
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            id="username"
-            type="text"
-            placeholder="请输入用户名"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
-        <div className="mb-6">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-            密码
-          </label>
-          <input
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-            id="password"
-            type="password"
-            placeholder="******************"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-          {/* <p className="text-red-500 text-xs italic">Please choose a password.</p> */}
-        </div>
-        {error && (
-          <p className="text-red-500 text-xs italic mb-4">{error}</p>
-        )}
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+      <div className="p-8 bg-white shadow-md rounded-lg w-full max-w-md">
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">管理员登录</h1>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+              用户名
+            </label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="admin"
+            />
+          </div>
+          <div className="mb-6">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              密码
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="lipeng%@0"
+            />
+          </div>
+          {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
+          {token && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-md break-all">
+              <p className="font-semibold">登录成功！Token:</p>
+              <p className="text-xs mt-1">{token}</p>
+            </div>
+          )}
           <button
-            className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             type="submit"
-            disabled={isLoading}
+            disabled={loading}
+            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
           >
-            {isLoading ? '登录中...' : '登录'}
+            {loading ? '登录中...' : '登录'}
           </button>
-          {/* <a className="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800" href="#">
-            Forgot Password?
-          </a> */}
-        </div>
-         {/* TODO: Add link to registration page */}
-         {/* <p className="text-center text-gray-500 text-xs mt-4">
-           还没有账户？ <Link href="/register" className="text-blue-500 hover:text-blue-800">立即注册</Link>
-         </p> */}
-      </form>
-      <p className="text-center text-gray-500 text-xs">
-        &copy;{new Date().getFullYear()} 甲状腺疾病科普网站.
-      </p>
+        </form>
+      </div>
     </div>
   );
-}
+};
+
+export default LoginPage;
