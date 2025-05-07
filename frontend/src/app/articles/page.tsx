@@ -5,11 +5,12 @@ import { Article } from '@/types/models'; // 假设类型已定义或将要定�
 
 // 定义从 API 获取的数据结构 (包含文章列表和分页信息)
 interface ArticlesApiResponse {
-  articles: Article[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  items: Article[]; // 匹配后端
+  total_pages: number; // 匹配后端
+  current_page: number; // 匹配后端
+  // 如果后端还返回了 limit 和 total items，也可以在这里加上
+  // total?: number;
+  // limit?: number;
 }
 
 // 定义页面 props 类型，包含 searchParams (page 和 category)
@@ -23,7 +24,6 @@ interface ArticlesPageProps {
     [key: string]: string | string[] | undefined;
   }>;
 }
-
 
 // 在服务器组件中获取数据
 async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Promise<ArticlesApiResponse | null> {
@@ -53,7 +53,8 @@ async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Pro
     }
 
     const data: ArticlesApiResponse = await res.json();
-    console.log(`Fetched ${data.articles.length} articles.`);
+    // 使用后端返回的字段名
+    console.log(`Fetched ${data.items.length} articles.`); 
     return data;
   } catch (error) {
     console.error('Error fetching articles data:', error);
@@ -86,8 +87,8 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
     );
   }
 
-  // 从 articlesData 解构时移除未使用的 total
-  const { articles, page, totalPages } = articlesData;
+  // 从 articlesData 解构，使用新的字段名
+  const { items: articles, current_page: page, total_pages: totalPages } = articlesData;
 
   return (
     <div>
@@ -101,7 +102,7 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
         <p>{categorySlug ? '该分类下暂无文章。' : '暂无文章。'}</p>
       ) : (
         <div className="space-y-6">
-          {articles.map((article) => (
+          {articles.map((article) => ( // articles 现在是 items
             <article key={article.id} className="border rounded-lg p-4 shadow hover:shadow-md transition-shadow">
               <h2 className="text-2xl font-semibold mb-2">
                 <Link href={`/articles/${article.slug}`} className="text-blue-600 hover:underline">
@@ -120,10 +121,10 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
       )}
 
       {/* 分页控件 - 需要在链接中保留 category 参数 */}
-      {totalPages > 1 && (
+      {totalPages > 1 && ( // totalPages 现在是 total_pages
         <div className="mt-8 flex justify-center items-center space-x-4">
           <Link
-            href={`/articles?page=${page - 1}${categorySlug ? `&category=${categorySlug}` : ''}`}
+            href={`/articles?page=${page - 1}${categorySlug ? `&category=${categorySlug}` : ''}`} // page 现在是 current_page
             className={`px-4 py-2 border rounded ${
               page <= 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-600 hover:bg-gray-100'
             }`}
@@ -133,7 +134,7 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
             上一页
           </Link>
           <span className="text-gray-600">
-            第 {page} 页 / 共 {totalPages} 页
+            第 {page} 页 / 共 {totalPages} 页 
           </span>
           <Link
             href={`/articles?page=${page + 1}${categorySlug ? `&category=${categorySlug}` : ''}`}
