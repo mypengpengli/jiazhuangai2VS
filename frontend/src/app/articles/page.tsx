@@ -15,13 +15,10 @@ interface ArticlesApiResponse {
 
 // 定义页面 props 类型，包含 searchParams (page 和 category)
 interface ArticlesPageProps {
-  // 根据构建错误，尝试将 searchParams 类型改回更接近 Promise<any> 的形式
-  // 或者确保它符合 Next.js 内部 PageProps 的约束
-  // 我们先尝试恢复到 Promise 包裹的形式，因为之前的运行时似乎可以处理
   searchParams: Promise<{
     page?: string;
     category?: string;
-    [key: string]: string | string[] | undefined;
+    [key: string]: string | string[] | undefined; // 保持索引签名
   }>;
 }
 
@@ -54,7 +51,7 @@ async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Pro
 
     const data: ArticlesApiResponse = await res.json();
     // 使用后端返回的字段名
-    console.log(`Fetched ${data.items.length} articles.`); 
+    console.log(`Fetched ${data.items.length} articles.`);
     return data;
   } catch (error) {
     console.error('Error fetching articles data:', error);
@@ -66,9 +63,9 @@ async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Pro
 // 文章列表页面组件 (异步服务器组件)
 export default async function ArticlesPage(props: ArticlesPageProps) {
   // 从 searchParams 获取页码和分类 slug
-  const searchParams = await props.searchParams; // 恢复 await
-  const currentPage = parseInt(searchParams?.page || '1', 10) || 1;
-  const categorySlug = typeof searchParams?.category === 'string' ? searchParams.category : undefined;
+  const resolvedSearchParams = await props.searchParams;
+  const currentPage = parseInt(resolvedSearchParams?.page || '1', 10) || 1;
+  const categorySlug = typeof resolvedSearchParams?.category === 'string' ? resolvedSearchParams.category : undefined;
   const limit = 10; // 每页数量
 
   // 获取文章数据，传入页码和分类 slug
@@ -87,6 +84,7 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
     );
   }
 
+  // 从 articlesData 解构时移除未使用的 total
   // 从 articlesData 解构，使用新的字段名
   const { items: articles, current_page: page, total_pages: totalPages } = articlesData;
 
@@ -134,7 +132,7 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
             上一页
           </Link>
           <span className="text-gray-600">
-            第 {page} 页 / 共 {totalPages} 页 
+            第 {page} 页 / 共 {totalPages} 页
           </span>
           <Link
             href={`/articles?page=${page + 1}${categorySlug ? `&category=${categorySlug}` : ''}`}
