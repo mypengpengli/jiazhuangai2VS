@@ -1,15 +1,16 @@
 'use client'; // Context needs to be used in client components
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { User } from '@/types/models'; // Assuming User type is defined
+import { jwtDecode } from 'jwt-decode'; // 导入 jwt-decode
+import { User, DecodedToken } from '@/types/models'; // 导入 User 和 DecodedToken 类型
 
 // 定义 Context 中值的类型
 interface AuthContextType {
   token: string | null;
-  user: User | null; // 可以添加用户信息的类型
-  isLoading: boolean; // 用于处理初始加载状态
-  login: (newToken: string, userData?: User) => void; // 登录函数，接收 token 和可选的用户数据
-  logout: () => void; // 注销函数
+  user: User | null;
+  isLoading: boolean;
+  login: (newToken: string) => void; // 登录函数，现在只接收 token
+  logout: () => void;
 }
 
 // 创建 Context，提供默认值
@@ -30,11 +31,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const storedToken = localStorage.getItem('authToken');
       if (storedToken) {
-        setToken(storedToken);
-        // TODO: Optionally fetch user data based on the stored token here
-        // For now, we assume token presence means logged in, but no user data yet
-        // setUser(fetchedUserData);
-        console.log('AuthContext: Loaded token from localStorage.');
+        try {
+          const decodedToken = jwtDecode<DecodedToken>(storedToken);
+          // 检查 token 是否过期
+          const currentTime = Date.now() / 1000; // 转换为秒
+          if (decodedToken.exp > currentTime) {
+            setToken(storedToken);
+            setUser({
+              id: decodedToken.sub,
+              username: decodedToken.username,
+              role: decodedToken.role,
+            });
+            console.log('AuthContext: Loaded and validated token from localStorage. User set.');
+          } else {
+            console.log('AuthContext: Token from localStorage has expired.');
+            localStorage.removeItem('authToken'); // 清除过期的 token
+          }
+        } catch (decodeError) {
+          console.error('AuthContext: Error decoding token from localStorage', decodeError);
+          localStorage.removeItem('authToken'); // 清除无效的 token
+        }
       }
     } catch (error) {
         console.error("AuthContext: Error reading localStorage", error);
@@ -44,16 +60,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // 登录函数
-  const login = (newToken: string, userData?: User) => {
+  const login = (newToken: string) => {
+    setIsLoading(true); // 开始登录，设置加载状态
     try {
-        localStorage.setItem('authToken', newToken);
-        setToken(newToken);
-        setUser(userData || null); // 设置用户数据，如果没有提供则为 null
-        console.log('AuthContext: User logged in, token stored.');
+      const decodedToken = jwtDecode<DecodedToken>(newToken);
+      localStorage.setItem('authToken', newToken);
+      setToken(newToken);
+      setUser({
+        id: decodedToken.sub,
+        username: decodedToken.username,
+        role: decodedToken.role,
+      });
+      console.log('AuthContext: User logged in, token stored, user data set from token.');
     } catch (error) {
-        console.error("AuthContext: Error writing to localStorage", error);
-        // Handle potential storage errors (e.g., storage full, security restrictions)
-        // Maybe notify the user or fallback
+      console.error("AuthContext: Error processing login", error);
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('authToken');
+    } finally {
+      setIsLoading(false); // 登录处理完成（无论成功或失败）
     }
   };
 
