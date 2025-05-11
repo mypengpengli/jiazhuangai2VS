@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['jwt-decode'],
-  },
+  serverExternalPackages: ['jwt-decode'],
   /* config options here */
 };
 
