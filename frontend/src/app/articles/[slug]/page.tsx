@@ -12,6 +12,7 @@ interface ArticleDetailPageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>; // 保持一致
 }
 
+
 // 在服务器组件中获取单篇文章数据
 async function getArticleData(slug: string): Promise<Article | null> {
   const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8787';
