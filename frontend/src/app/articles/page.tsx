@@ -1,24 +1,26 @@
+export const runtime = 'edge';
 import React from 'react';
 import Link from 'next/link';
 import { Article } from '@/types/models'; // 假设类型已定义或将要定义
 
 // 定义从 API 获取的数据结构 (包含文章列表和分页信息)
 interface ArticlesApiResponse {
-  articles: Article[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  items: Article[]; // 匹配后端
+  total_pages: number; // 匹配后端
+  current_page: number; // 匹配后端
+  // 如果后端还返回了 limit 和 total items，也可以在这里加上
+  // total?: number;
+  // limit?: number;
 }
 
 // 定义页面 props 类型，包含 searchParams (page 和 category)
 interface ArticlesPageProps {
-  searchParams?: {
-    page?: string | string[] | undefined;
-    category?: string | string[] | undefined; // 添加 category slug
-   };
+  searchParams: Promise<{
+    page?: string;
+    category?: string;
+    [key: string]: string | string[] | undefined; // 保持索引签名
+  }>;
 }
-
 
 // 在服务器组件中获取数据
 async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Promise<ArticlesApiResponse | null> {
@@ -36,7 +38,7 @@ async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Pro
     console.log(`Fetching articles from: ${apiUrl}`);
     const res = await fetch(apiUrl, {
       // next: { revalidate: 60 } // 可选：设置 ISR 重新验证时间（秒）
-      cache: 'no-store', // 暂时禁用缓存，以便看到最新数据
+      // cache: 'no-store', // Cloudflare Edge Runtime 不支持此选项，移除
     });
 
     if (!res.ok) {
@@ -48,7 +50,8 @@ async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Pro
     }
 
     const data: ArticlesApiResponse = await res.json();
-    console.log(`Fetched ${data.articles.length} articles.`);
+    // 使用后端返回的字段名
+    console.log(`Fetched ${data.items.length} articles.`);
     return data;
   } catch (error) {
     console.error('Error fetching articles data:', error);
@@ -58,10 +61,11 @@ async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Pro
 }
 
 // 文章列表页面组件 (异步服务器组件)
-export default async function ArticlesPage({ searchParams }: ArticlesPageProps) {
+export default async function ArticlesPage(props: ArticlesPageProps) {
   // 从 searchParams 获取页码和分类 slug
-  const currentPage = parseInt(searchParams?.page as string || '1', 10) || 1;
-  const categorySlug = typeof searchParams?.category === 'string' ? searchParams.category : undefined;
+  const resolvedSearchParams = await props.searchParams;
+  const currentPage = parseInt(resolvedSearchParams?.page || '1', 10) || 1;
+  const categorySlug = typeof resolvedSearchParams?.category === 'string' ? resolvedSearchParams.category : undefined;
   const limit = 10; // 每页数量
 
   // 获取文章数据，传入页码和分类 slug
@@ -81,7 +85,8 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
   }
 
   // 从 articlesData 解构时移除未使用的 total
-  const { articles, page, totalPages } = articlesData;
+  // 从 articlesData 解构，使用新的字段名
+  const { items: articles, current_page: page, total_pages: totalPages } = articlesData;
 
   return (
     <div>
@@ -95,7 +100,7 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
         <p>{categorySlug ? '该分类下暂无文章。' : '暂无文章。'}</p>
       ) : (
         <div className="space-y-6">
-          {articles.map((article) => (
+          {articles.map((article) => ( // articles 现在是 items
             <article key={article.id} className="border rounded-lg p-4 shadow hover:shadow-md transition-shadow">
               <h2 className="text-2xl font-semibold mb-2">
                 <Link href={`/articles/${article.slug}`} className="text-blue-600 hover:underline">
@@ -114,10 +119,10 @@ export default async function ArticlesPage({ searchParams }: ArticlesPageProps) 
       )}
 
       {/* 分页控件 - 需要在链接中保留 category 参数 */}
-      {totalPages > 1 && (
+      {totalPages > 1 && ( // totalPages 现在是 total_pages
         <div className="mt-8 flex justify-center items-center space-x-4">
           <Link
-            href={`/articles?page=${page - 1}${categorySlug ? `&category=${categorySlug}` : ''}`}
+            href={`/articles?page=${page - 1}${categorySlug ? `&category=${categorySlug}` : ''}`} // page 现在是 current_page
             className={`px-4 py-2 border rounded ${
               page <= 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-600 hover:bg-gray-100'
             }`}

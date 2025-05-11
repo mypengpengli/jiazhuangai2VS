@@ -3,14 +3,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* 从 @theme 块移动过来的变量 */
+  --color-background: var(--background); /* 通常可以直接使用 --background */
+  --color-foreground: var(--foreground); /* 通常可以直接使用 --foreground */
+  /* --font-sans: var(--font-geist-sans); /* 假设 --font-geist-sans 已在 layout.tsx 或其他地方定义 */
+  /* --font-mono: var(--font-geist-mono); /* 假设 --font-geist-mono 已在 layout.tsx 或其他地方定义 */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* 移除了无效的 @theme 块 */
 
 @media (prefers-color-scheme: dark) {
   :root {

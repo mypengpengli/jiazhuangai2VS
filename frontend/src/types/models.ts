@@ -2,10 +2,20 @@
 // 注意：这些类型应与后端 API 返回的数据结构保持一致
 
 export interface User {
-  id: number;
+  id: string; // 从 JWT 的 'sub' 字段获取，通常是字符串
   username: string;
-  // 注意：密码哈希不应包含在此模型中，避免意外泄露
-  created_at: string; // D1 返回的是 ISO 8601 字符串
+  role?: string; // 从 JWT 获取，设为可选以保持灵活性
+  // created_at 在仅通过 JWT 获取用户信息时不可用，因此设为可选
+  created_at?: string; // D1 返回的是 ISO 8601 字符串
+}
+
+// 定义 JWT Payload 的结构，方便 jwt-decode 使用
+export interface DecodedToken {
+  sub: string;
+  username: string;
+  role: string;
+  iat: number;
+  exp: number;
 }
 
 export interface Category {
