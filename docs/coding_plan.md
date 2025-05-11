@@ -7,22 +7,22 @@
 **目标:** 搭建项目基础结构，完成数据库设计和初始化。
 
 1.  **项目初始化:**
-    *   [ ] 1.1 使用 `create-next-app` 初始化前端 Next.js 项目。
-    *   [ ] 1.2 初始化后端 Node.js 项目 (例如使用 Express 或 Koa 框架)。
-    *   [ ] 1.3 配置项目结构 (例如 `frontend`, `backend` 目录)。
-    *   [ ] 1.4 设置版本控制 (Git)。
+    *   [x] 1.1 使用 `create-next-app` 初始化前端 Next.js 项目。
+    *   [x] 1.2 初始化后端 Node.js 项目 (例如使用 Express 或 Koa 框架)。 (已使用 Hono 框架 on Cloudflare Workers)
+    *   [x] 1.3 配置项目结构 (例如 `frontend`, `backend` 目录)。
+    *   [x] 1.4 设置版本控制 (Git)。
 2.  **Cloudflare 配置:**
-    *   [ ] 2.1 确认 Cloudflare 账户、D1 数据库、R2 存储桶、KV 命名空间已准备就绪。
-    *   [ ] 2.2 在后端项目中配置 D1 数据库连接凭证和 SDK。
+    *   [x] 2.1 确认 Cloudflare 账户、D1 数据库、R2 存储桶、KV 命名空间已准备就绪。
+    *   [x] 2.2 在后端项目中配置 D1 数据库连接凭证和 SDK。 (已通过 wrangler.toml 和实际 API 调用验证)
     *   [ ] 2.3 在后端项目中配置 R2 存储桶连接凭证和 SDK (或确定前端直传方案)。
     *   [ ] 2.4 (可选) 在后端项目中配置 KV 命名空间连接凭证和 SDK。
 3.  **数据库设计与实现 (D1):**
-    *   [ ] 3.1 最终确定 `users`, `categories`, `articles` 表的详细结构 (字段、类型、约束、索引)。
-    *   [ ] 3.2 编写 SQL `CREATE TABLE` 语句。
-    *   [ ] 3.3 使用 Cloudflare Wrangler 或 D1 控制台执行 SQL 语句，创建表结构。
+    *   [~] 3.1 最终确定 `users`, `categories`, `articles` 表的详细结构 (字段、类型、约束、索引)。 (articles, categories 表结构基本存在并使用中，users 表待定)
+    *   [~] 3.2 编写 SQL `CREATE TABLE` 语句。 (假设 `backend/schema.sql` 包含这些)
+    *   [x] 3.3 使用 Cloudflare Wrangler 或 D1 控制台执行 SQL 语句，创建表结构。 (articles, categories 表已存在)
     *   [ ] 3.4 (可选) 考虑使用数据库迁移工具 (如 `drizzle-kit` 配合 Cloudflare D1)。
     *   [ ] 3.5 添加初始管理员用户数据到 `users` 表。
-    *   [ ] 3.6 添加初始分类数据到 `categories` 表。
+    *   [ ] 3.6 添加初始分类数据到 `categories` 表。 (目前分类表为空)
 
 ## 阶段二：后端 API 开发 (核心功能) (预计 3-4 周)
 
@@ -33,16 +33,16 @@
     *   [ ] 4.2 实现管理员登出 API (`POST /api/auth/logout`)。
     *   [ ] 4.3 实现认证中间件，保护需要登录才能访问的 API 路由。
 2.  **分类管理 API:**
-    *   [ ] 5.1 实现获取所有分类列表 API (`GET /api/categories`)。
+    *   [x] 5.1 实现获取所有分类列表 API (`GET /api/categories`)。
     *   [ ] 5.2 实现获取单个分类详情 API (`GET /api/categories/:id`)。
     *   [ ] 5.3 实现创建分类 API (`POST /api/categories`)。
     *   [ ] 5.4 实现更新分类 API (`PUT /api/categories/:id`)。
     *   [ ] 5.5 实现删除分类 API (`DELETE /api/categories/:id`)。
 3.  **文章管理 API:**
-    *   [ ] 6.1 实现获取文章列表 API (`GET /api/articles`，支持分页、按分类过滤、按时间排序)。
+    *   [x] 6.1 实现获取文章列表 API (`GET /api/articles`，支持分页、按分类过滤、按时间排序)。 (分页、过滤、排序的具体实现细节待确认，但基本获取已工作)
     *   [ ] 6.2 实现获取树形结构文章列表 API (`GET /api/articles/tree`，用于 AI 相关纪事)。
-    *   [ ] 6.3 实现获取单个文章详情 API (`GET /api/articles/:id` 或 `GET /api/articles/slug/:slug`)。
-    *   [ ] 6.4 实现创建文章 API (`POST /api/articles`，处理 `parent_id`, `category_id`, R2 文件引用)。
+    *   [x] 6.3 实现获取单个文章详情 API (`GET /api/articles/:id` 或 `GET /api/articles/slug/:slug`)。 (已实现 `GET /api/articles/:slug`)
+    *   [~] 6.4 实现创建文章 API (`POST /api/articles`，处理 `parent_id`, `category_id`, R2 文件引用)。 (我们手动通过 D1 API 插入了一条，但正式的 API 接口未实现)
     *   [ ] 6.5 实现更新文章 API (`PUT /api/articles/:id`)。
     *   [ ] 6.6 实现删除文章 API (`DELETE /api/articles/:id`)。
 4.  **用户管理 API (管理员):**
@@ -86,15 +86,15 @@
 **目标:** 开发面向普通用户的前台展示页面。
 
 1.  **核心布局:**
-    *   [ ] 14.1 实现网站的整体布局 (页头、页脚、主导航)。
-    *   [ ] 14.2 设计并实现网站的整体 UI 风格。
+    *   [x] 14.1 实现网站的整体布局 (页头、页脚、主导航)。 (基本组件已存在)
+    *   [~] 14.2 设计并实现网站的整体 UI 风格。 (使用了 Tailwind CSS，有基础风格)
 2.  **AI 相关纪事页面:**
     *   [ ] 15.1 调用 `GET /api/articles/tree` 获取树形数据。
     *   [ ] 15.2 使用合适的 UI 组件 (如 Ant Design Tree) 展示树形内容，支持展开/折叠。
 3.  **AI 家装应用页面:**
-    *   [ ] 16.1 实现分类导航组件。
-    *   [ ] 16.2 实现文章列表组件，根据选择的分类调用 `GET /api/articles`。
-    *   [ ] 16.3 实现文章详情页面，调用 `GET /api/articles/:id` 或 `GET /api/articles/slug/:slug` 展示文章内容。
+    *   [x] 16.1 实现分类导航组件。 (即 `/categories` 页面)
+    *   [x] 16.2 实现文章列表组件，根据选择的分类调用 `GET /api/articles`。 (即 `/articles` 页面，分类筛选功能待完善)
+    *   [x] 16.3 实现文章详情页面，调用 `GET /api/articles/:id` 或 `GET /api/articles/slug/:slug` 展示文章内容。 (即 `/articles/[slug]` 页面)
 4.  **关于我们页面:**
     *   [ ] 17.1 实现静态的“关于我们”页面，展示团队介绍和服务信息。
     *   [ ] 17.2 (可选) 将部分内容改为从后台获取。
@@ -104,8 +104,8 @@
 **目标:** 完成系统测试，修复 Bug，并将应用部署上线。
 
 1.  **集成测试:**
-    *   [ ] 18.1 进行前后端接口联调测试。
-    *   [ ] 18.2 测试所有核心功能流程 (用户浏览、管理员操作)。
+    *   [~] 18.1 进行前后端接口联调测试。 (已对部分核心展示接口进行联调)
+    *   [~] 18.2 测试所有核心功能流程 (用户浏览、管理员操作)。 (用户浏览文章列表、详情、分类列表已测试)
 2.  **单元与集成测试:**
     *   [ ] 19.1 (推荐) 为后端关键服务和逻辑编写单元测试。
     *   [ ] 19.2 (推荐) 为前端关键组件编写单元测试。
@@ -116,14 +116,14 @@
     *   [ ] 20.3 进行基础的安全测试 (如检查 SQL 注入、XSS、CSRF 风险)。
 4.  **部署准备:**
     *   [ ] 21.1 编写部署文档。
-    *   [ ] 21.2 配置生产环境变量。
-    *   [ ] 21.3 (推荐) 配置 CI/CD 流程 (如使用 GitHub Actions)。
+    *   [x] 21.2 配置生产环境变量。 (例如 `BACKEND_API_URL` 已在 Pages 中配置)
+    *   [ ] 21.3 (推荐) 配置 CI/CD 流程 (如使用 GitHub Actions)。 (Cloudflare Pages 自动从 GitHub 拉取部署，算是一种 CI/CD)
 5.  **部署:**
-    *   [ ] 22.1 将后端 Node.js 应用部署到 Cloudflare Workers (或其他平台)。
-    *   [ ] 22.2 将前端 Next.js 应用部署到 Cloudflare Pages。
-    *   [ ] 22.3 配置域名和 DNS。
+    *   [x] 22.1 将后端 Node.js 应用部署到 Cloudflare Workers (或其他平台)。
+    *   [x] 22.2 将前端 Next.js 应用部署到 Cloudflare Pages。
+    *   [ ] 22.3 配置域名和 DNS。 (目前使用 pages.dev 子域名)
 6.  **最终测试与上线:**
-    *   [ ] 23.1 在生产环境进行最终测试。
+    *   [~] 23.1 在生产环境进行最终测试。 (我们正在进行中)
     *   [ ] 23.2 正式上线。
 
 **注意:**
