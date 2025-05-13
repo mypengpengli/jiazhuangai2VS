@@ -1,7 +1,7 @@
 # 网站开发规则
 
 ## 技术选型
-
+开发始终使用context7以及cloudflare的mcp服务，记住使用context7,和cloudflare的MCP，也有gitgub的MCP
 - **后端:** Node.js
 - **前端:** React (使用 Next.js 框架)
 - **数据库:** cloudflare 的KV D1 R2
