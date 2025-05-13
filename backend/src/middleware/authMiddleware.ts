@@ -1,5 +1,5 @@
 import { Context, Next } from 'hono';
-// import { verify } from 'hono/jwt'; // 用于实际 JWT 验证
+import { verify } from 'hono/jwt'; // 用于实际 JWT 验证
 
 // 定义环境变量类型
 type Env = {
@@ -9,7 +9,7 @@ type Env = {
 
 // 定义上下文中可以传递的变量类型
 type Variables = {
-    user?: { id: string; username: string }; // 或者更详细的用户信息类型
+    user?: { sub: string; username: string; role: string; iat: number; exp: number; }; // 匹配 JWT payload 结构
 };
 
 /**
@@ -28,31 +28,23 @@ export const authMiddleware = async (c: Context<{ Bindings: Env, Variables: Vari
 
   const token = authHeader.substring(7); // 提取 Token 部分 ("Bearer ".length === 7)
 
-  // --- TODO: 实现实际的 JWT 验证 ---
-  // if (!c.env.JWT_SECRET) {
-  //   console.error('AuthMiddleware: JWT_SECRET is not configured!');
-  //   return c.json({ error: 'Internal Server Error', message: 'Authentication configuration error.' }, 500);
-  // }
-  // try {
-  //   const decodedPayload = await verify(token, c.env.JWT_SECRET);
-  //   // 将解码后的用户信息附加到上下文，供后续处理程序使用
-  //   c.set('user', decodedPayload);
-  //   console.log('AuthMiddleware: Token verified successfully for user:', decodedPayload.sub);
-  // } catch (error) {
-  //   console.error('AuthMiddleware: Invalid token:', error);
-  //   return c.json({ error: 'Unauthorized', message: 'Invalid or expired token.' }, 401);
-  // }
-  // --- 结束 TODO ---
-
-  // --- 临时验证逻辑 ---
-  if (token !== 'fake-jwt-token-for-dev') {
-      console.log('AuthMiddleware: Invalid fake token received:', token);
-      return c.json({ error: 'Unauthorized', message: 'Invalid token (temporary check).' }, 401);
+  if (!c.env.JWT_SECRET) {
+    console.error('AuthMiddleware: JWT_SECRET is not configured!');
+    return c.json({ error: 'Internal Server Error', message: 'Authentication configuration error.' }, 500);
   }
-  // 假设验证通过，设置一个假的用户信息
-  c.set('user', { id: '1', username: 'admin' }); // 临时设置用户信息
-  console.log('AuthMiddleware: Fake token validated successfully');
-  // --- 结束临时验证逻辑 ---
+
+  try {
+    // 明确指定 decodedPayload 的类型以匹配 User 类型或 JWT 结构
+    const decodedPayload = await verify(token, c.env.JWT_SECRET) as { sub: string; username: string; role: string; iat: number; exp: number; };
+    // 将解码后的用户信息附加到上下文，供后续处理程序使用
+    c.set('user', decodedPayload);
+    console.log('AuthMiddleware: Token verified successfully for user:', decodedPayload.sub);
+  } catch (error) {
+    console.error('AuthMiddleware: Invalid token:', error);
+    // 可以根据 error 类型判断是过期还是无效签名
+    // 例如: if (error instanceof Error && error.message.includes('expired')) { ... }
+    return c.json({ error: 'Unauthorized', message: 'Invalid or expired token.' }, 401);
+  }
 
 
   // Token 有效，继续处理请求
