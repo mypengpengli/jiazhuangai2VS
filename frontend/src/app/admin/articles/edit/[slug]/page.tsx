@@ -3,6 +3,7 @@
 import React, { useState, useEffect, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image'; // Import next/image
 import { useAuth } from '@/context/AuthContext';
 import { Category, Article } from '@/types/models';
 
@@ -34,9 +35,13 @@ const EditArticlePage = () => {
         if (!response.ok) throw new Error('获取分类失败');
         const data = await response.json();
         setCategories(data || []);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch categories:', err);
-        setError('加载分类列表失败: ' + err.message);
+        if (err instanceof Error) {
+          setError('加载分类列表失败: ' + err.message);
+        } else {
+          setError('加载分类列表失败: 发生未知错误');
+        }
       }
     };
     fetchCategories();
@@ -68,9 +73,13 @@ const EditArticlePage = () => {
         setContent(article.content || '');
         setCategoryId(article.category_id || '');
         setCurrentImageUrl(article.image_urls);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch article data:', err);
-        setError(err.message || '加载文章数据失败。');
+        if (err instanceof Error) {
+          setError(err.message || '加载文章数据失败。');
+        } else {
+          setError('加载文章数据失败: 发生未知错误。');
+        }
       } finally {
         setIsFetchingArticle(false);
       }
@@ -124,9 +133,13 @@ const EditArticlePage = () => {
 
       alert('文章更新成功！');
       router.push('/admin/articles');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update article:', err);
-      setError(err.message || '更新文章时发生错误。');
+      if (err instanceof Error) {
+        setError(err.message || '更新文章时发生错误。');
+      } else {
+        setError('更新文章时发生未知错误。');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +214,9 @@ const EditArticlePage = () => {
           {currentImageUrl && !imageFile && (
             <div className="my-2">
               <p className="text-xs text-gray-600 mb-1">当前图片:</p>
-              <img src={currentImageUrl} alt="Current article image" className="max-h-40 rounded border" />
+              {/* 使用 next/image。注意：如果 currentImageUrl 是外部 URL，需要在 next.config.js 中配置 images.remotePatterns */}
+              {/* 为了简单起见，这里假设图片尺寸，实际应用中可能需要更动态的处理或固定宽高比 */}
+              <Image src={currentImageUrl} alt="Current article image" width={160} height={160} className="max-h-40 w-auto rounded border" style={{ objectFit: 'contain' }} />
             </div>
           )}
           <input

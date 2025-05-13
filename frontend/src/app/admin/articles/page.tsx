@@ -34,9 +34,13 @@ const AdminArticlesPage = () => {
         }
         const data = await response.json();
         setArticles(data.items || []); // API 返回的数据结构是 { items: [], ... }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch articles:', err);
-        setError(err.message || '加载文章失败，请稍后重试。');
+        if (err instanceof Error) {
+          setError(err.message || '加载文章失败，请稍后重试。');
+        } else {
+          setError('加载文章失败: 发生未知错误。');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -66,9 +70,13 @@ const AdminArticlesPage = () => {
         // 重新加载文章列表
         setArticles(prevArticles => prevArticles.filter(article => article.id !== articleId));
         alert('文章删除成功！');
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to delete article:', err);
-        alert(`删除文章失败: ${err.message}`);
+        if (err instanceof Error) {
+          alert(`删除文章失败: ${err.message}`);
+        } else {
+          alert('删除文章失败: 发生未知错误。');
+        }
       }
     }
   };

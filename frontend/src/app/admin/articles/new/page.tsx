@@ -29,9 +29,13 @@ const CreateArticlePage = () => {
         if (!response.ok) throw new Error('获取分类失败');
         const data = await response.json();
         setCategories(data || []);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch categories:', err);
-        setError('加载分类列表失败: ' + err.message);
+        if (err instanceof Error) {
+          setError('加载分类列表失败: ' + err.message);
+        } else {
+          setError('加载分类列表失败: 发生未知错误');
+        }
       }
     };
     fetchCategories();
@@ -83,9 +87,13 @@ const CreateArticlePage = () => {
 
       alert('文章创建成功！');
       router.push('/admin/articles'); // 跳转回文章列表页
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to create article:', err);
-      setError(err.message || '创建文章时发生错误。');
+      if (err instanceof Error) {
+        setError(err.message || '创建文章时发生错误。');
+      } else {
+        setError('创建文章时发生未知错误。');
+      }
     } finally {
       setIsLoading(false);
     }

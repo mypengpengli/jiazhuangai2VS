@@ -33,9 +33,13 @@ const AdminCategoriesPage = () => {
         }
         const data = await response.json();
         setCategories(data || []); // API 直接返回数组
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch categories:', err);
-        setError(err.message || '加载分类失败，请稍后重试。');
+        if (err instanceof Error) {
+          setError(err.message || '加载分类失败，请稍后重试。');
+        } else {
+          setError('加载分类失败: 发生未知错误。');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -64,9 +68,13 @@ const AdminCategoriesPage = () => {
         }
         setCategories(prevCategories => prevCategories.filter(category => category.id !== categoryId));
         alert('分类删除成功！');
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to delete category:', err);
-        alert(`删除分类失败: ${err.message}`);
+        if (err instanceof Error) {
+          alert(`删除分类失败: ${err.message}`);
+        } else {
+          alert('删除分类失败: 发生未知错误。');
+        }
       }
     }
   };

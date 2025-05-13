@@ -45,9 +45,13 @@ const CreateCategoryPage = () => {
 
       alert('分类创建成功！');
       router.push('/admin/categories'); // 跳转回分类列表页
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to create category:', err);
-      setError(err.message || '创建分类时发生错误。');
+      if (err instanceof Error) {
+        setError(err.message || '创建分类时发生错误。');
+      } else {
+        setError('创建分类时发生未知错误。');
+      }
     } finally {
       setIsLoading(false);
     }

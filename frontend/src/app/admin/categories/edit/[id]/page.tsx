@@ -41,9 +41,13 @@ const EditCategoryPage = () => {
         const category: Category = await response.json();
         setName(category.name);
         setDescription(category.description || '');
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch category data:', err);
-        setError(err.message || '加载分类数据失败。');
+        if (err instanceof Error) {
+          setError(err.message || '加载分类数据失败。');
+        } else {
+          setError('加载分类数据失败: 发生未知错误。');
+        }
       } finally {
         setIsFetchingCategory(false);
       }
@@ -83,9 +87,13 @@ const EditCategoryPage = () => {
 
       alert('分类更新成功！');
       router.push('/admin/categories');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update category:', err);
-      setError(err.message || '更新分类时发生错误。');
+      if (err instanceof Error) {
+        setError(err.message || '更新分类时发生错误。');
+      } else {
+        setError('更新分类时发生未知错误。');
+      }
     } finally {
       setIsLoading(false);
     }
