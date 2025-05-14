@@ -5,8 +5,15 @@ import { cors } from 'hono/cors'; // 导入 CORS 中间件
 // 这有助于 TypeScript 类型检查
 type Env = {
   DB: D1Database;
-  BUCKET: R2Bucket;
+  BUCKET: R2Bucket; // R2 Bucket 实例绑定
   KV: KVNamespace;
+  // 新增: R2 预签名 URL 所需的 Secrets
+  R2_BUCKET_NAME: string;
+  R2_ACCOUNT_ID: string;
+  R2_ACCESS_KEY_ID: string;
+  R2_SECRET_ACCESS_KEY: string;
+  // JWT_SECRET 是 authMiddleware 所需的，也应在此定义
+  JWT_SECRET: string;
   // 如果有其他绑定或环境变量，也在此处添加
 };
 
@@ -54,6 +61,10 @@ app.route('/api/categories', categoryRoutes); // 所有 /api/categories/* 的请
 // 导入并挂载文章路由
 import articleRoutes from './routes/articles';
 app.route('/api/articles', articleRoutes); // 所有 /api/articles/* 的请求都由 articleRoutes 处理
+
+// 导入并挂载 R2 路由
+import r2Routes from './routes/r2Routes';
+app.route('/api/r2', r2Routes); // 所有 /api/r2/* 的请求都由 r2Routes 处理
 
 // 全局错误处理 (示例)
 app.onError((err, c) => {
