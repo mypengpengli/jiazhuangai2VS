@@ -14,12 +14,14 @@
 2.  **Cloudflare 配置:**
     *   [x] 2.1 确认 Cloudflare 账户、D1 数据库、R2 存储桶、KV 命名空间已准备就绪。
     *   [x] 2.2 在后端项目中配置 D1 数据库连接凭证和 SDK。 (已通过 wrangler.toml 和实际 API 调用验证)
-    *   [ ] 2.3 在后端项目中配置 R2 存储桶连接凭证和 SDK (或确定前端直传方案)。
+    *   [ ] 2.3 在后端项目中配置 R2 存储桶连接凭证和 SDK (或确定前端直传方案)。 **(重要：用于图片、视频、文件存储)**
     *   [ ] 2.4 (可选) 在后端项目中配置 KV 命名空间连接凭证和 SDK。
 3.  **数据库设计与实现 (D1):**
     *   [~] 3.1 最终确定 `users`, `categories`, `articles` 表的详细结构 (字段、类型、约束、索引)。 (articles, categories 表结构基本存在并使用中，users 表待定)
-    *   [~] 3.2 编写 SQL `CREATE TABLE` 语句。 (假设 `backend/schema.sql` 包含这些)
-    *   [x] 3.3 使用 Cloudflare Wrangler 或 D1 控制台执行 SQL 语句，创建表结构。 (articles, categories 表已存在)
+        *   **新增考虑:** `articles` 表增加 `content_type` 字段 (如 'markdown', 'html', 'document_link') 以支持多种内容格式。
+        *   **新增考虑:** 设计 `article_attachments` 表 (或类似机制) 用于关联文章与上传的媒体文件 (图片、视频、其他文件)。
+    *   [~] 3.2 编写 SQL `CREATE TABLE` 语句。 (假设 `backend/schema.sql` 包含这些，需根据上述考虑更新)
+    *   [x] 3.3 使用 Cloudflare Wrangler 或 D1 控制台执行 SQL 语句，创建表结构。 (articles, categories 表已存在，后续可能需要 `ALTER TABLE`)
     *   [ ] 3.4 (可选) 考虑使用数据库迁移工具 (如 `drizzle-kit` 配合 Cloudflare D1)。
     *   [ ] 3.5 添加初始管理员用户数据到 `users` 表。
     *   [ ] 3.6 添加初始分类数据到 `categories` 表。 (目前分类表为空)
@@ -29,9 +31,9 @@
 **目标:** 开发核心的后台管理 API 接口。
 
 1.  **认证与授权:**
-    *   [ ] 4.1 实现管理员登录 API (`POST /api/auth/login`)，验证用户名密码，生成 Token (如 JWT)。
+    *   [~] 4.1 实现管理员登录 API (`POST /api/auth/login`)，验证用户名密码，生成 Token (如 JWT)。 (基本登录逻辑存在，需完善用户来源等)
     *   [ ] 4.2 实现管理员登出 API (`POST /api/auth/logout`)。
-    *   [ ] 4.3 实现认证中间件，保护需要登录才能访问的 API 路由。
+    *   [x] 4.3 实现认证中间件，保护需要登录才能访问的 API 路由。 (已调试并确认工作)
 2.  **分类管理 API:**
     *   [x] 5.1 实现获取所有分类列表 API (`GET /api/categories`)。
     *   [ ] 5.2 实现获取单个分类详情 API (`GET /api/categories/:id`)。
@@ -42,39 +44,42 @@
     *   [x] 6.1 实现获取文章列表 API (`GET /api/articles`，支持分页、按分类过滤、按时间排序)。 (分页、过滤、排序的具体实现细节待确认，但基本获取已工作)
     *   [ ] 6.2 实现获取树形结构文章列表 API (`GET /api/articles/tree`，用于 AI 相关纪事)。
     *   [x] 6.3 实现获取单个文章详情 API (`GET /api/articles/:id` 或 `GET /api/articles/slug/:slug`)。 (已实现 `GET /api/articles/:slug`)
-    *   [~] 6.4 实现创建文章 API (`POST /api/articles`，处理 `parent_id`, `category_id`, R2 文件引用)。 (我们手动通过 D1 API 插入了一条，但正式的 API 接口未实现)
-    *   [ ] 6.5 实现更新文章 API (`PUT /api/articles/:id`)。
+    *   [~] 6.4 实现创建文章 API (`POST /api/articles`，处理 `parent_id`, `category_id`, R2 文件引用)。 (我们手动通过 D1 API 插入了一条，但正式的 API 接口未实现。**需支持多种 `content_type` 和关联媒体文件**)
+    *   [~] 6.5 实现更新文章 API (`PUT /api/articles/:id`)。 (后端基本逻辑已通过前端更新操作验证。**需支持多种 `content_type` 和关联媒体文件**)
     *   [ ] 6.6 实现删除文章 API (`DELETE /api/articles/:id`)。
 4.  **用户管理 API (管理员):**
     *   [ ] 7.1 实现获取用户列表 API (`GET /api/users`)。
     *   [ ] 7.2 实现创建用户 API (`POST /api/users`)。
     *   [ ] 7.3 实现更新用户 API (`PUT /api/users/:id`)。
     *   [ ] 7.4 实现删除用户 API (`DELETE /api/users/:id`)。
-5.  **文件上传 API (R2):**
-    *   [ ] 8.1 (如果后端处理上传) 实现文件上传接口 (`POST /api/upload`)，将文件存入 R2 并返回文件 URL。
-    *   [ ] 8.2 (如果前端直传) 后端提供获取 R2 上传预签名 URL 的接口。
+5.  **文件上传 API (R2): (关键：支持图片、视频、文档等)**
+    *   [ ] 8.1 确定文件上传策略：后端代理上传 vs 前端直传 R2 (推荐前端直传以获取预签名 URL)。
+    *   [ ] 8.2 (如果前端直传) 后端实现获取 R2 上传预签名 URL 的接口 (`POST /api/r2/presigned-url`)，包含文件名、类型、大小等参数，并设置合适的权限和有效期。
+    *   [ ] 8.3 (如果后端代理上传) 实现文件上传接口 (`POST /api/upload`)，接收文件流，验证后存入 R2 并返回文件 URL/ID。
+    *   [ ] 8.4 实现文件列表 API (可选，用于管理已上传文件，`GET /api/r2/files`)。
+    *   [ ] 8.5 实现文件删除 API (可选，`DELETE /api/r2/files/:fileId`)。
 
 ## 阶段三：前端开发 (后台管理界面) (预计 3-4 周)
 
 **目标:** 开发功能完善的后台管理界面。
 
 1.  **基础布局与认证:**
-    *   [ ] 9.1 搭建后台管理的基础布局 (侧边栏导航、内容区域)。
-    *   [ ] 9.2 实现登录页面，调用登录 API，处理 Token 存储和路由跳转。
-    *   [ ] 9.3 实现路由守卫，未登录用户访问后台页面时跳转到登录页。
+    *   [~] 9.1 搭建后台管理的基础布局 (侧边栏导航、内容区域)。 (已有初步的后台文章/分类管理页面)
+    *   [~] 9.2 实现登录页面，调用登录 API，处理 Token 存储和路由跳转。 (登录页面存在，API 调用和 Token 处理已部分实现)
+    *   [~] 9.3 实现路由守卫，未登录用户访问后台页面时跳转到登录页。 (已有 `ProtectedRoute` 组件)
     *   [ ] 9.4 实现登出功能。
 2.  **仪表盘:**
     *   [ ] 10.1 (可选) 设计并实现简单的仪表盘页面，展示统计信息。
 3.  **分类管理页面:**
-    *   [ ] 11.1 实现分类列表展示页面，调用 `GET /api/categories`。
+    *   [~] 11.1 实现分类列表展示页面，调用 `GET /api/categories`。 (已有页面)
     *   [ ] 11.2 实现创建/编辑分类的表单和弹窗，调用 `POST/PUT /api/categories`。
     *   [ ] 11.3 实现删除分类功能，调用 `DELETE /api/categories/:id`。
 4.  **文章管理页面:**
-    *   [ ] 12.1 实现文章列表展示页面 (表格形式)，调用 `GET /api/articles`。
-    *   [ ] 12.2 实现创建/编辑文章页面。
-    *   [ ] 12.3 集成富文本编辑器 (如 Tiptap, Quill, TinyMCE)。
-    *   [ ] 12.4 实现文章内容保存，调用 `POST/PUT /api/articles`。
-    *   [ ] 12.5 实现文件上传功能 (调用后端上传接口或前端直传 R2)。
+    *   [~] 12.1 实现文章列表展示页面 (表格形式)，调用 `GET /api/articles`。 (已有页面)
+    *   [~] 12.2 实现创建/编辑文章页面。 (已有页面，功能待完善)
+    *   [ ] 12.3 集成富文本编辑器 (如 Tiptap, Quill, TinyMCE)，**支持 Markdown、HTML 内容输入，并能集成图片/视频/文件上传/选择功能**。
+    *   [ ] 12.4 实现文章内容保存，调用 `POST/PUT /api/articles`，**处理不同 `content_type` 和关联的媒体文件**。
+    *   [ ] 12.5 实现文件上传功能 (调用后端获取预签名 URL 接口或后端代理上传接口，**集成到编辑器和文章表单中**)。
     *   [ ] 12.6 实现删除文章功能，调用 `DELETE /api/articles/:id`。
 5.  **用户管理页面:**
     *   [ ] 13.1 实现用户列表展示页面，调用 `GET /api/users`。

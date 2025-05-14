@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2 } from '../services/articleService'; // 导入 deleteImageFromR2
+import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2 } from '../services/articleService'; // 重新加入 uploadImageToR2
 import { authMiddleware } from '../middleware/authMiddleware';
 import { Article } from '../models'; // 导入 Article 类型
 
@@ -69,83 +69,53 @@ protectedArticleRoutes.use('*', authMiddleware);
 // 定义创建文章的请求体 Schema (使用 nullish 使 zod 输出 type | null | undefined)
 const createArticleSchema = z.object({
     title: z.string().min(1, "标题不能为空"),
-    slug: z.string().min(1, "Slug 不能为空").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug 格式无效"),
-    content: z.string().nullish(), // 允许 null 或 undefined
-    category_id: z.number().int().positive().nullish(), // 允许 null 或 undefined
-    parent_id: z.number().int().positive().nullish(), // 允许 null 或 undefined
-    image_urls: z.string().nullish(), // 允许 null 或 undefined
+    // Slug 现在是可选的，如果前端不提供，后端会根据标题生成
+    slug: z.string().min(1, "Slug 不能为空").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug 格式无效").optional(),
+    content: z.string().nullish(),
+    category_id: z.number().int().positive().nullish(),
+    parent_id: z.number().int().positive().nullish(),
+    // 移除 image_urls，用 feature_image_key 代替
+    feature_image_key: z.string().optional(), // 接收前端传来的 R2 key
 });
 
+// 简单的 slugify 函数 (可以根据需要替换为更健壮的库)
+const slugify = (text: string): string => {
+    return text
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')           // Replace spaces with -
+        .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+        .replace(/\-\-+/g, '-');        // Replace multiple - with single -
+};
 
-// 创建文章 (需要认证) - 处理 multipart/form-data
+// 创建文章 (需要认证) - 现在处理 application/json
 protectedArticleRoutes.post(
     '/',
+    zValidator('json', createArticleSchema), // 使用 zValidator 验证 JSON 请求体
     async (c) => {
         const user = c.get('user');
-        console.log(`Route: POST /api/articles (multipart) by user: ${user?.username}`);
-
-        let imageUrl: string | undefined = undefined;
-        let parsedData: any = {};
+        const rawJsonData = c.req.valid('json'); // 获取通过 Zod 验证的数据
+        console.log(`Route: POST /api/articles (json) by user: ${user?.username}`, rawJsonData);
 
         try {
-            const formData = await c.req.formData();
-            const imageFile = formData.get('image'); // 类型是 FormDataEntryValue | null
+            // 如果 slug 未提供，则根据 title 生成
+            const slugToUse = rawJsonData.slug || slugify(rawJsonData.title);
 
-            // 提取文本字段
-            for (const [key, value] of formData.entries()) {
-                if (key !== 'image' && typeof value === 'string') {
-                    if (key === 'category_id' || key === 'parent_id') {
-                        parsedData[key] = value === '' ? null : parseInt(value, 10);
-                        if (isNaN(parsedData[key])) parsedData[key] = null;
-                    } else if (key === 'content' || key === 'image_urls') {
-                        // 对于可能为空字符串但也应视为 null 的字段
-                        parsedData[key] = value === '' ? null : value;
-                    }
-                     else {
-                        parsedData[key] = value;
-                    }
-                }
-            }
-             console.log('Parsed form data (text fields):', parsedData);
-
-            // 手动验证文本字段
-            const validatedData = createArticleSchema.parse(parsedData);
-             console.log('Validated text data:', validatedData);
-
-            // 处理图片上传 (使用更可靠的类型检查，替换 FormDataEntryValue)
-            const isFile = (value: string | File | null): value is File => {
-                return value !== null && typeof value === 'object' && value instanceof File;
-            }
-
-            if (isFile(imageFile) && imageFile.size > 0) {
-                 console.log(`Received image file: ${imageFile.name}, size: ${imageFile.size}, type: ${imageFile.type}`);
-                if (!imageFile.type.startsWith('image/')) {
-                    return c.json({ error: 'Bad Request', message: 'Uploaded file is not an image.' }, 400);
-                }
-                const arrayBuffer = await imageFile.arrayBuffer();
-                imageUrl = await uploadImageToR2(c.env.BUCKET, {
-                    name: imageFile.name,
-                    type: imageFile.type,
-                    arrayBuffer: arrayBuffer,
-                }, 'articles/');
-                 console.log('Image uploaded, URL:', imageUrl);
-            } else if (imageFile) {
-                 console.log('Image field present but not a valid file or empty.');
-            }
-
-            // 准备传递给 createArticle 的数据 (将 null 转为 undefined 以匹配 Omit<Article...>)
-            const articleToCreate: Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'> = {
-                title: validatedData.title,
-                slug: validatedData.slug,
-                content: validatedData.content === null ? undefined : validatedData.content,
-                category_id: validatedData.category_id === null ? undefined : validatedData.category_id,
-                parent_id: validatedData.parent_id === null ? undefined : validatedData.parent_id,
-                // 优先使用上传的 imageUrl (string | undefined)，否则使用表单验证过的 image_urls (string | null | undefined)，最后转为 undefined
-                image_urls: imageUrl ?? (validatedData.image_urls === null ? undefined : validatedData.image_urls),
+            const articleDataForService: Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'> = {
+                title: rawJsonData.title,
+                slug: slugToUse,
+                content: rawJsonData.content === null ? undefined : rawJsonData.content,
+                category_id: rawJsonData.category_id === null ? undefined : rawJsonData.category_id,
+                parent_id: rawJsonData.parent_id === null ? undefined : rawJsonData.parent_id,
+                // 将 feature_image_key 映射到 image_urls，以便 articleService 可以使用
+                // 如果 feature_image_key 不存在或为 null，则 image_urls 将是 undefined
+                image_urls: rawJsonData.feature_image_key || undefined,
             };
-             console.log('Data prepared for createArticle:', articleToCreate);
+            
+            console.log('Data prepared for createArticle service:', articleDataForService);
 
-            const newArticle = await createArticle(c.env.DB, articleToCreate);
+            const newArticle = await createArticle(c.env.DB, articleDataForService);
             return c.json(newArticle, 201);
 
         } catch (error: any) {
