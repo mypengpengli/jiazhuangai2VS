@@ -4,10 +4,10 @@ export default function Home() {
   return (
     <div className="text-center">
       <h1 className="text-4xl font-bold mb-6 text-blue-700">
-        欢迎来到甲状腺疾病科普平台
+        欢迎来到家装AI助手
       </h1>
       <p className="text-lg mb-8 text-gray-700">
-        我们致力于提供准确、易懂的甲状腺健康知识，帮助您更好地了解和管理相关疾病。
+        家装AI助手，提供智能家装设计、方案推荐和行业资讯。
       </p>
       <div className="space-x-4">
         <Link

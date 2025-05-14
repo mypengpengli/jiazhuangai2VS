@@ -18,7 +18,7 @@ const Header: React.FC = () => {
     <header className="bg-blue-600 text-white shadow-md">
       <nav className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Link href="/" className="text-xl font-bold hover:text-blue-200">
-          甲状腺疾病科普
+          家装AI助手
         </Link>
         <div className="flex items-center space-x-4">
           <Link href="/articles" className="px-3 py-2 hover:bg-blue-700 rounded">

@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "甲状腺疾病科普",
-  description: "一个关于甲状腺疾病的科普网站，提供相关文章和信息。",
+  title: "家装AI助手",
+  description: "家装AI助手，提供智能家装设计、方案推荐和行业资讯。",
 };
 
 export default function RootLayout({

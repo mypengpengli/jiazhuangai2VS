@@ -123,7 +123,7 @@ export default function RegisterPage() {
          </p>
       </form>
       <p className="text-center text-gray-500 text-xs">
-        &copy;{new Date().getFullYear()} 甲状腺疾病科普网站.
+        &copy;{new Date().getFullYear()} 家装AI助手.
       </p>
     </div>
   );

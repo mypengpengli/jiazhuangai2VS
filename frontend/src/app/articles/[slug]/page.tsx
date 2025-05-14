@@ -108,6 +108,6 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
 //   const article = await getArticleData(params.slug);
 //   return {
 //     title: article?.title || '文章详情',
-//     description: article?.content?.substring(0, 160) || '甲状腺疾病科普文章',
+//     description: article?.content?.substring(0, 160) || '家装AI助手相关文章',
 //   };
 // }
