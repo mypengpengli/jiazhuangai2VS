@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2 } from '../services/articleService'; // 重新加入 uploadImageToR2
 import { authMiddleware } from '../middleware/authMiddleware';
-import { Article } from '../models'; // 导入 Article 类型
+import { Article, CreateArticleInput, ArticleAttachment } from '../models'; // 更新导入
 
 // 定义环境变量和变量类型
 type Env = {
@@ -71,11 +71,16 @@ const createArticleSchema = z.object({
     title: z.string().min(1, "标题不能为空"),
     // Slug 现在是可选的，如果前端不提供，后端会根据标题生成
     slug: z.string().min(1, "Slug 不能为空").regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug 格式无效").optional(),
+    content_type: z.string().min(1, "内容类型不能为空").default("markdown"), // 新增 content_type
     content: z.string().nullish(),
     category_id: z.number().int().positive().nullish(),
     parent_id: z.number().int().positive().nullish(),
-    // 移除 image_urls，用 feature_image_key 代替
-    feature_image_key: z.string().optional(), // 接收前端传来的 R2 key
+    attachments: z.array(z.object({ // 新增 attachments
+        file_type: z.string().min(1),
+        file_url: z.string().url("文件URL无效"),
+        filename: z.string().optional(),
+        description: z.string().optional()
+    })).optional().nullable(),
 });
 
 // 简单的 slugify 函数 (可以根据需要替换为更健壮的库)
@@ -102,20 +107,20 @@ protectedArticleRoutes.post(
             // 如果 slug 未提供，则根据 title 生成
             const slugToUse = rawJsonData.slug || slugify(rawJsonData.title);
 
-            const articleDataForService: Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'> = {
+            const articleDataForService: CreateArticleInput = {
                 title: rawJsonData.title,
                 slug: slugToUse,
+                content_type: rawJsonData.content_type,
                 content: rawJsonData.content === null ? undefined : rawJsonData.content,
                 category_id: rawJsonData.category_id === null ? undefined : rawJsonData.category_id,
                 parent_id: rawJsonData.parent_id === null ? undefined : rawJsonData.parent_id,
-                // 将 feature_image_key 映射到 image_urls，以便 articleService 可以使用
-                // 如果 feature_image_key 不存在或为 null，则 image_urls 将是 undefined
-                image_urls: rawJsonData.feature_image_key || undefined,
+                attachments: rawJsonData.attachments || undefined,
             };
             
             console.log('Data prepared for createArticle service:', articleDataForService);
 
             const newArticle = await createArticle(c.env.DB, articleDataForService);
+            // newArticle 此时不包含附件的详细信息，如果需要，可以再次查询
             return c.json(newArticle, 201);
 
         } catch (error: any) {
@@ -157,12 +162,13 @@ protectedArticleRoutes.put(
         try {
             // 1. 获取当前文章信息 (需要旧 image_urls)
             // 使用 getArticleBySlug 获取更完整的文章信息可能更好，但只查 ID 也可以
-            const currentArticleInfo = await c.env.DB.prepare("SELECT image_urls FROM articles WHERE id = ?").bind(articleId).first<{ image_urls: string | null }>();
-            if (!currentArticleInfo) {
-                return c.json({ error: 'Not Found', message: `Article with ID ${articleId} not found.` }, 404);
-            }
-            const oldImageUrl = currentArticleInfo.image_urls;
-            console.log(`Current image URL for article ${articleId}: ${oldImageUrl}`);
+            // const currentArticleInfo = await c.env.DB.prepare("SELECT image_urls FROM articles WHERE id = ?").bind(articleId).first<{ image_urls: string | null }>();
+            // if (!currentArticleInfo) {
+            //     return c.json({ error: 'Not Found', message: `Article with ID ${articleId} not found.` }, 404);
+            // }
+            // const oldImageUrl = currentArticleInfo.image_urls;
+            // console.log(`Current image URL for article ${articleId}: ${oldImageUrl}`);
+            // 暂时不处理旧图片URL，因为模型已更改
 
             // 2. 解析 formData
             const formData = await c.req.formData();
@@ -175,7 +181,7 @@ protectedArticleRoutes.put(
                      if (key === 'category_id' || key === 'parent_id') {
                         parsedData[key] = value === '' ? null : parseInt(value, 10);
                         if (isNaN(parsedData[key])) parsedData[key] = null;
-                    } else if (key === 'content' || key === 'image_urls') {
+                    } else if (key === 'content' || key === 'image_urls') { // image_urls will be ignored by schema if not present
                         parsedData[key] = value === '' ? null : value;
                     }
                      else {
@@ -193,11 +199,11 @@ protectedArticleRoutes.put(
             const shouldDeleteImage = deleteImageFlag === 'true' || deleteImageFlag === '1';
             if (shouldDeleteImage) {
                 console.log(`Delete image flag is set for article ${articleId}.`);
-                if (oldImageUrl) {
-                    console.log(`Attempting to delete old image from R2: ${oldImageUrl}`);
-                    await deleteImageFromR2(c.env.BUCKET, oldImageUrl);
-                }
-                newImageUrl = null; // 标记为需要删除 (null)
+                // if (oldImageUrl) { // oldImageUrl 逻辑已移除
+                //     console.log(`Attempting to delete old image from R2: ${oldImageUrl}`);
+                //     await deleteImageFromR2(c.env.BUCKET, oldImageUrl);
+                // }
+                // newImageUrl = null; // 标记为需要删除 (null) - 这部分逻辑需要与新的 attachments 模型结合
             }
 
             // 5. 处理新图片上传 (仅当没有设置删除标记时)
@@ -207,15 +213,12 @@ protectedArticleRoutes.put(
                 if (!imageFile.type.startsWith('image/')) {
                     return c.json({ error: 'Bad Request', message: 'Uploaded file is not an image.' }, 400);
                 }
-                // 删除旧图片（如果存在）
-                if (oldImageUrl) {
-                    console.log(`Attempting to delete old image before uploading new one: ${oldImageUrl}`);
-                    await deleteImageFromR2(c.env.BUCKET, oldImageUrl);
-                }
+                // 删除旧图片（如果存在）- 逻辑已移除
                 // 上传新图片
                 const arrayBuffer = await imageFile.arrayBuffer();
-                newImageUrl = await uploadImageToR2(c.env.BUCKET, { name: imageFile.name, type: imageFile.type, arrayBuffer }, 'articles/');
-                console.log('New image uploaded, URL:', newImageUrl); // newImageUrl 是 string
+                // newImageUrl = await uploadImageToR2(c.env.BUCKET, { name: imageFile.name, type: imageFile.type, arrayBuffer }, 'articles/');
+                // console.log('New image uploaded, URL:', newImageUrl); 
+                // TODO: 上传的图片URL/Key需要通过 attachments 传递给 updateArticle 服务
             } else if (imageFile) {
                  console.log('Image field present but not a valid file or empty.');
             }
@@ -225,28 +228,30 @@ protectedArticleRoutes.put(
              for (const key in validatedData) {
                 if (Object.prototype.hasOwnProperty.call(validatedData, key)) {
                     const typedKey = key as keyof typeof validatedData;
-                    const value = validatedData[typedKey];
-                    // @ts-ignore - 将 null 转为 undefined
-                    dataToUpdate[typedKey] = value === null ? undefined : value;
+                    // 确保 key 存在于 dataToUpdate 的类型中
+                    if (typedKey === 'title' || typedKey === 'slug' || typedKey === 'content' || typedKey === 'category_id' || typedKey === 'parent_id' || typedKey === 'content_type') {
+                        const value = validatedData[typedKey];
+                         // @ts-ignore 
+                        dataToUpdate[typedKey] = value === null ? undefined : value;
+                    }
                 }
             }
-
-            // 如果处理了图片（删除或上传），则更新 image_urls
-            // newImageUrl 是 string | null | undefined
-            if (newImageUrl !== undefined) {
-                // 将 null 转为 undefined 以匹配 Partial<Omit<...>>
-                dataToUpdate.image_urls = newImageUrl === null ? undefined : newImageUrl;
-            }
-            // 如果 newImageUrl 是 undefined (即未处理图片)，则 dataToUpdate.image_urls 将保持 validatedData 中的值 (可能为 string | null | undefined)，
-            // 并且在上面的循环中已经被转换为 string | undefined
+            
+            // image_urls 相关的逻辑已移除，附件更新将通过新的机制处理
+            // if (newImageUrl !== undefined) {
+            //     dataToUpdate.image_urls = newImageUrl === null ? undefined : newImageUrl;
+            // }
 
             console.log('Data prepared for updateArticle:', dataToUpdate);
 
-             // 检查是否有任何字段需要更新 (包括 image_urls)
+             // 检查是否有任何字段需要更新
             if (Object.keys(dataToUpdate).length === 0) {
                 console.log(`No fields to update for article ${articleId}.`);
                  const currentFullArticle = await getArticleBySlug(c.env.DB, id); // 重新获取完整信息返回
-                 return c.json(currentFullArticle ?? currentArticleInfo); // 优先返回带分类的，否则返回基础信息
+                 if (!currentFullArticle) {
+                    return c.json({ error: 'Not Found', message: `Article with ID ${articleId} not found.` }, 404);
+                 }
+                 return c.json(currentFullArticle);
             }
 
             // 7. 调用服务函数更新数据库
@@ -290,14 +295,14 @@ protectedArticleRoutes.delete(
                  return c.json({ error: 'Not Found', message: `Article with ID ${articleId} not found.` }, 404);
             }
 
-            // 2. 如果存在图片 URL，尝试从 R2 删除
-            if (articleToDelete.image_urls) {
-                console.log(`Attempting to delete image from R2: ${articleToDelete.image_urls}`);
-                await deleteImageFromR2(c.env.BUCKET, articleToDelete.image_urls);
-                // 注意：deleteImageFromR2 内部处理了错误，不会阻止后续操作
-            } else {
-                console.log(`Article ${articleId} has no image_urls to delete from R2.`);
-            }
+            // 2. 如果存在图片 URL，尝试从 R2 删除 - 此逻辑将移至服务层并基于 attachments
+            // if (articleToDelete.image_urls) {
+            //     console.log(`Attempting to delete image from R2: ${articleToDelete.image_urls}`);
+            //     await deleteImageFromR2(c.env.BUCKET, articleToDelete.image_urls);
+            // } else {
+            //     console.log(`Article ${articleId} has no image_urls to delete from R2.`);
+            // }
+            // TODO: 服务层的 deleteArticle 需要处理附件的删除
 
             // 3. 删除数据库记录
             const deleted = await deleteArticle(c.env.DB, articleId);

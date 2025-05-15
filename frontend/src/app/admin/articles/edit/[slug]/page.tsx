@@ -11,7 +11,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image'; // Renamed to avoid conflict
 import TiptapLink from '@tiptap/extension-link';   // Renamed to avoid conflict
-import FileUpload from '@/components/FileUpload';
+import FileUpload from '../../../../../components/FileUpload'; // Corrected relative path
 
 // Define attachment types similar to CreateArticlePage
 interface AttachmentInput {
