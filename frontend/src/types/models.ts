@@ -31,14 +31,26 @@ export interface Article {
   id: number;
   title: string;
   slug: string;
+  content_type: string; // 新增：例如 'markdown', 'html'
   content?: string;
   category_id?: number;
   parent_id?: number;
-  image_urls?: string; // 存储 JSON 字符串或逗号分隔的 URL 列表
+  // image_urls 已移除，使用 attachments
   created_at: string;
   updated_at: string;
   // 前端可能需要直接访问关联的分类信息
-  category?: Category; // 与后端 getArticles 返回的结构保持一致
+  category?: Category;
+  attachments?: ArticleAttachment[]; // 新增：附件列表
+}
+
+export interface ArticleAttachment {
+  id: number;
+  article_id: number; // 在从后端获取时通常会有
+  file_type: string;
+  file_url: string;
+  filename?: string;
+  description?: string;
+  created_at: string;
 }
 
 // (可选) 定义用于 API 响应或请求的特定类型
