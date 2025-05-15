@@ -1,4 +1,4 @@
-import { Article, Category, ArticleWithCategory } from '../models'; // 导入模型
+import { Article, Category, ArticleWithCategoryAndAttachments, CreateArticleInput, ArticleAttachment } from '../models'; // 导入模型
 import { PaginatedArticlesResponse } from '../types/api'; // 导入分页响应类型 (需要创建)
 
 // 定义环境变量类型
@@ -29,7 +29,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
 
     let articlesQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content, a.category_id, a.parent_id, a.image_urls, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.created_at, a.updated_at,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug -- 别名避免冲突
         FROM articles a
         LEFT JOIN categories c ON a.category_id = c.id
@@ -85,17 +85,18 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
         console.log(`ArticleService: Found ${articlesResults.results?.length ?? 0} articles for page ${page}. Total articles: ${totalArticles}`);
 
         // 处理查询结果，将 category_* 字段组合成 category 对象
-        const articles: ArticleWithCategory[] = (articlesResults.results ?? []).map((row: any) => {
-            const article: ArticleWithCategory = {
+        const articles: ArticleWithCategoryAndAttachments[] = (articlesResults.results ?? []).map((row: any) => {
+            const article: ArticleWithCategoryAndAttachments = {
                 id: row.id,
                 title: row.title,
                 slug: row.slug,
+                content_type: row.content_type,
                 content: row.content,
                 category_id: row.category_id,
                 parent_id: row.parent_id,
-                image_urls: row.image_urls,
                 created_at: row.created_at,
                 updated_at: row.updated_at,
+                // attachments: [] // 暂时不填充附件
             };
             if (row.category_cat_id) {
                 article.category = {
@@ -127,44 +128,73 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
 /**
  * 创建新文章
  * @param db D1Database 实例
- * @param articleData 文章数据 (title, slug, content, category_id, parent_id, image_urls)
+ * @param articleData 文章数据 (包含 content_type 和可选的 attachments)
  * @returns 新创建的文章对象
  */
-export const createArticle = async (db: D1Database, articleData: Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'>): Promise<Article> => {
-    const { title, slug, content, category_id, parent_id, image_urls } = articleData;
-    console.log(`ArticleService: Creating article with slug: ${slug}`);
+export const createArticle = async (db: D1Database, articleData: CreateArticleInput): Promise<Article> => {
+    const { title, slug, content_type, content, category_id, parent_id, attachments } = articleData;
+    console.log(`ArticleService: Creating article with slug: ${slug}, content_type: ${content_type}`);
 
-    // 注意：实际应用中应添加更严格的 slug 唯一性检查和错误处理
-    // 注意：暂未处理 image_urls 的上传逻辑，仅存储传入的字符串
     try {
-        const stmt = db.prepare(
-            `INSERT INTO articles (title, slug, content, category_id, parent_id, image_urls)
+        const statements = [];
+
+        // 1. 插入文章
+        const articleStmt = db.prepare(
+            `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id)
              VALUES (?, ?, ?, ?, ?, ?)
-             RETURNING id, title, slug, content, category_id, parent_id, image_urls, created_at, updated_at`
-        );
-        const result = await stmt.bind(
+             RETURNING id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at`
+        ).bind(
             title,
             slug,
+            content_type,
             content || null,
             category_id || null,
-            parent_id || null,
-            image_urls || null // 存储传入的字符串，或 null
+            parent_id || null
+        );
+        statements.push(articleStmt);
+        
+        // D1 batch 操作不支持 RETURNING，所以我们需要先插入文章，获取ID，再插入附件。
+        // 或者，如果不需要立即返回完整的文章对象，可以分两步。
+        // 这里我们先尝试直接插入文章并获取其信息，然后单独处理附件。
+        // 更安全的做法是使用事务，但 Hono 的 D1 绑定可能不直接暴露事务API，
+        // Cloudflare Workers D1 Client API 的 `db.batch()` 可以原子执行。
+
+        const createdArticleResult = await db.prepare(
+            `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id)
+             VALUES (?, ?, ?, ?, ?, ?)
+             RETURNING id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at`
+        ).bind(
+            title, slug, content_type, content || null, category_id || null, parent_id || null
         ).first<Article>();
 
-        if (!result) {
-            console.error('ArticleService: Failed to create article, INSERT did not return data.');
+        if (!createdArticleResult || !createdArticleResult.id) {
+            console.error('ArticleService: Failed to create article, INSERT did not return data or ID.');
             throw new Error('Failed to create article.');
         }
-        console.log(`ArticleService: Article created successfully with ID: ${result.id}`);
-        // 返回的文章对象不包含 category 详情，如果需要可以在路由层再次查询或 JOIN
-        return result;
+        const articleId = createdArticleResult.id;
+        console.log(`ArticleService: Article base created successfully with ID: ${articleId}`);
+
+        // 2. 如果有附件，插入附件
+        if (attachments && attachments.length > 0) {
+            const attachmentStatements = attachments.map(att => 
+                db.prepare(
+                    `INSERT INTO article_attachments (article_id, file_type, file_url, filename, description)
+                     VALUES (?, ?, ?, ?, ?)`
+                ).bind(articleId, att.file_type, att.file_url, att.filename || null, att.description || null)
+            );
+            
+            console.log(`ArticleService: Preparing to insert ${attachmentStatements.length} attachments for article ID ${articleId}`);
+            await db.batch(attachmentStatements);
+            console.log(`ArticleService: Attachments inserted successfully for article ID ${articleId}`);
+        }
+        
+        return createdArticleResult;
+
     } catch (error: any) {
         console.error('Error in createArticle:', error);
-        // 特别处理唯一性约束错误
         if (error.message?.includes('UNIQUE constraint failed')) {
             throw new Error(`Article with slug '${slug}' already exists.`);
         }
-        // 处理外键约束错误 (例如 category_id 不存在)
         if (error.message?.includes('FOREIGN KEY constraint failed')) {
              throw new Error(`Invalid category_id or parent_id provided.`);
         }
@@ -173,48 +203,61 @@ export const createArticle = async (db: D1Database, articleData: Omit<Article, '
 };
 
 /**
- * 根据 slug 获取单篇文章详情 (包含分类信息)
+ * 根据 slug 获取单篇文章详情 (包含分类信息和附件)
  * @param db D1Database 实例
  * @param slug 文章的 slug
- * @returns 文章对象 (包含分类) 或 null (如果未找到)
+ * @returns 文章对象 (包含分类和附件) 或 null (如果未找到)
  */
-export const getArticleBySlug = async (db: D1Database, slug: string): Promise<ArticleWithCategory | null> => {
+export const getArticleBySlug = async (db: D1Database, slug: string): Promise<ArticleWithCategoryAndAttachments | null> => {
     console.log(`ArticleService: Fetching article with slug: ${slug}`);
-    const query = `
+    const articleQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content, a.category_id, a.parent_id, a.image_urls, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.created_at, a.updated_at,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug
         FROM articles a
         LEFT JOIN categories c ON a.category_id = c.id
         WHERE a.slug = ?
     `;
+    
     try {
-        const stmt = db.prepare(query);
-        const row = await stmt.bind(slug).first<any>(); // 使用 first() 获取单条记录
+        const articleStmt = db.prepare(articleQuery);
+        const articleRow = await articleStmt.bind(slug).first<any>();
 
-        if (!row) {
+        if (!articleRow) {
             console.log(`ArticleService: Article with slug '${slug}' not found.`);
             return null;
         }
 
-        console.log(`ArticleService: Found article with ID: ${row.id}`);
-        const article: ArticleWithCategory = {
-            id: row.id,
-            title: row.title,
-            slug: row.slug,
-            content: row.content,
-            category_id: row.category_id,
-            parent_id: row.parent_id,
-            image_urls: row.image_urls,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
+        console.log(`ArticleService: Found article with ID: ${articleRow.id}`);
+        
+        // 获取附件信息
+        const attachmentsQuery = `
+            SELECT id, article_id, file_type, file_url, filename, description, created_at
+            FROM article_attachments
+            WHERE article_id = ?
+        `;
+        const attachmentsStmt = db.prepare(attachmentsQuery);
+        const attachmentsResult = await attachmentsStmt.bind(articleRow.id).all<ArticleAttachment>();
+        
+        const article: ArticleWithCategoryAndAttachments = {
+            id: articleRow.id,
+            title: articleRow.title,
+            slug: articleRow.slug,
+            content_type: articleRow.content_type,
+            content: articleRow.content,
+            category_id: articleRow.category_id,
+            parent_id: articleRow.parent_id,
+            created_at: articleRow.created_at,
+            updated_at: articleRow.updated_at,
+            attachments: attachmentsResult.results || [],
         };
-        if (row.category_cat_id) {
+
+        if (articleRow.category_cat_id) {
             article.category = {
-                id: row.category_cat_id,
-                name: row.category_name,
-                slug: row.category_slug,
-                created_at: '', // 占位符
+                id: articleRow.category_cat_id,
+                name: articleRow.category_name,
+                slug: articleRow.category_slug,
+                created_at: '', // 占位符, D1 不直接返回这些，除非在 JOIN 中明确选择
                 updated_at: '', // 占位符
             };
         }
@@ -233,10 +276,13 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
  * @param articleData 更新的数据 (部分字段)
  * @returns 更新后的文章对象，如果找不到则返回 null
  */
-export const updateArticle = async (db: D1Database, id: number, articleData: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'>>): Promise<Article | null> => {
+export const updateArticle = async (db: D1Database, id: number, articleData: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at'>> & { attachments?: Partial<ArticleAttachment>[] }): Promise<Article | null> => {
     console.log(`ArticleService: Updating article with ID: ${id}`);
 
-    const { title, slug, content, category_id, parent_id, image_urls } = articleData;
+    // 解构时排除 attachments，单独处理
+    const { attachments, ...articleFieldsToUpdate } = articleData;
+    const { title, slug, content_type, content, category_id, parent_id } = articleFieldsToUpdate;
+
 
     // 构建 SET 子句
     const setClauses: string[] = [];
@@ -244,36 +290,69 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
 
     if (title !== undefined) { setClauses.push('title = ?'); values.push(title); }
     if (slug !== undefined) { setClauses.push('slug = ?'); values.push(slug); }
+    if (content_type !== undefined) { setClauses.push('content_type = ?'); values.push(content_type); }
     if (content !== undefined) { setClauses.push('content = ?'); values.push(content); }
-    // 注意：允许将 category_id 或 parent_id 更新为 null
-    if (articleData.hasOwnProperty('category_id')) { setClauses.push('category_id = ?'); values.push(category_id ?? null); }
-    if (articleData.hasOwnProperty('parent_id')) { setClauses.push('parent_id = ?'); values.push(parent_id ?? null); }
-    if (image_urls !== undefined) { setClauses.push('image_urls = ?'); values.push(image_urls); } // 暂存字符串
+    if (articleFieldsToUpdate.hasOwnProperty('category_id')) { setClauses.push('category_id = ?'); values.push(category_id ?? null); }
+    if (articleFieldsToUpdate.hasOwnProperty('parent_id')) { setClauses.push('parent_id = ?'); values.push(parent_id ?? null); }
+    // image_urls 字段已移除，附件通过 attachments 参数处理
 
-    if (setClauses.length === 0) {
-        console.log(`ArticleService: No fields to update for article ID: ${id}.`);
-        // 如果没有字段更新，可以考虑直接查询并返回当前文章，或者返回 null/错误
-        // 这里选择查询并返回当前文章
-        const currentArticle = await db.prepare('SELECT * FROM articles WHERE id = ?').bind(id).first<Article>();
+    if (setClauses.length === 0 && (!attachments || attachments.length === 0)) {
+        console.log(`ArticleService: No fields or attachments to update for article ID: ${id}.`);
+        const currentArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
         return currentArticle ?? null;
     }
 
-    // 总是更新 updated_at
-    setClauses.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(id); // 添加 ID 到末尾用于 WHERE
+    const updateStatements = [];
 
-    const sql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content, category_id, parent_id, image_urls, created_at, updated_at`;
+    if (setClauses.length > 0) {
+        setClauses.push('updated_at = CURRENT_TIMESTAMP');
+        const articleUpdateSql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at`;
+        const articleUpdateStmt = db.prepare(articleUpdateSql).bind(...values, id);
+        // D1 batch 不支持 RETURNING，所以主文章更新需要单独执行以获取结果
+        // updateStatements.push(articleUpdateStmt); // 不能直接放入 batch 如果需要 RETURNING
+    }
+    
+    // TODO: 实现附件的更新逻辑 (删除旧的，添加新的)
+    // 这部分比较复杂，暂时跳过，仅更新文章主表字段
+    // if (attachments) {
+    //     // 1. 删除与此文章关联的所有旧附件 (简单策略，或者可以做更细致的比较)
+    //     const deleteAttachmentsStmt = db.prepare('DELETE FROM article_attachments WHERE article_id = ?').bind(id);
+    //     updateStatements.push(deleteAttachmentsStmt);
+    //     // 2. 插入新的附件
+    //     attachments.forEach(att => {
+    //         if (att.file_type && att.file_url) { // 确保基本字段存在
+    //             const insertAttachmentStmt = db.prepare(
+    //                 `INSERT INTO article_attachments (article_id, file_type, file_url, filename, description)
+    //                  VALUES (?, ?, ?, ?, ?)`
+    //             ).bind(id, att.file_type, att.file_url, att.filename || null, att.description || null);
+    //             updateStatements.push(insertAttachmentStmt);
+    //         }
+    //     });
+    // }
+
 
     try {
-        const stmt = db.prepare(sql);
-        const result = await stmt.bind(...values).first<Article>();
+        let updatedArticle: Article | null = null;
+        if (setClauses.length > 0) {
+            const articleUpdateSql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at`;
+            updatedArticle = await db.prepare(articleUpdateSql).bind(...values, id).first<Article>();
+        } else {
+            // 如果只更新附件，需要先获取当前文章信息
+            updatedArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
+        }
 
-        if (!result) {
+
+        if (!updatedArticle) {
             console.log(`ArticleService: Article with ID ${id} not found for update.`);
             return null;
         }
+        
+        // TODO: 在事务中处理附件更新
+        // if (attachments) { ... }
+
+
         console.log(`ArticleService: Article ${id} updated successfully.`);
-        return result;
+        return updatedArticle;
     } catch (error: any) {
         console.error(`Error in updateArticle for ID ${id}:`, error);
         // 处理唯一性约束错误

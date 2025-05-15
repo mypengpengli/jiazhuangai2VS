@@ -22,15 +22,29 @@ CREATE TABLE IF NOT EXISTS articles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE, -- 用于 URL 访问
+    content_type TEXT DEFAULT 'markdown', -- 内容类型 (markdown, html, etc.)
     content TEXT,
     category_id INTEGER,
     parent_id INTEGER, -- 用于树形结构 (AI相关纪事)
-    image_urls TEXT, -- 存储 R2 图片 URL 列表 (JSON 字符串或分隔符)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
     FOREIGN KEY (parent_id) REFERENCES articles(id) ON DELETE SET NULL -- 自引用
 );
+
+-- 文章附件表
+CREATE TABLE IF NOT EXISTS article_attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id INTEGER NOT NULL,
+    file_type TEXT NOT NULL, -- 'image', 'video', 'document', etc.
+    file_url TEXT NOT NULL,  -- R2 URL or identifier
+    filename TEXT,           -- Original filename (optional)
+    description TEXT,        -- Alt text for images, or description (optional)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_article_attachments_article_id ON article_attachments (article_id);
 
 -- (可选) 为 slug 创建索引以提高查询性能
 CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories (slug);

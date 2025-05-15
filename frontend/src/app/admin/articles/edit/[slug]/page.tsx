@@ -245,7 +245,7 @@ const EditArticlePage = () => {
           <label htmlFor="content" className="block text-sm font-medium text-gray-700">
             内容
           </label>
-          {/* Tiptap 工具栏可以后续添加 */}
+          {/* Tiptap 编辑器工具栏可以后续添加 */}
           <EditorContent editor={editor} />
         </div>
 
