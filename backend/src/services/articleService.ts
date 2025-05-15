@@ -203,14 +203,14 @@ export const createArticle = async (db: D1Database, articleData: CreateArticleIn
 };
 
 /**
- * 根据 slug 获取单篇文章详情 (包含分类信息，暂不包含附件)
+ * 根据 slug 获取单篇文章详情 (包含分类信息和附件)
  * @param db D1Database 实例
  * @param slug 文章的 slug
- * @returns 文章对象 (包含分类) 或 null (如果未找到)
+ * @returns 文章对象 (包含分类和附件) 或 null (如果未找到)
  */
 export const getArticleBySlug = async (db: D1Database, slug: string): Promise<ArticleWithCategoryAndAttachments | null> => {
     console.log(`ArticleService: Fetching article with slug: ${slug}`);
-    const query = `
+    const articleQuery = `
         SELECT
             a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.created_at, a.updated_at,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug
@@ -218,35 +218,46 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
         LEFT JOIN categories c ON a.category_id = c.id
         WHERE a.slug = ?
     `;
-    // TODO: 后续 JOIN article_attachments 表来获取附件
+    
     try {
-        const stmt = db.prepare(query);
-        const row = await stmt.bind(slug).first<any>();
+        const articleStmt = db.prepare(articleQuery);
+        const articleRow = await articleStmt.bind(slug).first<any>();
 
-        if (!row) {
+        if (!articleRow) {
             console.log(`ArticleService: Article with slug '${slug}' not found.`);
             return null;
         }
 
-        console.log(`ArticleService: Found article with ID: ${row.id}`);
+        console.log(`ArticleService: Found article with ID: ${articleRow.id}`);
+        
+        // 获取附件信息
+        const attachmentsQuery = `
+            SELECT id, article_id, file_type, file_url, filename, description, created_at
+            FROM article_attachments
+            WHERE article_id = ?
+        `;
+        const attachmentsStmt = db.prepare(attachmentsQuery);
+        const attachmentsResult = await attachmentsStmt.bind(articleRow.id).all<ArticleAttachment>();
+        
         const article: ArticleWithCategoryAndAttachments = {
-            id: row.id,
-            title: row.title,
-            slug: row.slug,
-            content_type: row.content_type,
-            content: row.content,
-            category_id: row.category_id,
-            parent_id: row.parent_id,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-            // attachments: [] // 暂时不填充附件
+            id: articleRow.id,
+            title: articleRow.title,
+            slug: articleRow.slug,
+            content_type: articleRow.content_type,
+            content: articleRow.content,
+            category_id: articleRow.category_id,
+            parent_id: articleRow.parent_id,
+            created_at: articleRow.created_at,
+            updated_at: articleRow.updated_at,
+            attachments: attachmentsResult.results || [],
         };
-        if (row.category_cat_id) {
+
+        if (articleRow.category_cat_id) {
             article.category = {
-                id: row.category_cat_id,
-                name: row.category_name,
-                slug: row.category_slug,
-                created_at: '', // 占位符
+                id: articleRow.category_cat_id,
+                name: articleRow.category_name,
+                slug: articleRow.category_slug,
+                created_at: '', // 占位符, D1 不直接返回这些，除非在 JOIN 中明确选择
                 updated_at: '', // 占位符
             };
         }

@@ -4,25 +4,56 @@ export const runtime = 'edge';
 import React, { useState, useEffect, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image'; // Import next/image
+// import Image from 'next/image'; // next/image might still be useful for displaying uploaded images
 import { useAuth } from '@/context/AuthContext';
-import { Category, Article } from '@/types/models';
+import { Category, Article, ArticleAttachment } from '@/types/models'; // ArticleAttachment might be needed if we fetch full attachment details
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TiptapImage from '@tiptap/extension-image'; // Renamed to avoid conflict
+import TiptapLink from '@tiptap/extension-link';   // Renamed to avoid conflict
+import FileUpload from '@/components/FileUpload';
+
+// Define attachment types similar to CreateArticlePage
+interface AttachmentInput {
+  file_url: string;
+  file_type: string;
+  filename?: string;
+  description?: string;
+}
+interface UploadedAttachment extends AttachmentInput {
+  key: string; 
+  id?: number; // Existing attachments will have an ID
+}
 
 const EditArticlePage = () => {
-  const [articleIdForUpdate, setArticleIdForUpdate] = useState<number | null>(null); // To store the ID for PUT request
+  const [articleIdForUpdate, setArticleIdForUpdate] = useState<number | null>(null);
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  // content will be managed by Tiptap editor
   const [categoryId, setCategoryId] = useState<number | ''>('');
-  const [currentImageUrl, setCurrentImageUrl] = useState<string | null | undefined>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
+  const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingArticle, setIsFetchingArticle] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const articleSlug = params?.slug as string; // Article SLUG from URL
+  const articleSlug = params?.slug as string;
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TiptapImage,
+      TiptapLink.configure({ openOnClick: false, autolink: true }),
+    ],
+    content: '', // Initial content will be set after fetching article data
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl m-5 focus:outline-none border border-gray-300 p-4 rounded-md min-h-[200px]',
+      },
+    },
+  });
 
   // 获取分类列表
   useEffect(() => {
@@ -50,9 +81,10 @@ const EditArticlePage = () => {
 
   // 获取并填充文章数据
   useEffect(() => {
-    if (!articleSlug || !token) {
+    if (!articleSlug || !token || !editor) {
         setIsFetchingArticle(false);
         if (!token) setError("用户未认证");
+        if (!editor && articleSlug && token) setError("编辑器初始化中..."); // Or handle this case
         return;
     };
 
@@ -61,19 +93,37 @@ const EditArticlePage = () => {
       setError(null);
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-        const response = await fetch(`${backendUrl}/api/articles/${articleSlug}`, { // Fetch by SLUG
+        // 假设后端 /api/articles/:slug 返回 ArticleWithCategoryAndAttachments 类型的数据
+        const response = await fetch(`${backendUrl}/api/articles/${articleSlug}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!response.ok) {
           if (response.status === 404) throw new Error('文章未找到');
           throw new Error('获取文章数据失败');
         }
-        const article: Article = await response.json();
-        setArticleIdForUpdate(article.id); // Store the ID for the PUT request
+        const article: Article & { category?: Category, attachments?: UploadedAttachment[], content_type?: string } = await response.json();
+        
+        setArticleIdForUpdate(article.id);
         setTitle(article.title);
-        setContent(article.content || '');
         setCategoryId(article.category_id || '');
-        setCurrentImageUrl(article.image_urls);
+        
+        // 设置编辑器内容
+        // 如果是 markdown，理想情况下应该转换为 HTML，或让编辑器处理
+        // 为简单起见，如果 content_type 是 html 或未定义（假定为旧文章的 markdown）都直接设置
+        editor.commands.setContent(article.content || '');
+        
+        // 设置附件
+        if (article.attachments && Array.isArray(article.attachments)) {
+          setAttachments(article.attachments.map(att => ({...att, key: att.file_url}))); // Use file_url as key if no specific key from backend
+        } else {
+          //兼容旧的 image_urls (如果存在且是字符串)
+          // @ts-ignore - 兼容旧数据
+          if (typeof article.image_urls === 'string' && article.image_urls) {
+            // @ts-ignore
+            setAttachments([{ file_url: article.image_urls, key: article.image_urls, file_type: 'image', filename: '旧特色图片' }]);
+          }
+        }
+
       } catch (err: unknown) {
         console.error('Failed to fetch article data:', err);
         if (err instanceof Error) {
@@ -86,22 +136,34 @@ const EditArticlePage = () => {
       }
     };
     fetchArticleData();
-  }, [articleSlug, token]);
+  }, [articleSlug, token, editor]);
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setImageFile(event.target.files[0]);
-      setCurrentImageUrl(null);
-    }
+  const handleAttachmentUploadSuccess = (uploadedFile: { file_url: string; file_type: string; filename: string; key: string }) => {
+    setAttachments(prev => [...prev, uploadedFile]);
+    setAttachmentUploadError(null);
+  };
+
+  const handleAttachmentUploadError = (errorMessage: string) => {
+    setAttachmentUploadError(errorMessage);
+  };
+
+  const removeAttachment = (keyToRemove: string) => {
+    setAttachments(prev => prev.filter(att => att.key !== keyToRemove));
+    // TODO: 如果是已保存的附件，需要标记为待删除，并在提交时处理
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!token || !articleIdForUpdate) { // Check for articleIdForUpdate for the PUT request
+    if (!editor) {
+      setError('编辑器未初始化');
+      return;
+    }
+    if (!token || !articleIdForUpdate) {
       setError('用户未认证或文章 ID 无效');
       return;
     }
-     if (!title || !content || !categoryId) {
+    const htmlContent = editor.getHTML();
+    if (!title || htmlContent === '<p></p>' || !categoryId) {
       setError('标题、内容和分类不能为空');
       return;
     }
@@ -109,22 +171,27 @@ const EditArticlePage = () => {
     setIsLoading(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('content', content);
-    formData.append('category_id', String(categoryId));
-    if (imageFile) {
-      formData.append('image', imageFile);
-    }
+    const articleDataToSubmit = {
+      title,
+      content: htmlContent,
+      content_type: 'html',
+      category_id: Number(categoryId),
+      // 后端 updateArticle 服务需要处理 attachments 的更新逻辑
+      // (例如：对比现有附件，删除不再存在的，添加新的)
+      // 这里我们发送当前的附件列表，后端需要智能处理
+      attachments: attachments.map(({ key, ...rest }) => rest), 
+    };
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-      const response = await fetch(`${backendUrl}/api/articles/${articleIdForUpdate}`, { // PUT request to /api/articles/:id
+      // PUT 请求发送 JSON 数据
+      const response = await fetch(`${backendUrl}/api/articles/${articleIdForUpdate}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify(articleDataToSubmit),
       });
 
       if (!response.ok) {
@@ -146,14 +213,14 @@ const EditArticlePage = () => {
     }
   };
 
-  if (isFetchingArticle) {
-    return <div className="text-center py-10">加载文章数据中...</div>;
+  if (!editor || isFetchingArticle) { // 编辑器加载中或文章数据获取中
+    return <div className="text-center py-10">加载中...</div>;
   }
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">编辑文章 (Slug: {articleSlug})</h1>
+        <h1 className="text-3xl font-bold">编辑文章 (ID: {articleIdForUpdate})</h1>
         <Link href="/admin/articles" className="text-blue-500 hover:underline">
           &larr; 返回文章列表
         </Link>
@@ -176,16 +243,10 @@ const EditArticlePage = () => {
 
         <div>
           <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-            内容 (支持 Markdown)
+            内容
           </label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            rows={10}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          />
+          {/* Tiptap 编辑器工具栏可以后续添加 */}
+          <EditorContent editor={editor} />
         </div>
 
         <div>
@@ -208,28 +269,38 @@ const EditArticlePage = () => {
           </select>
         </div>
 
-        <div>
-          <label htmlFor="image" className="block text-sm font-medium text-gray-700">
-            特色图片
-          </label>
-          {currentImageUrl && !imageFile && (
-            <div className="my-2">
-              <p className="text-xs text-gray-600 mb-1">当前图片:</p>
-              {/* 使用 next/image。注意：如果 currentImageUrl 是外部 URL，需要在 next.config.js 中配置 images.remotePatterns */}
-              {/* 为了简单起见，这里假设图片尺寸，实际应用中可能需要更动态的处理或固定宽高比 */}
-              <Image src={currentImageUrl} alt="Current article image" width={160} height={160} className="max-h-40 w-auto rounded border" style={{ objectFit: 'contain' }} />
+        {/* 附件上传与管理 */}
+        <div className="mt-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-2">附件管理</h2>
+          <FileUpload
+            onUploadSuccess={handleAttachmentUploadSuccess}
+            onUploadError={handleAttachmentUploadError}
+            directoryPrefix={`articles/${articleIdForUpdate || 'temp'}/`}
+          />
+          {attachmentUploadError && <p className="text-red-500 text-sm mt-1">{attachmentUploadError}</p>}
+          {attachments.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-md font-medium text-gray-700">当前附件:</h3>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                {attachments.map((att, index) => (
+                  <li key={att.key || att.id || index} className="text-sm text-gray-600 flex justify-between items-center">
+                    <a href={att.file_url.startsWith('http') ? att.file_url : undefined} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      {att.filename || att.key} ({att.file_type})
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(att.key)}
+                      className="ml-2 text-red-500 hover:text-red-700 text-xs"
+                    >
+                      移除
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
-          <input
-            type="file"
-            id="image"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-          />
-           <p className="text-xs text-gray-500 mt-1">选择新图片将会替换当前图片。</p>
         </div>
-
+        
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
         <div>
