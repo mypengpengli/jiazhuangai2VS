@@ -473,11 +473,14 @@ export const deleteArticle = async (db: D1Database, id: number): Promise<boolean
         const stmt = db.prepare('DELETE FROM articles WHERE id = ?');
         const info = await stmt.bind(id).run();
         console.log(`ArticleService: Delete operation executed for article ID ${id}. Info:`, info);
-        // 假设执行无误即成功
-        // 注意：如果文章是其他文章的 parent_id，且外键设置为 SET NULL，子文章的 parent_id 会变 null
-        // 更精确的判断是检查 info.changes 或 info.meta.changes，但这在 D1 中可能不可靠或不存在
-        // 暂时返回 true，表示尝试执行了删除
-        return true;
+
+        if (info.meta.changes > 0) {
+            console.log(`ArticleService: Article with ID ${id} successfully deleted.`);
+            return true; // 成功删除
+        } else {
+            console.log(`ArticleService: Article with ID ${id} not found for deletion.`);
+            return false; // 未找到要删除的文章
+        }
     } catch (error: any) {
         console.error(`Error in deleteArticle for ID ${id}:`, error);
         // 处理外键约束错误等

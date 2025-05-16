@@ -285,32 +285,15 @@ protectedArticleRoutes.delete(
         console.log(`Route: DELETE /api/articles/${articleId} by user: ${user?.username}`);
 
         try {
-            // 1. 先获取文章信息，以便知道是否有图片需要删除
-            const articleToDelete = await getArticleBySlug(c.env.DB, id); // 使用 getArticleBySlug 或直接查询 ID
-            // 或者直接查询 ID 获取 image_urls
-            // const articleInfo = await c.env.DB.prepare("SELECT image_urls FROM articles WHERE id = ?").bind(articleId).first<{ image_urls: string | null }>();
-
-
-            if (!articleToDelete) {
-                 return c.json({ error: 'Not Found', message: `Article with ID ${articleId} not found.` }, 404);
-            }
-
-            // 2. 如果存在图片 URL，尝试从 R2 删除 - 此逻辑将移至服务层并基于 attachments
-            // if (articleToDelete.image_urls) {
-            //     console.log(`Attempting to delete image from R2: ${articleToDelete.image_urls}`);
-            //     await deleteImageFromR2(c.env.BUCKET, articleToDelete.image_urls);
-            // } else {
-            //     console.log(`Article ${articleId} has no image_urls to delete from R2.`);
-            // }
-            // TODO: 服务层的 deleteArticle 需要处理附件的删除
-
-            // 3. 删除数据库记录
+            // TODO: 服务层的 deleteArticle 应该负责处理关联附件的删除 (如果需要)
             const deleted = await deleteArticle(c.env.DB, articleId);
+
             if (!deleted) {
-                // 理论上，如果上面找到了文章，这里应该能删除成功，除非并发问题或数据库错误
-                console.error(`Failed to delete article ${articleId} from DB after finding it.`);
-                return c.json({ error: 'Internal Server Error', message: `Failed to delete article ${articleId} from database.` }, 500);
+                // deleteArticle 服务现在会在找不到文章时返回 false
+                return c.json({ error: 'Not Found', message: `Article with ID ${articleId} not found or could not be deleted.` }, 404);
             }
+            
+            // 成功删除
             return c.body(null, 204);
         } catch (error: any) {
             console.error(`Error deleting article ${articleId}:`, error);

@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
 
 const Header: React.FC = () => {
-  // Remove unused 'user' from destructuring
-  const { token, isLoading, logout } = useAuth(); // Get auth state and functions
+  
+  const { user, token, isLoading, logout } = useAuth(); // Get user, auth state and functions
 
   const handleLogout = () => {
     logout();
@@ -33,10 +33,14 @@ const Header: React.FC = () => {
             <span className="px-3 py-2 text-sm">加载中...</span>
           ) : token ? (
             <>
-              {/* TODO: Add Profile Link */}
-              {/* <Link href="/profile" className="px-3 py-2 hover:bg-blue-700 rounded">
+              <Link href="/profile" className="px-3 py-2 hover:bg-blue-700 rounded">
                 {user?.username || '个人资料'}
-              </Link> */}
+              </Link>
+              {user?.role === 'admin' && (
+                <Link href="/admin" className="px-3 py-2 hover:bg-blue-700 rounded">
+                  管理后台
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className="px-3 py-2 bg-red-500 hover:bg-red-600 rounded text-white"
