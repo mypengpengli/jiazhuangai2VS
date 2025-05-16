@@ -13,6 +13,7 @@ import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image'; // Renamed to avoid conflict
 import TiptapLink from '@tiptap/extension-link';   // Renamed to avoid conflict
 import FileUpload from '../../../../../components/FileUpload'; // Corrected relative path
+import MenuBar from '../../../../../components/MenuBar'; // 导入 MenuBar 组件
 
 // Define attachment types similar to CreateArticlePage
 interface AttachmentInput {
@@ -247,7 +248,7 @@ const EditArticlePage = () => {
           <label htmlFor="content" className="block text-sm font-medium text-gray-700">
             内容
           </label>
-          {/* Tiptap 编辑器工具栏可以后续添加 */}
+          <MenuBar editor={editor} />
           <EditorContent editor={editor} />
         </div>
 

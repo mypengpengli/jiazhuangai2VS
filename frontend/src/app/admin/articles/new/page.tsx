@@ -10,6 +10,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import LinkExtension from '@tiptap/extension-link'; // Renamed to avoid conflict with next/link
 import FileUpload from '@/components/FileUpload'; // 导入 FileUpload 组件
+import MenuBar from '@/components/MenuBar'; // 导入 MenuBar 组件
 
 // 定义附件类型，与后端 CreateArticleInput 中的 attachments 数组元素对应
 interface AttachmentInput {
@@ -186,7 +187,7 @@ const CreateArticlePage = () => {
             内容
           </label>
           {/* Tiptap 编辑器工具栏可以后续添加 */}
-          {/* <MenuBar editor={editor} /> */}
+          <MenuBar editor={editor} />
           <EditorContent editor={editor} />
         </div>
 
