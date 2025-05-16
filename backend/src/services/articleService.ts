@@ -176,7 +176,7 @@ export const createArticle = async (db: D1Database, articleData: CreateArticleIn
 
         // 2. 如果有附件，插入附件
         if (attachments && attachments.length > 0) {
-            const attachmentStatements = attachments.map(att => 
+            const attachmentStatements = attachments.map(att =>
                 db.prepare(
                     `INSERT INTO article_attachments (article_id, file_type, file_url, filename, description)
                      VALUES (?, ?, ?, ?, ?)`

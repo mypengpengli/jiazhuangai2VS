@@ -217,7 +217,7 @@ protectedArticleRoutes.put(
                 // 上传新图片
                 const arrayBuffer = await imageFile.arrayBuffer();
                 // newImageUrl = await uploadImageToR2(c.env.BUCKET, { name: imageFile.name, type: imageFile.type, arrayBuffer }, 'articles/');
-                // console.log('New image uploaded, URL:', newImageUrl); 
+                // console.log('New image uploaded, URL:', newImageUrl);
                 // TODO: 上传的图片URL/Key需要通过 attachments 传递给 updateArticle 服务
             } else if (imageFile) {
                  console.log('Image field present but not a valid file or empty.');
@@ -231,7 +231,7 @@ protectedArticleRoutes.put(
                     // 确保 key 存在于 dataToUpdate 的类型中
                     if (typedKey === 'title' || typedKey === 'slug' || typedKey === 'content' || typedKey === 'category_id' || typedKey === 'parent_id' || typedKey === 'content_type') {
                         const value = validatedData[typedKey];
-                         // @ts-ignore 
+                         // @ts-ignore
                         dataToUpdate[typedKey] = value === null ? undefined : value;
                     }
                 }
