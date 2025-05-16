@@ -18,43 +18,43 @@ type Variables = {
  */
 // 在 Context 类型中同时指定 Bindings 和 Variables
 export const authMiddleware = async (c: Context<{ Bindings: Env, Variables: Variables }>, next: Next) => {
-  console.error("AuthMiddleware: Entered middleware.");
-  console.error("AuthMiddleware: c.env type:", typeof c.env);
+  console.log("AuthMiddleware: Entered middleware.");
+  console.log("AuthMiddleware: c.env type:", typeof c.env);
   if (c.env) {
-    console.error("AuthMiddleware: c.env.JWT_SECRET type (early check):", typeof c.env.JWT_SECRET);
-    console.error("AuthMiddleware: c.env.JWT_SECRET length (early check):", c.env.JWT_SECRET ? String(c.env.JWT_SECRET).length : 'undefined or null');
+    console.log("AuthMiddleware: c.env.JWT_SECRET type (early check):", typeof c.env.JWT_SECRET);
+    console.log("AuthMiddleware: c.env.JWT_SECRET length (early check):", c.env.JWT_SECRET ? String(c.env.JWT_SECRET).length : 'undefined or null');
   } else {
     console.error("AuthMiddleware: c.env is undefined or null. Cannot proceed with auth.");
     return c.json({ error: 'Internal Server Error', message: 'Server environment not configured.' }, 500);
   }
 
   const authHeader = c.req.header('Authorization');
-  console.error('AuthMiddleware: Checking Authorization header:', authHeader); // Changed to console.error
+  console.log('AuthMiddleware: Checking Authorization header:', authHeader);
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.error('AuthMiddleware: Authorization header missing or invalid format'); // Changed to console.error
+    console.log('AuthMiddleware: Authorization header missing or invalid format');
     return c.json({ error: 'Unauthorized', message: 'Authorization header is missing or invalid.' }, 401);
   }
 
   const token = authHeader.substring(7);
 
   if (!c.env.JWT_SECRET) {
-    console.error('AuthMiddleware: JWT_SECRET is not configured in c.env!'); // Adjusted message
+    console.error('AuthMiddleware: JWT_SECRET is not configured in c.env!');
     return c.json({ error: 'Internal Server Error', message: 'Authentication configuration error: JWT_SECRET missing.' }, 500);
   }
 
   const secret = c.env.JWT_SECRET; // Assign after the check
 
-  console.error("AuthMiddleware: Attempting to verify token:", token);
-  console.error("AuthMiddleware: JWT_SECRET to be used for verification (type):", typeof secret);
-  console.error("AuthMiddleware: JWT_SECRET to be used for verification (length):", secret ? String(secret).length : 'undefined or null');
+  console.log("AuthMiddleware: Attempting to verify token:", token);
+  console.log("AuthMiddleware: JWT_SECRET to be used for verification (type):", typeof secret);
+  console.log("AuthMiddleware: JWT_SECRET to be used for verification (length):", secret ? String(secret).length : 'undefined or null');
 
   try {
     // 明确指定 decodedPayload 的类型以匹配 User 类型或 JWT 结构
     // Note: verify function in hono/jwt by default uses HS256 if algorithm is not specified in JWT header or options.
     // The original file did not specify 'HS256' in verify, so keeping it that way.
     const decodedPayload = await verify(token, secret) as { sub: string; username: string; role: string; iat: number; exp: number; };
-    console.error('AuthMiddleware: Token verified successfully for user:', decodedPayload.sub, "Payload:", JSON.stringify(decodedPayload)); // Enhanced log
+    console.log('AuthMiddleware: Token verified successfully for user:', decodedPayload.sub, "Payload:", JSON.stringify(decodedPayload));
     // 将解码后的用户信息附加到上下文，供后续处理程序使用
     c.set('user', decodedPayload);
     await next(); // Moved here

@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 
 const CreateCategoryPage = () => {
   const [name, setName] = useState('');
+  const [slug, setSlug] = useState(''); // 新增 slug 状态
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,8 +20,14 @@ const CreateCategoryPage = () => {
       setError('用户未认证');
       return;
     }
-    if (!name) {
-      setError('分类名称不能为空');
+    if (!name || !slug) { // 同时检查 slug
+      setError('分类名称和 Slug 不能为空');
+      return;
+    }
+    // 简单的 slug 格式校验 (与后端 regex 匹配)
+    const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+    if (!slugRegex.test(slug)) {
+      setError('Slug 格式无效 (只能包含小写字母、数字和连字符)');
       return;
     }
 
@@ -35,7 +42,7 @@ const CreateCategoryPage = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, slug, description }), // 添加 slug 到请求体
       });
 
       if (!response.ok) {
@@ -79,6 +86,22 @@ const CreateCategoryPage = () => {
             required
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
+        </div>
+
+        <div>
+          <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
+            Slug (URL路径)
+          </label>
+          <input
+            type="text"
+            id="slug"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''))}
+            required
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            placeholder="例如: tech-news"
+          />
+          <p className="mt-1 text-xs text-gray-500">只能包含小写字母、数字和连字符 (-)。</p>
         </div>
 
         <div>
