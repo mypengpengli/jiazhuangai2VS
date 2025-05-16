@@ -22,7 +22,8 @@ interface AttachmentInput {
 }
 
 interface UploadedAttachment extends AttachmentInput {
-  key: string; // R2 object key, useful for managing uploads or if file_url is not a direct public URL
+  key: string; // R2 object key
+  publicUrl?: string; // Full public URL for accessing the file
 }
 
 
@@ -80,10 +81,9 @@ const CreateArticlePage = () => {
 
   // const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => { ... };
 
-  const handleAttachmentUploadSuccess = (uploadedFile: { file_url: string; file_type: string; filename: string; key: string }) => {
-    setAttachments(prev => [...prev, uploadedFile]);
+  const handleAttachmentUploadSuccess = (uploadedFile: { file_url: string; publicUrl?: string; file_type: string; filename: string; key: string }) => {
+    setAttachments(prev => [...prev, { ...uploadedFile, publicUrl: uploadedFile.publicUrl || uploadedFile.file_url /* fallback if publicUrl is somehow undefined */}]);
     setAttachmentUploadError(null); // 清除之前的错误
-    // alert(`文件 "${uploadedFile.filename}" 上传成功!`);
   };
 
   const handleAttachmentUploadError = (errorMessage: string) => {
@@ -225,15 +225,44 @@ const CreateArticlePage = () => {
             <h3 className="text-md font-medium text-gray-700">已上传附件:</h3>
             <ul className="list-disc list-inside mt-2 space-y-1">
               {attachments.map((att, index) => (
-                <li key={att.key || index} className="text-sm text-gray-600 flex justify-between items-center">
-                  <span>{att.filename || att.key} ({att.file_type})</span>
-                  <button
-                    type="button"
-                    onClick={() => removeAttachment(att.key)}
-                    className="ml-2 text-red-500 hover:text-red-700 text-xs"
-                  >
-                    移除
-                  </button>
+                <li key={att.key || index} className="text-sm text-gray-600 flex flex-wrap justify-between items-center py-1">
+                  <div className="flex-grow mr-2">
+                    {att.publicUrl ? (
+                      <a href={att.publicUrl} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">
+                        {att.filename || att.key}
+                      </a>
+                    ) : (
+                      <span>{att.filename || att.key}</span>
+                    )}
+                    <span className="ml-2 text-gray-500">({att.file_type})</span>
+                  </div>
+                  <div className="flex-shrink-0 space-x-2">
+                    {att.publicUrl && (
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(att.publicUrl || '')}
+                        className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
+                      >
+                        复制URL
+                      </button>
+                    )}
+                    {att.publicUrl && att.file_type.startsWith('image/') && editor && (
+                      <button
+                        type="button"
+                        onClick={() => editor.chain().focus().setImage({ src: att.publicUrl || '' }).run()}
+                        className="text-xs bg-green-200 hover:bg-green-300 px-2 py-1 rounded"
+                      >
+                        插入图片
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(att.key)}
+                      className="text-xs bg-red-200 hover:bg-red-300 text-red-700 px-2 py-1 rounded"
+                    >
+                      移除
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

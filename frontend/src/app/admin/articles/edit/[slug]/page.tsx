@@ -23,8 +23,17 @@ interface AttachmentInput {
   description?: string;
 }
 interface UploadedAttachment extends AttachmentInput {
-  key: string;
+  key: string; // R2 object key
   id?: number; // Existing attachments will have an ID
+  publicUrl?: string; // Full public URL for accessing the file
+}
+
+// 临时接口，用于兼容可能从后端返回的旧 image_urls 字段
+interface ArticleWithPotentiallyOldImage extends Article {
+  image_urls?: string; // For backward compatibility with old data structure
+  // category, attachments, and content_type are inherited from Article
+  // and their optionality is handled by the Article type itself or how it's used.
+  // No need to redeclare category, attachments, content_type here if Article already defines them correctly.
 }
 
 const EditArticlePage = () => {
@@ -103,7 +112,7 @@ const EditArticlePage = () => {
           if (response.status === 404) throw new Error('文章未找到');
           throw new Error('获取文章数据失败');
         }
-        const article: Article & { category?: Category, attachments?: UploadedAttachment[], content_type?: string } = await response.json();
+        const article = await response.json() as ArticleWithPotentiallyOldImage;
         
         setArticleIdForUpdate(article.id);
         setTitle(article.title);
@@ -115,14 +124,29 @@ const EditArticlePage = () => {
         editor.commands.setContent(article.content || '');
         
         // 设置附件
+        const r2PublicUrlPrefix = process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX;
         if (article.attachments && Array.isArray(article.attachments)) {
-          setAttachments(article.attachments.map(att => ({...att, key: att.file_url}))); // Use file_url as key if no specific key from backend
+          setAttachments(article.attachments.map(att => {
+            const publicUrl = r2PublicUrlPrefix ? `${r2PublicUrlPrefix.replace(/\/$/, '')}/${att.file_url}` : att.file_url;
+            return {...att, key: att.file_url, publicUrl };
+          }));
         } else {
           //兼容旧的 image_urls (如果存在且是字符串)
-          // @ts-expect-error 旧版 article 可能有 image_urls
-          if (typeof article.image_urls === 'string' && article.image_urls) {
-            // @ts-expect-error 旧版 article 可能有 image_urls
-            setAttachments([{ file_url: article.image_urls, key: article.image_urls, file_type: 'image', filename: '旧特色图片' }]);
+          const articleWithOldImage = article as ArticleWithPotentiallyOldImage; // Cast once
+          if (typeof articleWithOldImage.image_urls === 'string' && articleWithOldImage.image_urls) {
+            const oldImageUrlFromArticle = articleWithOldImage.image_urls;
+            const oldImageKey = oldImageUrlFromArticle.startsWith(r2PublicUrlPrefix || '____')
+              ? oldImageUrlFromArticle.substring((r2PublicUrlPrefix || '').length).replace(/^\//, '')
+              : oldImageUrlFromArticle;
+            const publicUrl = r2PublicUrlPrefix ? `${r2PublicUrlPrefix.replace(/\/$/, '')}/${oldImageKey}` : oldImageUrlFromArticle;
+            
+            setAttachments([{
+                file_url: oldImageKey,
+                key: oldImageKey,
+                publicUrl,
+                file_type: 'image',
+                filename: '旧特色图片'
+            }]);
           }
         }
 
@@ -140,8 +164,8 @@ const EditArticlePage = () => {
     fetchArticleData();
   }, [articleSlug, token, editor]);
 
-  const handleAttachmentUploadSuccess = (uploadedFile: { file_url: string; file_type: string; filename: string; key: string }) => {
-    setAttachments(prev => [...prev, uploadedFile]);
+  const handleAttachmentUploadSuccess = (uploadedFile: { file_url: string; publicUrl?: string; file_type: string; filename: string; key: string }) => {
+    setAttachments(prev => [...prev, { ...uploadedFile, publicUrl: uploadedFile.publicUrl || uploadedFile.file_url }]);
     setAttachmentUploadError(null);
   };
 
@@ -286,17 +310,44 @@ const EditArticlePage = () => {
               <h3 className="text-md font-medium text-gray-700">当前附件:</h3>
               <ul className="list-disc list-inside mt-2 space-y-1">
                 {attachments.map((att, index) => (
-                  <li key={att.key || att.id || index} className="text-sm text-gray-600 flex justify-between items-center">
-                    <a href={att.file_url.startsWith('http') ? att.file_url : undefined} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                      {att.filename || att.key} ({att.file_type})
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(att.key)}
-                      className="ml-2 text-red-500 hover:text-red-700 text-xs"
-                    >
-                      移除
-                    </button>
+                  <li key={att.key || att.id || index} className="text-sm text-gray-600 flex flex-wrap justify-between items-center py-1">
+                    <div className="flex-grow mr-2">
+                      {att.publicUrl ? (
+                        <a href={att.publicUrl} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">
+                          {att.filename || att.key}
+                        </a>
+                      ) : (
+                        <span>{att.filename || att.key}</span>
+                      )}
+                      <span className="ml-2 text-gray-500">({att.file_type})</span>
+                    </div>
+                    <div className="flex-shrink-0 space-x-2 mt-1 sm:mt-0">
+                      {att.publicUrl && (
+                        <button
+                          type="button"
+                          onClick={() => navigator.clipboard.writeText(att.publicUrl || '')}
+                          className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded"
+                        >
+                          复制URL
+                        </button>
+                      )}
+                      {att.publicUrl && att.file_type.startsWith('image/') && editor && (
+                        <button
+                          type="button"
+                          onClick={() => editor.chain().focus().setImage({ src: att.publicUrl || '' }).run()}
+                          className="text-xs bg-green-200 hover:bg-green-300 px-2 py-1 rounded"
+                        >
+                          插入图片
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(att.key)}
+                        className="text-xs bg-red-200 hover:bg-red-300 text-red-700 px-2 py-1 rounded"
+                      >
+                        移除
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

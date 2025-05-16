@@ -4,7 +4,7 @@ import React, { useState, ChangeEvent } from 'react';
 import { useAuth } from '@/context/AuthContext'; // 假设 AuthContext 在此路径
 
 interface FileUploadProps {
-  onUploadSuccess: (attachment: { file_url: string; file_type: string; filename: string; key: string }) => void;
+  onUploadSuccess: (attachment: { file_url: string; /* This is actually the R2 key */ publicUrl?: string; file_type: string; filename: string; key: string }) => void;
   onUploadError: (error: string) => void;
   directoryPrefix?: string; // 例如 'articles/images/' 或 'user-avatars/'
 }
@@ -62,7 +62,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadSuccess, onUploadError,
           throw new Error(`文件上传到 R2 失败: ${uploadResponse.statusText}. R2 Response: ${r2ErrorText.substring(0, 200)}`);
         }
         
-        onUploadSuccess({ file_url: key, file_type: file.type, filename: file.name, key });
+        const r2PublicUrlPrefix = process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX;
+        const publicUrl = r2PublicUrlPrefix ? `${r2PublicUrlPrefix.replace(/\/$/, '')}/${key}` : undefined;
+        
+        onUploadSuccess({ file_url: key, publicUrl, file_type: file.type, filename: file.name, key });
 
       } catch (err: unknown) {
         console.error('File upload failed:', err);
