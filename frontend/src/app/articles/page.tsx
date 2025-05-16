@@ -27,7 +27,7 @@ async function getArticlesData(page = 1, limit = 10, categorySlug?: string): Pro
   // 注意：在服务器组件中 fetch，需要使用绝对 URL 或配置环境变量
   // 假设后端运行在 http://localhost:8787 (wrangler dev 的默认端口)
   // 在生产环境中，这需要是部署后的后端 URL
-  const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8787';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
   let apiUrl = `${backendUrl}/api/articles?page=${page}&limit=${limit}`;
   // 如果提供了 categorySlug，添加到 URL
   if (categorySlug) {
