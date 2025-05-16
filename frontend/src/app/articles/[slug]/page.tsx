@@ -68,30 +68,35 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
         <span>最后更新: {new Date(article.updated_at).toLocaleDateString()}</span>
       </div>
 
-      {/* 显示文章图片 (如果存在) */}
-      {article.image_urls && (
+      {/* 显示文章附件中的图片 */}
+      {article.attachments && article.attachments.find(att => att.file_type.startsWith('image/')) && (
         <div className="mb-8">
-          {/* 假设 image_urls 是单个 URL */}
-          <Image
-            src={article.image_urls}
-            alt={article.title}
-            width={800} // 根据需要调整
-            height={450} // 根据需要调整
-            className="rounded-lg shadow-md object-cover w-full"
-            priority // 如果是首屏图片，优先加载
-          />
-          {/* 如果 image_urls 是 JSON 数组或逗号分隔列表，需要解析并可能显示多张图片 */}
+          {article.attachments
+            .filter(att => att.file_type.startsWith('image/'))
+            .slice(0, 1) // 只显示第一张图片作为示例，可以根据需要修改为轮播或多图展示
+            .map(imageAttachment => (
+              <Image
+                key={imageAttachment.id || imageAttachment.file_url}
+                src={imageAttachment.file_url}
+                alt={imageAttachment.filename || article.title}
+                width={800}
+                height={450}
+                className="rounded-lg shadow-md object-cover w-full"
+                priority
+              />
+            ))}
         </div>
       )}
 
-      {/* 文章内容 - 假设是 Markdown 或 HTML */}
-      {/* 如果是 Markdown，需要使用库 (如 react-markdown) 来渲染 */}
-      {/* 如果是 HTML，需要使用 dangerouslySetInnerHTML (注意安全风险) */}
+      {/* 文章内容 */}
       {article.content ? (
-         // 简单显示，如果内容是纯文本或需要特殊处理的 HTML/Markdown
-         // 对于 HTML: <div dangerouslySetInnerHTML={{ __html: article.content }} />
-         // 对于 Markdown: <ReactMarkdown>{article.content}</ReactMarkdown> (需要安装和导入 react-markdown)
-        <div className="mt-6">{article.content}</div>
+        article.content_type === 'html' ? (
+          <div className="mt-6" dangerouslySetInnerHTML={{ __html: article.content }} />
+        ) : (
+          // 对于 markdown 或其他类型，可能需要不同的渲染方式
+          // 暂时直接输出，或后续添加 Markdown 渲染器
+          <div className="mt-6 whitespace-pre-wrap">{article.content}</div>
+        )
       ) : (
         <p>文章内容为空。</p>
       )}

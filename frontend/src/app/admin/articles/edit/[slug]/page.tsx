@@ -118,9 +118,9 @@ const EditArticlePage = () => {
           setAttachments(article.attachments.map(att => ({...att, key: att.file_url}))); // Use file_url as key if no specific key from backend
         } else {
           //兼容旧的 image_urls (如果存在且是字符串)
-          // @ts-expect-error - 兼容旧数据
+          // @ts-expect-error 旧版 article 可能有 image_urls
           if (typeof article.image_urls === 'string' && article.image_urls) {
-            // @ts-expect-error
+            // @ts-expect-error 旧版 article 可能有 image_urls
             setAttachments([{ file_url: article.image_urls, key: article.image_urls, file_type: 'image', filename: '旧特色图片' }]);
           }
         }
@@ -180,6 +180,7 @@ const EditArticlePage = () => {
       // 后端 updateArticle 服务需要处理 attachments 的更新逻辑
       // (例如：对比现有附件，删除不再存在的，添加新的)
       // 这里我们发送当前的附件列表，后端需要智能处理
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       attachments: attachments.map(({ key: _key, ...rest }) => rest),
     };
 
