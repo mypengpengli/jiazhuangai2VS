@@ -22,8 +22,8 @@ r2Routes.use('/presigned-url', authMiddleware);
 
 r2Routes.post('/presigned-url', async (c) => {
     try {
-        const body = await c.req.json<{ fileName: string; contentType: string }>();
-        const { fileName, contentType } = body;
+        const body = await c.req.json<{ fileName: string; contentType: string; directoryPrefix?: string }>();
+        const { fileName, contentType, directoryPrefix } = body;
 
         if (!fileName || !contentType) {
             return c.json({ error: 'Missing fileName or contentType' }, 400);
@@ -35,12 +35,21 @@ r2Routes.post('/presigned-url', async (c) => {
             console.error('R2 configuration missing in environment variables/secrets.');
             return c.json({ error: 'Server configuration error for file uploads' }, 500);
         }
-        
+
+        // 清理和准备目录前缀
+        let prefix = directoryPrefix || 'uploads/'; // 默认 "uploads/"
+        if (prefix.startsWith('/')) {
+            prefix = prefix.substring(1);
+        }
+        if (!prefix.endsWith('/')) {
+            prefix += '/';
+        }
+        if (prefix === '/') prefix = ''; // 避免根目录上传时 Key 以 "/" 开头
+
         // 从文件名中提取扩展名
         const fileExtension = fileName.split('.').pop() || '';
-        // 生成一个唯一的文件名/路径，例如使用 UUID 和原始扩展名
-        // 你可以根据需要调整路径结构，例如按用户ID或日期分子目录
-        const uniqueKey = `uploads/${uuidv4()}.${fileExtension}`;
+        // 生成一个唯一的文件名/路径
+        const uniqueKey = `${prefix}${uuidv4()}.${fileExtension}`;
 
         const s3Client = new S3Client({
             region: 'auto', // R2 通常使用 'auto'

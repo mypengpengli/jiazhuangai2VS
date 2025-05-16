@@ -119,7 +119,7 @@ const CreateArticlePage = () => {
       content: htmlContent,
       content_type: 'html', // Tiptap 输出 HTML
       category_id: Number(categoryId),
-      attachments: attachments.map(({ key, ...rest }) => rest), // 移除 key 字段，只发送后端需要的附件元数据
+      attachments: attachments.map(({ key: _key, ...rest }) => rest), // 移除 key 字段，只发送后端需要的附件元数据
     };
 
     try {
