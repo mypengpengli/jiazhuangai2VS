@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   /* font-family is handled by layout.tsx font variables */
 }
+
+/* 限制 Tiptap 编辑器中图片的最大宽度，并保持其纵横比 */
+.ProseMirror img {
+  max-width: 100%; /* 图片最大宽度为其父容器的100% */
+  height: auto;    /* 高度自动调整以保持原始纵横比 */
+  display: block;  /* 可选：帮助处理图片下方的额外空白 */
+  margin-left: auto; /* 可选：如果希望图片在块内居中显示 */
+  margin-right: auto;/* 可选：如果希望图片在块内居中显示 */
+  border: 1px solid #ccc; /* 可选：为图片添加一个细边框，使其在编辑器中更明显 */
+  padding: 2px; /* 可选：边框内边距 */
+  border-radius: 4px; /* 可选：轻微的圆角 */
+}

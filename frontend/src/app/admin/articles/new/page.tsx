@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Category } from '@/types/models'; // 假设 Category 类型已定义
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react'; // Import Editor
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
-import LinkExtension from '@tiptap/extension-link'; // Renamed to avoid conflict with next/link
-import FileUpload from '@/components/FileUpload'; // 导入 FileUpload 组件
-import MenuBar from '@/components/MenuBar'; // 导入 MenuBar 组件
+import LinkExtension from '@tiptap/extension-link';
+import FileUpload from '@/components/FileUpload';
+import MenuBar from '@/components/MenuBar';
 
 // 定义附件类型，与后端 CreateArticleInput 中的 attachments 数组元素对应
 interface AttachmentInput {
@@ -38,19 +38,93 @@ const CreateArticlePage = () => {
   const { token } = useAuth();
   const router = useRouter();
 
+  const handlePastedFiles = async (editorInstance: Editor, files: File[]) => {
+    if (!token) {
+      setAttachmentUploadError("用户未认证，无法上传粘贴的图片。");
+      return;
+    }
+    // 对于新文章，可以使用一个通用或临时的前缀
+    const directoryPrefix = `articles/attachments/`; // 与 FileUpload 组件保持一致
+
+    for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        setAttachmentUploadError(null);
+        setIsLoading(true); // 使用页面级的 isLoading 状态
+        try {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
+          const presignedUrlResponse = await fetch(`${backendUrl}/api/r2/presigned-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filename: file.name,
+              contentType: file.type,
+              directoryPrefix: directoryPrefix,
+            }),
+          });
+
+          if (!presignedUrlResponse.ok) {
+            const errorData = await presignedUrlResponse.json().catch(() => ({ message: '获取预签名URL失败' }));
+            throw new Error(errorData.message || `获取预签名URL失败: ${presignedUrlResponse.statusText}`);
+          }
+          const { uploadURL, r2Key, publicUrl: directPublicUrl } = await presignedUrlResponse.json();
+
+          const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: file,
+            headers: { 'Content-Type': file.type },
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`上传到R2失败: ${uploadResponse.statusText}`);
+          }
+          
+          const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${r2Key}` : r2Key);
+
+          editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
+          // 调用已有的 handleAttachmentUploadSuccess 来更新附件列表状态
+          handleAttachmentUploadSuccess({
+            file_url: r2Key,
+            publicUrl: finalPublicUrl,
+            file_type: file.type,
+            filename: file.name,
+            key: r2Key,
+          });
+
+        } catch (err: any) {
+          console.error('Pasted image upload failed:', err);
+          setAttachmentUploadError(`粘贴图片上传失败: ${err.message}`);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    }
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Image, // Basic image support
-      LinkExtension.configure({ // Renamed import
+      Image,
+      LinkExtension.configure({
         openOnClick: false,
         autolink: true,
       }),
     ],
-    content: '<p>开始写作...</p>', // Initial content
+    content: '<p>开始写作...</p>',
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl m-5 focus:outline-none border border-gray-300 p-4 rounded-md min-h-[200px]',
+      },
+      handlePaste(view, event, slice) {
+        const files = Array.from(event.clipboardData?.files || []);
+        if (files.some(file => file.type.startsWith('image/'))) {
+          // `this.editor` 在 handlePaste 回调中指向当前的 editor 实例
+          handlePastedFiles(this.editor, files);
+          return true; // 表示已处理粘贴事件
+        }
+        return false; // 使用默认的粘贴行为
       },
     },
   });

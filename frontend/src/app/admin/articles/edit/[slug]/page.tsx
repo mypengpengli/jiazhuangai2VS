@@ -8,9 +8,9 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Category, Article, ArticleAttachment } from '@/types/models'; // ArticleAttachment might be needed if we fetch full attachment details
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react'; // Import Editor type
 import StarterKit from '@tiptap/starter-kit';
-import TiptapImage from '@tiptap/extension-image'; // Renamed to avoid conflict
+import TiptapImage from '@tiptap/extension-image';
 import TiptapLink from '@tiptap/extension-link';   // Renamed to avoid conflict
 import FileUpload from '../../../../../components/FileUpload'; // Corrected relative path
 import MenuBar from '../../../../../components/MenuBar'; // 导入 MenuBar 组件
@@ -52,16 +52,90 @@ const EditArticlePage = () => {
   const params = useParams();
   const articleSlug = params?.slug as string;
 
+  const handlePastedFiles = async (editorInstance: Editor, files: File[]) => {
+    if (!token) {
+      setAttachmentUploadError("用户未认证，无法上传粘贴的图片。");
+      return;
+    }
+    const directoryPrefix = `articles/${articleIdForUpdate || 'temp'}/`;
+
+    for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        setAttachmentUploadError(null); // Clear previous error
+        setIsLoading(true); // Indicate loading for paste
+        try {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
+          const presignedUrlResponse = await fetch(`${backendUrl}/api/r2/presigned-url`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              filename: file.name,
+              contentType: file.type,
+              directoryPrefix: directoryPrefix,
+            }),
+          });
+
+          if (!presignedUrlResponse.ok) {
+            const errorData = await presignedUrlResponse.json().catch(() => ({ message: '获取预签名URL失败' }));
+            throw new Error(errorData.message || `获取预签名URL失败: ${presignedUrlResponse.statusText}`);
+          }
+          const { uploadURL, r2Key, publicUrl: directPublicUrl } = await presignedUrlResponse.json();
+
+          const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT',
+            body: file,
+            headers: { 'Content-Type': file.type },
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`上传到R2失败: ${uploadResponse.statusText}`);
+          }
+          
+          const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${r2Key}` : r2Key);
+
+          editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
+          handleAttachmentUploadSuccess({
+            file_url: r2Key,
+            publicUrl: finalPublicUrl,
+            file_type: file.type,
+            filename: file.name,
+            key: r2Key,
+          });
+
+        } catch (err: any) {
+          console.error('Pasted image upload failed:', err);
+          setAttachmentUploadError(`粘贴图片上传失败: ${err.message}`);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    }
+  };
+
   const editor = useEditor({
     extensions: [
       StarterKit,
       TiptapImage,
       TiptapLink.configure({ openOnClick: false, autolink: true }),
     ],
-    content: '', // Initial content will be set after fetching article data
+    content: '',
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl m-5 focus:outline-none border border-gray-300 p-4 rounded-md min-h-[200px]',
+      },
+      handlePaste(view, event, slice) {
+        const files = Array.from(event.clipboardData?.files || []);
+        if (files.some(file => file.type.startsWith('image/'))) {
+          // Pass the editor instance and files to the handler
+          // It's important that `this` inside handlePastedFiles refers to the component or a context where token etc. are available
+          // However, `this` in handlePaste is the Editor instance. So we pass editor explicitly.
+          handlePastedFiles(this.editor, files);
+          return true; // We've handled the paste
+        }
+        return false; // Use default paste behavior
       },
     },
   });
