@@ -27,12 +27,14 @@ body {
 
 /* 限制 Tiptap 编辑器中图片的最大宽度，并保持其纵横比 */
 .ProseMirror img {
-  max-width: 100%; /* 图片最大宽度为其父容器的100% */
-  height: auto;    /* 高度自动调整以保持原始纵横比 */
-  display: block;  /* 可选：帮助处理图片下方的额外空白 */
-  margin-left: auto; /* 可选：如果希望图片在块内居中显示 */
-  margin-right: auto;/* 可选：如果希望图片在块内居中显示 */
-  border: 1px solid #ccc; /* 可选：为图片添加一个细边框，使其在编辑器中更明显 */
-  padding: 2px; /* 可选：边框内边距 */
-  border-radius: 4px; /* 可选：轻微的圆角 */
+  max-width: 400px; /* 设置一个更具体的默认最大宽度，例如400px */
+  width: auto;      /* 允许图片在不超过max-width时按自身宽度显示 */
+  height: auto;     /* 高度自动调整以保持原始纵横比 */
+  display: block;   /* 帮助处理图片下方的额外空白，并使其可应用 margin:auto */
+  margin-left: auto;  /* 图片在块内居中显示 */
+  margin-right: auto; /* 图片在块内居中显示 */
+  border: 1px solid #ddd; /* 轻微调整边框颜色 */
+  padding: 2px;
+  border-radius: 4px;
+  cursor: pointer;  /* 添加鼠标手型，提示可点击 */
 }

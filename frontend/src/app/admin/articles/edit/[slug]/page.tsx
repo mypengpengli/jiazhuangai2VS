@@ -140,13 +140,21 @@ const EditArticlePage = () => {
         ) {
         const files = Array.from(event.clipboardData?.files || []);
         if (files.some(file => file.type.startsWith('image/'))) {
-          // Pass the editor instance and files to the handler
-          // It's important that `this` inside handlePastedFiles refers to the component or a context where token etc. are available
-          // However, `this` in handlePaste is the Editor instance. So we pass editor explicitly.
-          handlePastedFiles(this.editor, files);
+          // `this` 在 handlePaste 回调中指向当前的 Editor 实例
+          handlePastedFiles(this, files);
           return true; // We've handled the paste
         }
         return false; // Use default paste behavior
+      },
+      handleClickOn(view, pos, node, nodePos, event, direct) {
+        if (node.type.name === 'image' && node.attrs.src) {
+          // 检查点击事件是否直接作用在图片上，或者图片是事件目标的一部分
+          if (event.target instanceof HTMLElement && event.target.tagName === 'IMG') {
+            window.open(node.attrs.src, '_blank', 'noopener,noreferrer');
+            return true; // 事件已处理
+          }
+        }
+        return false; // 使用默认点击行为
       },
     },
   });

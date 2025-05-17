@@ -131,11 +131,20 @@ const CreateArticlePage = () => {
       ) {
         const files = Array.from(event.clipboardData?.files || []);
         if (files.some(file => file.type.startsWith('image/'))) {
-          // `this.editor` 在 handlePaste 回调中指向当前的 editor 实例
-          handlePastedFiles(this.editor, files);
+          // `this` 在 handlePaste 回调中指向当前的 Editor 实例
+          handlePastedFiles(this, files);
           return true; // 表示已处理粘贴事件
         }
         return false; // 使用默认的粘贴行为
+      },
+      handleClickOn(view, pos, node, nodePos, event, direct) {
+        if (node.type.name === 'image' && node.attrs.src) {
+          if (event.target instanceof HTMLElement && event.target.tagName === 'IMG') {
+            window.open(node.attrs.src, '_blank', 'noopener,noreferrer');
+            return true; // 事件已处理
+          }
+        }
+        return false; // 使用默认点击行为
       },
     },
   });
