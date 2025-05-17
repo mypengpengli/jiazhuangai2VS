@@ -77,7 +77,7 @@ const createArticleSchema = z.object({
     parent_id: z.number().int().positive().nullish(),
     attachments: z.array(z.object({ // 新增 attachments
         file_type: z.string().min(1),
-        file_url: z.string().url("文件URL无效"),
+        file_url: z.string().min(1, "文件路径/key不能为空"), // 改为 min(1) 因为存储的是 R2 key
         filename: z.string().optional(),
         description: z.string().optional()
     })).optional().nullable(),
