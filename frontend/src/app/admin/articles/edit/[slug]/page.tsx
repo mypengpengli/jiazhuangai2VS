@@ -105,9 +105,15 @@ const EditArticlePage = () => {
             key: r2Key,
           });
 
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error('Pasted image upload failed:', err);
-          setAttachmentUploadError(`粘贴图片上传失败: ${err.message}`);
+          let message = '粘贴图片上传失败: 未知错误';
+          if (err instanceof Error) {
+            message = `粘贴图片上传失败: ${err.message}`;
+          } else if (typeof err === 'string') {
+            message = `粘贴图片上传失败: ${err}`;
+          }
+          setAttachmentUploadError(message);
         } finally {
           setIsLoading(false);
         }
@@ -126,7 +132,7 @@ const EditArticlePage = () => {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl m-5 focus:outline-none border border-gray-300 p-4 rounded-md min-h-[200px]',
       },
-      handlePaste(view, event, slice) {
+      handlePaste(view, event, _slice) { // Renamed slice to _slice
         const files = Array.from(event.clipboardData?.files || []);
         if (files.some(file => file.type.startsWith('image/'))) {
           // Pass the editor instance and files to the handler
