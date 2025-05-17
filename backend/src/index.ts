@@ -28,15 +28,17 @@ app.use('*', cors({
     // TODO: 在生产环境中，您可能希望更严格地控制允许的源
     // 例如，从环境变量读取允许的源列表
     const allowedOrigins = [
-      'https://jiazhuangai2vs.pages.dev', // 您的生产前端 URL
-      'http://localhost:3000' // 本地前端开发 URL (如果端口不同请修改)
+      'https://jiazhuangai2vs.pages.dev', // Pages 默认域名
+      'https://www.jiazhuangai.com',    // 您的自定义主域名
+      'http://localhost:3000'         // 本地前端开发 URL
+      // 如果您还有其他前端访问域名，也需要加入这里
     ];
     if (allowedOrigins.includes(origin)) {
       return origin;
     }
-    // 对于其他源，可以不返回，或者返回一个默认的安全源（如果适用）
-    // 如果不希望允许其他源，可以返回 undefined 或者一个固定的不允许的源
-    return 'https://jiazhuangai2vs.pages.dev'; // 默认允许生产前端
+    // 如果请求的 origin 不在允许列表中，则不返回 Access-Control-Allow-Origin 头部，
+    // 浏览器会因此拒绝该跨域请求。
+    return undefined;
   },
   allowHeaders: ['Content-Type', 'Authorization'], // 确保 Content-Type 被允许, Authorization 为 JWT 准备
   allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'], // 确保 OPTIONS 和 POST 被允许
