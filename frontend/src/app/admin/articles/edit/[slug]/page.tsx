@@ -132,7 +132,12 @@ const EditArticlePage = () => {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl m-5 focus:outline-none border border-gray-300 p-4 rounded-md min-h-[200px]',
       },
-      handlePaste(view, event, _slice) { // Renamed slice to _slice
+      handlePaste(
+        view,
+        event,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _slice
+        ) {
         const files = Array.from(event.clipboardData?.files || []);
         if (files.some(file => file.type.startsWith('image/'))) {
           // Pass the editor instance and files to the handler
