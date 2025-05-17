@@ -149,112 +149,34 @@ const updateArticleSchema = createArticleSchema.partial().refine(
 protectedArticleRoutes.put(
     '/:id',
     zValidator('param', z.object({ id: z.string().regex(/^\d+$/, "ID 必须是数字") })),
-    // 不再使用 zValidator('json')
+    zValidator('json', updateArticleSchema), // 恢复使用 zValidator 验证 JSON 请求体
     async (c) => {
         const { id } = c.req.valid('param');
+        const articleDataFromRequest = c.req.valid('json'); // 获取通过 Zod 验证的 JSON 数据
         const user = c.get('user');
         const articleId = parseInt(id, 10);
-        console.log(`Route: PUT /api/articles/${articleId} (multipart) by user: ${user?.username}`);
-
-        let newImageUrl: string | null | undefined = undefined; // undefined: 未指定, null: 删除, string: 新 URL
-        let parsedData: any = {};
+        console.log(`Route: PUT /api/articles/${articleId} (json) by user: ${user?.username}`, articleDataFromRequest);
 
         try {
-            // 1. 获取当前文章信息 (需要旧 image_urls)
-            // 使用 getArticleBySlug 获取更完整的文章信息可能更好，但只查 ID 也可以
-            // const currentArticleInfo = await c.env.DB.prepare("SELECT image_urls FROM articles WHERE id = ?").bind(articleId).first<{ image_urls: string | null }>();
-            // if (!currentArticleInfo) {
-            //     return c.json({ error: 'Not Found', message: `Article with ID ${articleId} not found.` }, 404);
-            // }
-            // const oldImageUrl = currentArticleInfo.image_urls;
-            // console.log(`Current image URL for article ${articleId}: ${oldImageUrl}`);
-            // 暂时不处理旧图片URL，因为模型已更改
+            // 准备传递给服务层的数据
+            // updateArticleSchema 已经是 partial，所以字段都是可选的
+            // attachments 字段会直接传递给 updateArticle 服务 (即使其内部当前未处理)
+            const dataToUpdate: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'>> & { attachments?: Partial<ArticleAttachment>[] } = {
+                ...articleDataFromRequest,
+                // 将 null 值转换成 undefined，因为服务层可能期望 undefined 表示不更新
+                category_id: articleDataFromRequest.category_id === null ? undefined : articleDataFromRequest.category_id,
+                parent_id: articleDataFromRequest.parent_id === null ? undefined : articleDataFromRequest.parent_id,
+                content: articleDataFromRequest.content === null ? undefined : articleDataFromRequest.content,
+                attachments: articleDataFromRequest.attachments === null ? undefined : articleDataFromRequest.attachments,
+            };
 
-            // 2. 解析 formData
-            const formData = await c.req.formData();
-            const imageFile = formData.get('image');
-            const deleteImageFlag = formData.get('delete_image'); // 检查删除标记
-
-            // 提取文本字段
-            for (const [key, value] of formData.entries()) {
-                 if (key !== 'image' && key !== 'delete_image' && typeof value === 'string') {
-                     if (key === 'category_id' || key === 'parent_id') {
-                        parsedData[key] = value === '' ? null : parseInt(value, 10);
-                        if (isNaN(parsedData[key])) parsedData[key] = null;
-                    } else if (key === 'content' || key === 'image_urls') { // image_urls will be ignored by schema if not present
-                        parsedData[key] = value === '' ? null : value;
-                    }
-                     else {
-                        parsedData[key] = value;
-                    }
-                }
-            }
-            console.log('Parsed form data (text fields):', parsedData);
-
-            // 3. 手动验证文本字段 (使用 update schema)
-            const validatedData = updateArticleSchema.parse(parsedData);
-            console.log('Validated text data:', validatedData);
-
-            // 4. 处理图片删除标记
-            const shouldDeleteImage = deleteImageFlag === 'true' || deleteImageFlag === '1';
-            if (shouldDeleteImage) {
-                console.log(`Delete image flag is set for article ${articleId}.`);
-                // if (oldImageUrl) { // oldImageUrl 逻辑已移除
-                //     console.log(`Attempting to delete old image from R2: ${oldImageUrl}`);
-                //     await deleteImageFromR2(c.env.BUCKET, oldImageUrl);
-                // }
-                // newImageUrl = null; // 标记为需要删除 (null) - 这部分逻辑需要与新的 attachments 模型结合
+            // 如果 slug 为空字符串或 null，也设为 undefined，避免更新为空 slug
+            if (articleDataFromRequest.slug === '' || articleDataFromRequest.slug === null) {
+                dataToUpdate.slug = undefined;
             }
 
-            // 5. 处理新图片上传 (仅当没有设置删除标记时)
-            const isFile = (value: string | File | null): value is File => value !== null && typeof value === 'object' && value instanceof File;
-            if (!shouldDeleteImage && isFile(imageFile) && imageFile.size > 0) {
-                console.log(`Received new image file: ${imageFile.name}`);
-                if (!imageFile.type.startsWith('image/')) {
-                    return c.json({ error: 'Bad Request', message: 'Uploaded file is not an image.' }, 400);
-                }
-                // 删除旧图片（如果存在）- 逻辑已移除
-                // 上传新图片
-                const arrayBuffer = await imageFile.arrayBuffer();
-                // newImageUrl = await uploadImageToR2(c.env.BUCKET, { name: imageFile.name, type: imageFile.type, arrayBuffer }, 'articles/');
-                // console.log('New image uploaded, URL:', newImageUrl);
-                // TODO: 上传的图片URL/Key需要通过 attachments 传递给 updateArticle 服务
-            } else if (imageFile) {
-                 console.log('Image field present but not a valid file or empty.');
-            }
+            console.log('Data prepared for updateArticle service:', dataToUpdate);
 
-            // 6. 准备最终更新数据 (将 null 转为 undefined)
-            const dataToUpdate: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'>> = {};
-             for (const key in validatedData) {
-                if (Object.prototype.hasOwnProperty.call(validatedData, key)) {
-                    const typedKey = key as keyof typeof validatedData;
-                    // 确保 key 存在于 dataToUpdate 的类型中
-                    if (typedKey === 'title' || typedKey === 'slug' || typedKey === 'content' || typedKey === 'category_id' || typedKey === 'parent_id' || typedKey === 'content_type') {
-                        const value = validatedData[typedKey];
-                         // @ts-ignore
-                        dataToUpdate[typedKey] = value === null ? undefined : value;
-                    }
-                }
-            }
-            
-            // image_urls 相关的逻辑已移除，附件更新将通过新的机制处理
-            // if (newImageUrl !== undefined) {
-            //     dataToUpdate.image_urls = newImageUrl === null ? undefined : newImageUrl;
-            // }
-
-            console.log('Data prepared for updateArticle:', dataToUpdate);
-
-             // 检查是否有任何字段需要更新
-            if (Object.keys(dataToUpdate).length === 0) {
-                console.log(`No fields to update for article ${articleId}.`);
-                 const currentFullArticle = await getArticleBySlug(c.env.DB, id); // 重新获取完整信息返回
-                 if (!currentFullArticle) {
-                    return c.json({ error: 'Not Found', message: `Article with ID ${articleId} not found.` }, 404);
-                 }
-                 return c.json(currentFullArticle);
-            }
-
-            // 7. 调用服务函数更新数据库
             const updatedArticle = await updateArticle(c.env.DB, articleId, dataToUpdate);
             if (!updatedArticle) {
                  // 这个情况理论上不应该发生
