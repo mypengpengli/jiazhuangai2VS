@@ -71,11 +71,11 @@ const CreateArticlePage = () => {
             throw new Error(errorData.message || `获取预签名URL失败: ${presignedUrlResponse.statusText}`);
           }
           const presignedData = await presignedUrlResponse.json();
-          const { uploadURL, r2Key, publicUrl: directPublicUrl } = presignedData;
+          const { uploadUrl, r2Key, publicUrl: directPublicUrl } = presignedData; // Changed uploadURL to uploadUrl
           console.log('Received presigned data:', JSON.stringify(presignedData));
-          console.log('Upload URL for R2:', uploadURL);
+          console.log('Upload URL for R2:', uploadUrl); // Changed uploadURL to uploadUrl
 
-          const uploadResponse = await fetch(uploadURL, {
+          const uploadResponse = await fetch(uploadUrl, { // Changed uploadURL to uploadUrl
             method: 'PUT',
             body: file,
             headers: {
@@ -87,7 +87,7 @@ const CreateArticlePage = () => {
 
           if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text().catch(() => '无法读取响应体');
-            console.error('R2 Upload Error. Status:', uploadResponse.status, 'StatusText:', uploadResponse.statusText, 'Response Text:', errorText, 'Attempted URL:', uploadURL);
+            console.error('R2 Upload Error. Status:', uploadResponse.status, 'StatusText:', uploadResponse.statusText, 'Response Text:', errorText, 'Attempted URL:', uploadUrl); // Changed uploadURL to uploadUrl
             throw new Error(`上传到R2失败: ${uploadResponse.status} ${uploadResponse.statusText || '(无状态文本)'}. 响应: ${errorText}`);
           }
           console.log('Successfully uploaded to R2 with presigned URL.');
