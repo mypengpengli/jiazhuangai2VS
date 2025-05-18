@@ -83,7 +83,13 @@ const CreateArticlePage = () => {
           
           const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${r2Key}` : r2Key);
 
-          editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
+          // 增加检查 editorInstance 是否有效且未被销毁
+          if (editorInstance && !editorInstance.isDestroyed) {
+            editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
+          } else {
+            console.warn('Editor instance is not available or destroyed when trying to insert pasted image.');
+            setAttachmentUploadError('编辑器状态异常，图片已上传但无法自动插入。请尝试手动插入或刷新页面。');
+          }
           // 调用已有的 handleAttachmentUploadSuccess 来更新附件列表状态
           handleAttachmentUploadSuccess({
             file_url: r2Key,

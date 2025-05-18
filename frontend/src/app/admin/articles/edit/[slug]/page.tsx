@@ -96,7 +96,15 @@ const EditArticlePage = () => {
           
           const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${r2Key}` : r2Key);
 
-          editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
+          // 增加检查 editorInstance 是否有效且未被销毁
+          if (editorInstance && !editorInstance.isDestroyed) {
+            editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
+          } else {
+            console.warn('Editor instance is not available or destroyed when trying to insert pasted image.');
+            // 可以考虑给用户一个提示，或者将图片信息暂存，待编辑器可用时再插入
+            // 例如，可以将 finalPublicUrl 添加到一个待插入队列
+            setAttachmentUploadError('编辑器状态异常，图片已上传但无法自动插入。请尝试手动插入或刷新页面。');
+          }
           handleAttachmentUploadSuccess({
             file_url: r2Key,
             publicUrl: finalPublicUrl,
