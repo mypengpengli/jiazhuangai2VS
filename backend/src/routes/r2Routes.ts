@@ -22,12 +22,15 @@ r2Routes.use('/presigned-url', authMiddleware);
 
 r2Routes.post('/presigned-url', async (c) => {
     try {
-        // 修改类型定义和解构以匹配前端发送的 'filename' (全小写)
+        console.log('Received request for /api/r2/presigned-url');
         const body = await c.req.json<{ filename: string; contentType: string; directoryPrefix?: string }>();
-        const { filename, contentType, directoryPrefix } = body; // 使用 filename
+        console.log('Request body for presigned URL:', JSON.stringify(body));
+        
+        const { filename, contentType, directoryPrefix } = body;
 
-        if (!filename || !contentType) { // 检查 filename
-            return c.json({ error: 'Missing filename or contentType' }, 400);
+        if (!filename || filename.trim() === '' || !contentType || contentType.trim() === '') {
+            console.error('Validation failed: filename or contentType is missing or empty.', { filename, contentType });
+            return c.json({ error: 'Bad Request', message: 'Filename and contentType are required and cannot be empty.' }, 400);
         }
 
         const { R2_BUCKET_NAME, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } = c.env;
