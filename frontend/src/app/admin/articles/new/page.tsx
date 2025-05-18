@@ -256,9 +256,16 @@ const CreateArticlePage = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: `创建文章失败，状态码: ${response.status}` }));
-        console.error("创建文章失败，后端返回:", errorData);
-        const errorMessage = errorData.issues ? JSON.stringify(errorData.issues) : (errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
-        throw new Error(errorMessage);
+        console.error("创建文章失败，后端返回的原始数据:", JSON.stringify(errorData, null, 2));
+        let detailedMessage = `HTTP error! status: ${response.status}`;
+        if (errorData && errorData.error && errorData.error.issues && Array.isArray(errorData.error.issues)) {
+          detailedMessage = "后端验证失败: " + errorData.error.issues.map((issue: any) => `[${issue.path.join('.') || 'field'}]: ${issue.message}`).join('; ');
+        } else if (errorData && errorData.message) {
+          detailedMessage = errorData.message;
+        } else if (errorData && errorData.error && typeof errorData.error === 'string') {
+          detailedMessage = errorData.error;
+        }
+        throw new Error(detailedMessage);
       }
 
       alert('文章创建成功！');
