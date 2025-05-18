@@ -11,8 +11,9 @@ type Bindings = {
     R2_ACCOUNT_ID: string;
     R2_ACCESS_KEY_ID: string;
     R2_SECRET_ACCESS_KEY: string;
-    JWT_SECRET: string; // authMiddleware 可能需要
-    DB: D1Database; // 其他中间件或路由可能需要
+    R2_PUBLIC_URL_PREFIX: string; // 新增：R2 存储桶的公共访问 URL 前缀
+    JWT_SECRET: string;
+    DB: D1Database;
 };
 
 const r2Routes = new Hono<{ Bindings: Bindings }>();
@@ -33,10 +34,16 @@ r2Routes.post('/presigned-url', async (c) => {
             return c.json({ error: 'Bad Request', message: 'Filename and contentType are required and cannot be empty.' }, 400);
         }
 
-        const { R2_BUCKET_NAME, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } = c.env;
+        const {
+            R2_BUCKET_NAME,
+            R2_ACCOUNT_ID,
+            R2_ACCESS_KEY_ID,
+            R2_SECRET_ACCESS_KEY,
+            R2_PUBLIC_URL_PREFIX // 获取新的环境变量
+        } = c.env;
 
-        if (!R2_BUCKET_NAME || !R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
-            console.error('R2 configuration missing in environment variables/secrets.');
+        if (!R2_BUCKET_NAME || !R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_PUBLIC_URL_PREFIX) {
+            console.error('R2 configuration (bucket, account, keys, or public URL prefix) missing in environment variables.');
             return c.json({ error: 'Server configuration error for file uploads' }, 500);
         }
 
@@ -76,10 +83,12 @@ r2Routes.post('/presigned-url', async (c) => {
         const expiresIn = 900; 
         const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn });
 
-        return c.json({ 
-            uploadUrl, 
-            key: uniqueKey, // 前端上传成功后可能需要这个 key 来通知后端或构建访问 URL
-            // publicUrl: `https://your-r2-public-domain.com/${uniqueKey}` // 如果配置了 R2 公开访问域名
+        const publicUrl = `${R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${uniqueKey}`;
+
+        return c.json({
+            uploadUrl,
+            key: uniqueKey,
+            publicUrl: publicUrl // 返回完整的公共 URL
         });
 
     } catch (error) {
