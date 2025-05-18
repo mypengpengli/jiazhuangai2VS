@@ -80,7 +80,7 @@ const createArticleSchema = z.object({
         file_url: z.string().min(1, "文件路径/key不能为空"),
         filename: z.string().optional(),
         description: z.string().optional(),
-        publicUrl: z.string().url().optional() // 添加 publicUrl 字段，设为可选
+        publicUrl: z.string().optional() // 暂时移除 .url() 验证，以便调试
     })).optional().nullable(),
 });
 

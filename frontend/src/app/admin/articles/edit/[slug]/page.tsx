@@ -337,8 +337,10 @@ const EditArticlePage = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: '更新文章失败' }));
-        throw new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ message: `更新文章失败，状态码: ${response.status}` }));
+        console.error("更新文章失败，后端返回:", errorData);
+        const errorMessage = errorData.issues ? JSON.stringify(errorData.issues) : (errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(errorMessage);
       }
 
       alert('文章更新成功！');

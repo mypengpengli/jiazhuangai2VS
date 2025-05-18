@@ -255,8 +255,10 @@ const CreateArticlePage = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: '创建文章失败' }));
-        throw new Error(errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ message: `创建文章失败，状态码: ${response.status}` }));
+        console.error("创建文章失败，后端返回:", errorData);
+        const errorMessage = errorData.issues ? JSON.stringify(errorData.issues) : (errorData.error || errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(errorMessage);
       }
 
       alert('文章创建成功！');
