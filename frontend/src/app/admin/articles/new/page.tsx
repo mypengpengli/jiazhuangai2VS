@@ -12,6 +12,11 @@ import LinkExtension from '@tiptap/extension-link';
 import FileUpload from '@/components/FileUpload';
 import MenuBar from '@/components/MenuBar';
 
+interface ZodIssueSimple {
+  path: (string | number)[];
+  message: string;
+}
+
 // 定义附件类型，与后端 CreateArticleInput 中的 attachments 数组元素对应
 interface AttachmentInput {
   file_url: string;
@@ -259,7 +264,7 @@ const CreateArticlePage = () => {
         console.error("创建文章失败，后端返回的原始数据:", JSON.stringify(errorData, null, 2));
         let detailedMessage = `HTTP error! status: ${response.status}`;
         if (errorData && errorData.error && errorData.error.issues && Array.isArray(errorData.error.issues)) {
-          detailedMessage = "后端验证失败: " + errorData.error.issues.map((issue: any) => `[${issue.path.join('.') || 'field'}]: ${issue.message}`).join('; ');
+          detailedMessage = "后端验证失败: " + errorData.error.issues.map((issue: ZodIssueSimple) => `[${issue.path.join('.') || 'field'}]: ${issue.message}`).join('; ');
         } else if (errorData && errorData.message) {
           detailedMessage = errorData.message;
         } else if (errorData && errorData.error && typeof errorData.error === 'string') {
