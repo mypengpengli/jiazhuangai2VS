@@ -91,8 +91,11 @@ const EditArticlePage = () => {
           });
 
           if (!uploadResponse.ok) {
-            throw new Error(`上传到R2失败: ${uploadResponse.statusText}`);
+            const errorText = await uploadResponse.text().catch(() => '无法读取响应体');
+            console.error('R2 Upload Error. Status:', uploadResponse.status, 'StatusText:', uploadResponse.statusText, 'Response Text:', errorText, 'Attempted URL:', uploadURL);
+            throw new Error(`上传到R2失败: ${uploadResponse.status} ${uploadResponse.statusText || '(无状态文本)'}. 响应: ${errorText}`);
           }
+          console.log('Successfully uploaded to R2 with presigned URL.');
           
           const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${r2Key}` : r2Key);
 
