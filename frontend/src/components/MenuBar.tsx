@@ -87,6 +87,34 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
       </button>
       <button
         type="button"
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        className={`px-2 py-1 text-sm rounded ${editor.isActive({ textAlign: 'left' }) ? 'bg-indigo-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
+      >
+        左对齐
+      </button>
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        className={`px-2 py-1 text-sm rounded ${editor.isActive({ textAlign: 'center' }) ? 'bg-indigo-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
+      >
+        居中
+      </button>
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        className={`px-2 py-1 text-sm rounded ${editor.isActive({ textAlign: 'right' }) ? 'bg-indigo-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
+      >
+        右对齐
+      </button>
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+        className={`px-2 py-1 text-sm rounded ${editor.isActive({ textAlign: 'justify' }) ? 'bg-indigo-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}
+      >
+        两端对齐
+      </button>
+      <button
+        type="button"
         onClick={addImage}
         className="px-2 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300"
       >

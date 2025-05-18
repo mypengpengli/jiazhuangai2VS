@@ -9,6 +9,7 @@ import { useEditor, EditorContent, Editor } from '@tiptap/react'; // Import Edit
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import LinkExtension from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align'; // 导入 TextAlign
 import FileUpload from '@/components/FileUpload';
 import MenuBar from '@/components/MenuBar';
 
@@ -139,6 +140,9 @@ const CreateArticlePage = () => {
       LinkExtension.configure({
         openOnClick: false,
         autolink: true,
+      }),
+      TextAlign.configure({ // 添加 TextAlign 扩展
+        types: ['heading', 'paragraph'], // 指定支持对齐的节点类型
       }),
     ],
     content: '<p>开始写作...</p>',

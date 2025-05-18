@@ -12,6 +12,7 @@ import { useEditor, EditorContent, Editor } from '@tiptap/react'; // Import Edit
 import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image';
 import TiptapLink from '@tiptap/extension-link';   // Renamed to avoid conflict
+import TextAlign from '@tiptap/extension-text-align'; // 导入 TextAlign
 import FileUpload from '../../../../../components/FileUpload'; // Corrected relative path
 import MenuBar from '../../../../../components/MenuBar'; // 导入 MenuBar 组件
 
@@ -146,6 +147,9 @@ const EditArticlePage = () => {
       StarterKit,
       TiptapImage,
       TiptapLink.configure({ openOnClick: false, autolink: true }),
+      TextAlign.configure({ // 添加 TextAlign 扩展
+        types: ['heading', 'paragraph'], // 指定支持对齐的节点类型
+      }),
     ],
     content: '',
     editorProps: {
