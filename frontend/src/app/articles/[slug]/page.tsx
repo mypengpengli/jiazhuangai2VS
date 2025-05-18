@@ -90,16 +90,17 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
         <span>最后更新: {new Date(article.updated_at).toLocaleDateString()}</span>
       </div>
 
-      {/* 显示文章附件中的图片 */}
+      {/*
+        显示文章附件中的图片 (暂时注释掉，根据用户反馈，顶部大图不应显示)
       {article.attachments && article.attachments.find(att => att.file_type.startsWith('image/')) && (
-        <div className="mb-8 flex justify-center"> {/* Added flex justify-center for centering */}
+        <div className="mb-8 flex justify-center">
           {article.attachments
             .filter(att => att.file_type.startsWith('image/'))
-            .slice(0, 1) // 只显示第一张图片作为示例，可以根据需要修改为轮播或多图展示
+            .slice(0, 1)
             .map(imageAttachment => (
               <Image
                 key={imageAttachment.id || imageAttachment.file_url}
-                src={imageAttachment.publicUrl || imageAttachment.file_url} // Prioritize publicUrl
+                src={imageAttachment.publicUrl || imageAttachment.file_url}
                 alt={imageAttachment.filename || article.title}
                 width={800}
                 height={450}
@@ -109,6 +110,7 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
             ))}
         </div>
       )}
+      */}
 
       {/* 文章内容 */}
       {article.content ? (

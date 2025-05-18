@@ -19,6 +19,13 @@
   }
 }
 
+/* Tailwind Typography prose 内图片居中 */
+.prose img {
+  margin-left: auto;
+  margin-right: auto;
+  display: block; /* 确保 img 是块级元素以便 margin auto 生效 */
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
