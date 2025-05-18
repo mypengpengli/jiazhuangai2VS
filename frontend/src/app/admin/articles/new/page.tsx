@@ -76,9 +76,10 @@ const CreateArticlePage = () => {
             throw new Error(errorData.message || `获取预签名URL失败: ${presignedUrlResponse.statusText}`);
           }
           const presignedData = await presignedUrlResponse.json();
-          const { uploadUrl, r2Key, publicUrl: directPublicUrl } = presignedData; // Changed uploadURL to uploadUrl
+          const { uploadUrl, key, publicUrl: directPublicUrl } = presignedData; // Changed r2Key to key
           console.log('Received presigned data:', JSON.stringify(presignedData));
-          console.log('Upload URL for R2:', uploadUrl); // Changed uploadURL to uploadUrl
+          console.log('Upload URL for R2:', uploadUrl);
+          console.log('R2 Object Key from backend:', key); // Log the received key
 
           const uploadResponse = await fetch(uploadUrl, { // Changed uploadURL to uploadUrl
             method: 'PUT',
@@ -97,7 +98,7 @@ const CreateArticlePage = () => {
           }
           console.log('Successfully uploaded to R2 with presigned URL.');
           
-          const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${r2Key}` : r2Key);
+          const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${key}` : key); // Changed r2Key to key
 
           // 增加检查 editorInstance 是否有效且未被销毁
           if (editorInstance && !editorInstance.isDestroyed) { // 确保 editorInstance 存在且未销毁
@@ -108,11 +109,11 @@ const CreateArticlePage = () => {
           }
           // 调用已有的 handleAttachmentUploadSuccess 来更新附件列表状态
           handleAttachmentUploadSuccess({
-            file_url: r2Key,
+            file_url: key, // Use key from backend
             publicUrl: finalPublicUrl,
             file_type: file.type,
             filename: file.name,
-            key: r2Key,
+            key: key,      // Use key from backend
           });
 
         } catch (err: unknown) {

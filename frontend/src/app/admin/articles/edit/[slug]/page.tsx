@@ -88,9 +88,10 @@ const EditArticlePage = () => {
             throw new Error(errorData.message || `获取预签名URL失败: ${presignedUrlResponse.statusText}`);
           }
           const presignedData = await presignedUrlResponse.json(); // 先获取数据
-          const { uploadUrl, r2Key, publicUrl: directPublicUrl } = presignedData; // 使用 uploadUrl
-          console.log('Received presigned data for edit page:', JSON.stringify(presignedData)); // 添加日志
-          console.log('Upload URL for R2 (edit page):', uploadUrl); // 添加日志，使用 uploadUrl
+          const { uploadUrl, key, publicUrl: directPublicUrl } = presignedData; // 使用 uploadUrl 和 key
+          console.log('Received presigned data for edit page:', JSON.stringify(presignedData));
+          console.log('Upload URL for R2 (edit page):', uploadUrl);
+          console.log('R2 Object Key from backend (edit page):', key); // 使用 key
 
           const uploadResponse = await fetch(uploadUrl, { // 使用 uploadUrl
             method: 'PUT',
@@ -105,7 +106,7 @@ const EditArticlePage = () => {
           }
           console.log('Successfully uploaded to R2 with presigned URL.');
           
-          const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${r2Key}` : r2Key);
+          const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${key}` : key); // 使用 key
 
           // 增加检查 editorInstance 是否有效且未被销毁
           if (editorInstance && !editorInstance.isDestroyed) {
@@ -117,11 +118,11 @@ const EditArticlePage = () => {
             setAttachmentUploadError('编辑器状态异常，图片已上传但无法自动插入。请尝试手动插入或刷新页面。');
           }
           handleAttachmentUploadSuccess({
-            file_url: r2Key,
+            file_url: key, // 使用 key
             publicUrl: finalPublicUrl,
             file_type: file.type,
             filename: file.name,
-            key: r2Key,
+            key: key,      // 使用 key
           });
 
         } catch (err: unknown) {
