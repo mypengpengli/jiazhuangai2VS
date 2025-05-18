@@ -52,6 +52,7 @@ const CreateArticlePage = () => {
         setIsLoading(true); // 使用页面级的 isLoading 状态
         try {
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
+          console.log(`Requesting presigned URL from: ${backendUrl}/api/r2/presigned-url`);
           const presignedUrlResponse = await fetch(`${backendUrl}/api/r2/presigned-url`, {
             method: 'POST',
             headers: {
@@ -69,22 +70,31 @@ const CreateArticlePage = () => {
             const errorData = await presignedUrlResponse.json().catch(() => ({ message: '获取预签名URL失败' }));
             throw new Error(errorData.message || `获取预签名URL失败: ${presignedUrlResponse.statusText}`);
           }
-          const { uploadURL, r2Key, publicUrl: directPublicUrl } = await presignedUrlResponse.json();
+          const presignedData = await presignedUrlResponse.json();
+          const { uploadURL, r2Key, publicUrl: directPublicUrl } = presignedData;
+          console.log('Received presigned data:', JSON.stringify(presignedData));
+          console.log('Upload URL for R2:', uploadURL);
 
           const uploadResponse = await fetch(uploadURL, {
             method: 'PUT',
             body: file,
-            headers: { 'Content-Type': file.type },
+            headers: {
+              'Content-Type': file.type,
+              // 通常预签名URL包含了所有必要的认证信息，不需要额外的 Authorization header
+              // 但如果R2存储桶策略或预签名URL生成方式有特定要求，可能需要调整
+            },
           });
 
           if (!uploadResponse.ok) {
-            throw new Error(`上传到R2失败: ${uploadResponse.statusText}`);
+            const errorText = await uploadResponse.text().catch(() => '无法读取响应体');
+            console.error('R2 Upload Error Response Text:', errorText);
+            throw new Error(`上传到R2失败: ${uploadResponse.status} ${uploadResponse.statusText || '(无状态文本)'}. 响应: ${errorText}`);
           }
           
           const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${r2Key}` : r2Key);
 
           // 增加检查 editorInstance 是否有效且未被销毁
-          if (editorInstance && !editorInstance.isDestroyed) {
+          if (editorInstance && !editorInstance.isDestroyed) { // 确保 editorInstance 存在且未销毁
             editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
           } else {
             console.warn('Editor instance is not available or destroyed when trying to insert pasted image.');
