@@ -137,7 +137,15 @@ const CreateArticlePage = () => {
         }
         return false; // 使用默认的粘贴行为
       },
-      handleClickOn(view, pos, node, nodePos, event, direct) {
+      handleClickOn(
+        view,
+        pos,
+        node,
+        nodePos,
+        event,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _direct // Renamed direct to _direct
+      ) {
         if (node.type.name === 'image' && node.attrs.src) {
           if (event.target instanceof HTMLElement && event.target.tagName === 'IMG') {
             window.open(node.attrs.src, '_blank', 'noopener,noreferrer');

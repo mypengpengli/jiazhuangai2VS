@@ -146,7 +146,15 @@ const EditArticlePage = () => {
         }
         return false; // Use default paste behavior
       },
-      handleClickOn(view, pos, node, nodePos, event, direct) {
+      handleClickOn(
+        view,
+        pos,
+        node,
+        nodePos,
+        event,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        _direct // Renamed direct to _direct
+      ) {
         if (node.type.name === 'image' && node.attrs.src) {
           // 检查点击事件是否直接作用在图片上，或者图片是事件目标的一部分
           if (event.target instanceof HTMLElement && event.target.tagName === 'IMG') {
