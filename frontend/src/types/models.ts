@@ -50,6 +50,7 @@ export interface ArticleAttachment {
   file_url: string;
   filename?: string;
   description?: string;
+  publicUrl?: string; // 新增：用于前端显示的完整公共 URL
   created_at: string;
 }
 

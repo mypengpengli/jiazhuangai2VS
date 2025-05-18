@@ -38,6 +38,28 @@ async function getArticleData(slug: string): Promise<Article | null> {
 
     const article: Article = await res.json();
     console.log(`Fetched article: ${article.title}`);
+
+    // Construct publicUrl for attachments if prefix is available
+    if (article && article.attachments && Array.isArray(article.attachments)) {
+      const r2PublicUrlPrefix = process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX;
+      if (r2PublicUrlPrefix) {
+        article.attachments = article.attachments.map(att => {
+          // Ensure file_url is a string and not undefined/null before concatenation
+          const fileKey = typeof att.file_url === 'string' ? att.file_url : '';
+          return {
+            ...att,
+            publicUrl: `${r2PublicUrlPrefix.replace(/\/$/, '')}/${fileKey}`
+          };
+        });
+      } else {
+        console.warn("NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX is not set, publicUrls for attachments might be incorrect.");
+        // Fallback: use file_url as publicUrl, which might be a relative path or incomplete
+        article.attachments = article.attachments.map(att => ({
+          ...att,
+          publicUrl: att.file_url
+        }));
+      }
+    }
     return article;
   } catch (error) {
     console.error(`Error fetching article data for slug ${slug}:`, error);
@@ -70,14 +92,14 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
 
       {/* 显示文章附件中的图片 */}
       {article.attachments && article.attachments.find(att => att.file_type.startsWith('image/')) && (
-        <div className="mb-8">
+        <div className="mb-8 flex justify-center"> {/* Added flex justify-center for centering */}
           {article.attachments
             .filter(att => att.file_type.startsWith('image/'))
             .slice(0, 1) // 只显示第一张图片作为示例，可以根据需要修改为轮播或多图展示
             .map(imageAttachment => (
               <Image
                 key={imageAttachment.id || imageAttachment.file_url}
-                src={imageAttachment.file_url}
+                src={imageAttachment.publicUrl || imageAttachment.file_url} // Prioritize publicUrl
                 alt={imageAttachment.filename || article.title}
                 width={800}
                 height={450}
