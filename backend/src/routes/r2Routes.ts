@@ -22,11 +22,12 @@ r2Routes.use('/presigned-url', authMiddleware);
 
 r2Routes.post('/presigned-url', async (c) => {
     try {
-        const body = await c.req.json<{ fileName: string; contentType: string; directoryPrefix?: string }>();
-        const { fileName, contentType, directoryPrefix } = body;
+        // 修改类型定义和解构以匹配前端发送的 'filename' (全小写)
+        const body = await c.req.json<{ filename: string; contentType: string; directoryPrefix?: string }>();
+        const { filename, contentType, directoryPrefix } = body; // 使用 filename
 
-        if (!fileName || !contentType) {
-            return c.json({ error: 'Missing fileName or contentType' }, 400);
+        if (!filename || !contentType) { // 检查 filename
+            return c.json({ error: 'Missing filename or contentType' }, 400);
         }
 
         const { R2_BUCKET_NAME, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } = c.env;
@@ -47,7 +48,7 @@ r2Routes.post('/presigned-url', async (c) => {
         if (prefix === '/') prefix = ''; // 避免根目录上传时 Key 以 "/" 开头
 
         // 从文件名中提取扩展名
-        const fileExtension = fileName.split('.').pop() || '';
+        const fileExtension = filename.split('.').pop() || ''; // 使用 filename
         // 生成一个唯一的文件名/路径
         const uniqueKey = `${prefix}${uuidv4()}.${fileExtension}`;
 
