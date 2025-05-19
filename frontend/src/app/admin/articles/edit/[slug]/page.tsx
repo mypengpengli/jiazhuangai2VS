@@ -49,6 +49,7 @@ const EditArticlePage = () => {
   const [categoryId, setCategoryId] = useState<number | ''>('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
+  const [pendingPastedImage, setPendingPastedImage] = useState<{ src: string; alt: string } | null>(null); // 新状态
   const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingArticle, setIsFetchingArticle] = useState(true);
@@ -141,20 +142,9 @@ const EditArticlePage = () => {
           const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${key}` : key); // 使用 key
 
           // 增加检查 editorInstance 是否有效且未被销毁
-          if (editorInstance && !editorInstance.isDestroyed) {
-            // 使用 setTimeout 确保在编辑器状态稳定后插入图片
-            setTimeout(() => {
-              if (editorInstance && !editorInstance.isDestroyed) {
-                editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
-              } else {
-                console.warn('Editor instance became unavailable or destroyed before setTimeout for pasted image insertion.');
-                setAttachmentUploadError('编辑器状态异常，图片已上传但无法自动插入(timeout)。请尝试手动插入或刷新页面。');
-              }
-            }, 0);
-          } else {
-            console.warn('Editor instance is not available or destroyed when trying to insert pasted image.');
-            setAttachmentUploadError('编辑器状态异常，图片已上传但无法自动插入。请尝试手动插入或刷新页面。');
-          }
+          // 图片上传成功后，设置待插入图片状态，由 useEffect 处理实际插入
+          setPendingPastedImage({ src: finalPublicUrl, alt: file.name });
+
           handleAttachmentUploadSuccess({
             file_url: key, // 使用 key
             publicUrl: finalPublicUrl,
@@ -362,6 +352,22 @@ const EditArticlePage = () => {
     };
     fetchArticleData();
   }, [articleSlug, token, editor]);
+
+  // useEffect 用于处理粘贴图片的自动插入
+  useEffect(() => {
+    if (pendingPastedImage && editor && !editor.isDestroyed) {
+      editor.chain().focus().setImage({ src: pendingPastedImage.src, alt: pendingPastedImage.alt }).run();
+      setPendingPastedImage(null); // 清除状态，避免重复插入
+    }
+  }, [pendingPastedImage, editor]);
+
+  // useEffect 用于处理粘贴图片的自动插入
+  useEffect(() => {
+    if (pendingPastedImage && editor && !editor.isDestroyed) {
+      editor.chain().focus().setImage({ src: pendingPastedImage.src, alt: pendingPastedImage.alt }).run();
+      setPendingPastedImage(null); // 清除状态，避免重复插入
+    }
+  }, [pendingPastedImage, editor]);
 
   const handleAttachmentUploadSuccess = (uploadedFile: { file_url: string; publicUrl?: string; file_type: string; filename: string; key: string }) => {
     setAttachments(prev => [...prev, { ...uploadedFile, publicUrl: uploadedFile.publicUrl || uploadedFile.file_url }]);

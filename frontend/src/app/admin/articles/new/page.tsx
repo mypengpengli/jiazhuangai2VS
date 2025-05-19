@@ -38,6 +38,7 @@ const CreateArticlePage = () => {
   const [categoryId, setCategoryId] = useState<number | ''>('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [attachments, setAttachments] = useState<UploadedAttachment[]>([]); // 存储已上传的附件信息
+  const [pendingPastedImage, setPendingPastedImage] = useState<{ src: string; alt: string } | null>(null); // 新状态
   const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,21 +133,9 @@ const CreateArticlePage = () => {
           
           const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${key}` : key); // Changed r2Key to key
 
-          // 增加检查 editorInstance 是否有效且未被销毁
-          if (editorInstance && !editorInstance.isDestroyed) { // 确保 editorInstance 存在且未销毁
-            // 使用 setTimeout 确保在编辑器状态稳定后插入图片
-            setTimeout(() => {
-              if (editorInstance && !editorInstance.isDestroyed) {
-                editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
-              } else {
-                console.warn('Editor instance became unavailable or destroyed before setTimeout for pasted image insertion.');
-                setAttachmentUploadError('编辑器状态异常，图片已上传但无法自动插入(timeout)。请尝试手动插入或刷新页面。');
-              }
-            }, 0);
-          } else {
-            console.warn('Editor instance is not available or destroyed when trying to insert pasted image.');
-            setAttachmentUploadError('编辑器状态异常，图片已上传但无法自动插入。请尝试手动插入或刷新页面。');
-          }
+          // 图片上传成功后，设置待插入图片状态，由 useEffect 处理实际插入
+          setPendingPastedImage({ src: finalPublicUrl, alt: file.name });
+
           // 调用已有的 handleAttachmentUploadSuccess 来更新附件列表状态
           handleAttachmentUploadSuccess({
             file_url: key, // Use key from backend
@@ -302,6 +291,14 @@ const CreateArticlePage = () => {
     };
     fetchCategories();
   }, [token]);
+
+  // useEffect 用于处理粘贴图片的自动插入
+  useEffect(() => {
+    if (pendingPastedImage && editor && !editor.isDestroyed) {
+      editor.chain().focus().setImage({ src: pendingPastedImage.src, alt: pendingPastedImage.alt }).run();
+      setPendingPastedImage(null); // 清除状态，避免重复插入
+    }
+  }, [pendingPastedImage, editor]);
 
   // const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => { ... };
 
