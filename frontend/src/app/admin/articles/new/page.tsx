@@ -181,7 +181,7 @@ const CreateArticlePage = () => {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl m-5 focus:outline-none border border-gray-300 p-4 rounded-md min-h-[200px]',
       },
-      handlePaste(view, event, slice) { // slice is the ProseMirror Slice
+      handlePaste(view, event, _slice) { // slice is the ProseMirror Slice
         const editor = this as Editor; // 'this' is the Editor instance
         const pastedHtml = event.clipboardData?.getData('text/html');
         const filesFromClipboard = Array.from(event.clipboardData?.files || []);
