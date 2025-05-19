@@ -142,11 +142,17 @@ const EditArticlePage = () => {
 
           // 增加检查 editorInstance 是否有效且未被销毁
           if (editorInstance && !editorInstance.isDestroyed) {
-            editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
+            // 使用 setTimeout 确保在编辑器状态稳定后插入图片
+            setTimeout(() => {
+              if (editorInstance && !editorInstance.isDestroyed) {
+                editorInstance.chain().focus().setImage({ src: finalPublicUrl, alt: file.name }).run();
+              } else {
+                console.warn('Editor instance became unavailable or destroyed before setTimeout for pasted image insertion.');
+                setAttachmentUploadError('编辑器状态异常，图片已上传但无法自动插入(timeout)。请尝试手动插入或刷新页面。');
+              }
+            }, 0);
           } else {
             console.warn('Editor instance is not available or destroyed when trying to insert pasted image.');
-            // 可以考虑给用户一个提示，或者将图片信息暂存，待编辑器可用时再插入
-            // 例如，可以将 finalPublicUrl 添加到一个待插入队列
             setAttachmentUploadError('编辑器状态异常，图片已上传但无法自动插入。请尝试手动插入或刷新页面。');
           }
           handleAttachmentUploadSuccess({
