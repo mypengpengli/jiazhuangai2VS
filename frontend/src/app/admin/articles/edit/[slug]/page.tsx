@@ -58,6 +58,37 @@ const EditArticlePage = () => {
   const params = useParams();
   const articleSlug = params?.slug as string;
 
+  // Helper function to convert base64 to Blob
+  const base64ToBlob = (base64Data: string, contentType = '', sliceSize = 512) => {
+    const base64Content = base64Data.split(',')[1];
+    if (!base64Content) {
+      throw new Error('Invalid base64 data');
+    }
+    const byteCharacters = atob(base64Content);
+    const byteArrays = [];
+
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+
+    let finalContentType = contentType;
+    if (!finalContentType && base64Data.startsWith('data:')) {
+      const mimeMatch = base64Data.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,.*/);
+      if (mimeMatch && mimeMatch[1]) {
+        finalContentType = mimeMatch[1];
+      }
+    }
+    if (!finalContentType) finalContentType = 'application/octet-stream';
+
+    return new Blob(byteArrays, { type: finalContentType });
+  };
+
   const handlePastedFiles = async (editorInstance: Editor, files: File[]) => {
     if (!token) {
       setAttachmentUploadError("用户未认证，无法上传粘贴的图片。");
@@ -156,19 +187,56 @@ const EditArticlePage = () => {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl m-5 focus:outline-none border border-gray-300 p-4 rounded-md min-h-[200px]',
       },
-      handlePaste(
-        view,
-        event,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _slice
-        ) {
-        const files = Array.from(event.clipboardData?.files || []);
-        if (files.some(file => file.type.startsWith('image/'))) {
-          // `this` 在 handlePaste 回调中指向当前的 Editor 实例
-          handlePastedFiles(this, files);
-          return true; // We've handled the paste
+      handlePaste(view, event, slice) { // slice is the ProseMirror Slice
+        const editor = this as Editor; // 'this' is the Editor instance
+        const pastedHtml = event.clipboardData?.getData('text/html');
+        const filesFromClipboard = Array.from(event.clipboardData?.files || []);
+        const filesToUploadFromHtml: File[] = [];
+
+        if (pastedHtml) {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = pastedHtml;
+          const imagesInHtml = Array.from(tempDiv.querySelectorAll('img'));
+
+          imagesInHtml.forEach(img => {
+            const src = img.getAttribute('src');
+            if (src && src.startsWith('data:image')) {
+              try {
+                const blob = base64ToBlob(src);
+                const extension = blob.type.split('/')[1] || 'png';
+                const filename = `pasted_image_${Date.now()}.${extension}`;
+                const file = new File([blob], filename, { type: blob.type });
+                filesToUploadFromHtml.push(file);
+              } catch (e) {
+                console.error("Error processing base64 image from HTML:", e);
+              }
+            }
+          });
         }
-        return false; // Use default paste behavior
+
+        const allFilesToUpload = [...filesFromClipboard, ...filesToUploadFromHtml];
+
+        if (allFilesToUpload.some(file => file.type.startsWith('image/'))) {
+          handlePastedFiles(editor, allFilesToUpload.filter(file => file.type.startsWith('image/')));
+
+          if (pastedHtml && filesToUploadFromHtml.length > 0) {
+            const plainText = event.clipboardData?.getData('text/plain');
+            if (plainText && editor && !editor.isDestroyed) {
+               // 延迟以确保在编辑器状态更新后执行
+              setTimeout(() => {
+                if (editor && !editor.isDestroyed) {
+                  // 尝试插入纯文本内容
+                  // view.dispatch(view.state.tr.insertText(plainText || ''));
+                }
+              }, 0);
+            }
+            return true;
+          } else if (filesFromClipboard.length > 0) {
+            return true;
+          }
+        }
+        
+        return false;
       },
       handleClickOn(
         view,

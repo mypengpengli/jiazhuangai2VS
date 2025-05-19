@@ -18,7 +18,6 @@ const nextConfig: NextConfig = {
 
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@tiptap/extension-text-align': path.join(nodeModulesPath, '@tiptap/extension-text-align'),
     };
 
     // 你可以根据需要为其他 @tiptap 包也添加类似的别名，如果它们也出现问题
