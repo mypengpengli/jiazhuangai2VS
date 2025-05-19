@@ -1,36 +1,17 @@
 import type { NextConfig } from "next";
-import path from 'path';
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'pub-3dc6a89ae11b4f2bb35597920365df2d.r2.dev',
-        pathname: '/articles/**',
+        hostname: 'pub-3dc6a89ae11b4f2bb35597920365df2d.r2.dev', // 使用您提供的精确域名
+        pathname: '/articles/**', // 允许 /articles/ 路径下的所有图片
       },
+      // 如果您还从其他外部来源加载图片，也需要在这里添加相应的 pattern
     ],
   },
-  webpack: (config, { isServer }) => {
-    // 尝试直接为 problematic package 设置别名，指向 node_modules 中的路径
-    // process.cwd() 在构建环境中通常是项目的根目录
-    const nodeModulesPath = path.resolve(process.cwd(), 'node_modules');
-
-    config.resolve.alias = {
-      ...config.resolve.alias,
-    };
-
-    // 你可以根据需要为其他 @tiptap 包也添加类似的别名，如果它们也出现问题
-    // 例如:
-    // '@tiptap/core': path.join(nodeModulesPath, '@tiptap/core'),
-    // '@tiptap/react': path.join(nodeModulesPath, '@tiptap/react'),
-    // '@tiptap/starter-kit': path.join(nodeModulesPath, '@tiptap/starter-kit'),
-    // '@tiptap/extension-image': path.join(nodeModulesPath, '@tiptap/extension-image'),
-    // '@tiptap/extension-link': path.join(nodeModulesPath, '@tiptap/extension-link'),
-    // '@tiptap/pm': path.join(nodeModulesPath, '@tiptap/pm'),
-
-    return config;
-  },
+  /* 其他配置选项 */
 };
 
 export default nextConfig;
