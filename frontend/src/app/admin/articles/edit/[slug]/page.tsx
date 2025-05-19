@@ -142,7 +142,6 @@ const EditArticlePage = () => {
           
           const finalPublicUrl = directPublicUrl || (process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX ? `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX.replace(/\/$/, '')}/${key}` : key); // 使用 key
 
-          // 增加检查 editorInstance 是否有效且未被销毁
           // 图片上传成功后，设置待插入图片状态，由 useEffect 处理实际插入
           setPendingPastedImage({ src: finalPublicUrl, alt: file.name });
 
@@ -310,20 +309,19 @@ const EditArticlePage = () => {
         
         // 设置显示日期
         if (article.display_date) {
-          const localDate = new Date(article.display_date);
-          // 检查日期是否有效，无效则使用当前时间
-          if (!isNaN(localDate.getTime())) {
-            localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
+          const dateFromApi = new Date(article.display_date);
+          if (!isNaN(dateFromApi.getTime())) {
+            // 转换为本地时间并格式化为 YYYY-MM-DDTHH:mm
+            const localDate = new Date(dateFromApi.valueOf() - dateFromApi.getTimezoneOffset() * 60000);
             setDisplayDate(localDate.toISOString().slice(0, 16));
           } else {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            setDisplayDate(now.toISOString().slice(0, 16));
+            // 如果API返回的日期无效，则将输入框设置为空
+            setDisplayDate('');
+            console.warn(`Invalid display_date from API: ${article.display_date}`);
           }
         } else {
-          const now = new Date();
-          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-          setDisplayDate(now.toISOString().slice(0, 16));
+          // 如果API没有返回display_date (null or undefined), 将输入框设置为空
+          setDisplayDate('');
         }
         
         // 设置编辑器内容
@@ -363,7 +361,7 @@ const EditArticlePage = () => {
         if (err instanceof Error) {
           setError(err.message || '加载文章数据失败。');
         } else {
-          setError('加载文章数据失败: 发生未知错误。');
+          setError('加载文章数据失败: 发生未知错误');
         }
       } finally {
         setIsFetchingArticle(false);
