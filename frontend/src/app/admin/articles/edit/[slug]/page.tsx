@@ -50,6 +50,7 @@ const EditArticlePage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
   const [pendingPastedImage, setPendingPastedImage] = useState<{ src: string; alt: string } | null>(null); // 新状态
+  const [displayDate, setDisplayDate] = useState<string>(''); // 新状态用于显示日期
   const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingArticle, setIsFetchingArticle] = useState(true);
@@ -307,6 +308,24 @@ const EditArticlePage = () => {
         setTitle(article.title);
         setCategoryId(article.category_id || '');
         
+        // 设置显示日期
+        if (article.display_date) {
+          const localDate = new Date(article.display_date);
+          // 检查日期是否有效，无效则使用当前时间
+          if (!isNaN(localDate.getTime())) {
+            localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset());
+            setDisplayDate(localDate.toISOString().slice(0, 16));
+          } else {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            setDisplayDate(now.toISOString().slice(0, 16));
+          }
+        } else {
+          const now = new Date();
+          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+          setDisplayDate(now.toISOString().slice(0, 16));
+        }
+        
         // 设置编辑器内容
         // 如果是 markdown，理想情况下应该转换为 HTML，或让编辑器处理
         // 为简单起见，如果 content_type 是 html 或未定义（假定为旧文章的 markdown）都直接设置
@@ -407,6 +426,7 @@ const EditArticlePage = () => {
       content: htmlContent,
       content_type: 'html',
       category_id: Number(categoryId),
+      display_date: displayDate ? new Date(displayDate).toISOString() : null, // 添加 display_date
       // 后端 updateArticle 服务需要处理 attachments 的更新逻辑
       // (例如：对比现有附件，删除不再存在的，添加新的)
       // 这里我们发送当前的附件列表，后端需要智能处理
@@ -508,6 +528,19 @@ const EditArticlePage = () => {
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label htmlFor="displayDate" className="block text-sm font-medium text-gray-700">
+            显示日期和时间
+          </label>
+          <input
+            type="datetime-local"
+            id="displayDate"
+            value={displayDate}
+            onChange={(e) => setDisplayDate(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
         </div>
 
         {/* 附件上传与管理 */}

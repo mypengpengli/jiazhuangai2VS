@@ -24,6 +24,7 @@ export interface Article {
   content?: string;
   category_id?: number;
   parent_id?: number;
+  display_date?: string | null; // 用户设定的显示日期，用于排序
   created_at: string;
   updated_at: string;
 }
@@ -41,7 +42,8 @@ export interface ArticleAttachment {
 // (可选) 定义用于 API 响应或请求的特定类型
 // 例如，创建文章时可能不需要 id, created_at, updated_at
 // 创建时，附件信息可能是 file_key 列表或其他结构
-export type CreateArticleInput = Omit<Article, 'id' | 'created_at' | 'updated_at'> & {
+export type CreateArticleInput = Omit<Article, 'id' | 'created_at' | 'updated_at' | 'display_date'> & { // display_date 也从 Omit 移除，单独定义为可选
+  display_date?: string | null; // 允许在创建时提供
   attachments?: Array<Omit<ArticleAttachment, 'id' | 'article_id' | 'created_at'>>; // 创建时不需要 id 和 article_id
 };
 

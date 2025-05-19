@@ -22,6 +22,8 @@ const getArticlesSchema = z.object({
     page: z.string().regex(/^\d+$/).optional().default('1').transform(Number),
     limit: z.string().regex(/^\d+$/).optional().default('10').transform(Number),
     category: z.string().optional(),
+    sortBy: z.enum(['created_at', 'updated_at', 'title', 'display_date']).optional().default('display_date'),
+    orderDirection: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 
 // 获取文章列表 (公开访问)
@@ -29,10 +31,10 @@ articleRoutes.get(
     '/',
     zValidator('query', getArticlesSchema),
     async (c) => {
-        const { page, limit, category } = c.req.valid('query');
-        console.log(`Route: GET /api/articles - Page: ${page}, Limit: ${limit}, Category: ${category}`);
+        const { page, limit, category, sortBy, orderDirection } = c.req.valid('query');
+        console.log(`Route: GET /api/articles - Page: ${page}, Limit: ${limit}, Category: ${category}, SortBy: ${sortBy}, Order: ${orderDirection}`);
         try {
-            const result = await getArticles(c.env.DB, { page, limit, categorySlug: category });
+            const result = await getArticles(c.env.DB, { page, limit, categorySlug: category, sortBy, orderDirection });
             return c.json(result);
         } catch (error: any) {
             console.error('Error fetching articles:', error);
@@ -75,6 +77,7 @@ const createArticleSchema = z.object({
     content: z.string().nullish(),
     category_id: z.number().int().positive().nullish(),
     parent_id: z.number().int().positive().nullish(),
+    display_date: z.string().datetime({ message: "display_date 必须是有效的 ISO 8601 日期时间字符串" }).nullish(), // 添加 display_date
     attachments: z.array(z.object({ // 新增 attachments
         file_type: z.string().min(1),
         file_url: z.string().min(1, "文件路径/key不能为空"),
@@ -115,6 +118,7 @@ protectedArticleRoutes.post(
                 content: rawJsonData.content === null ? undefined : rawJsonData.content,
                 category_id: rawJsonData.category_id === null ? undefined : rawJsonData.category_id,
                 parent_id: rawJsonData.parent_id === null ? undefined : rawJsonData.parent_id,
+                display_date: rawJsonData.display_date === null ? undefined : rawJsonData.display_date, // 添加 display_date
                 attachments: rawJsonData.attachments || undefined,
             };
             
@@ -168,6 +172,7 @@ protectedArticleRoutes.put(
                 category_id: articleDataFromRequest.category_id === null ? undefined : articleDataFromRequest.category_id,
                 parent_id: articleDataFromRequest.parent_id === null ? undefined : articleDataFromRequest.parent_id,
                 content: articleDataFromRequest.content === null ? undefined : articleDataFromRequest.content,
+                display_date: articleDataFromRequest.display_date === null ? undefined : articleDataFromRequest.display_date, // 添加 display_date
                 attachments: articleDataFromRequest.attachments === null ? undefined : articleDataFromRequest.attachments,
             };
 

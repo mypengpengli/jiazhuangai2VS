@@ -39,6 +39,15 @@ const CreateArticlePage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [attachments, setAttachments] = useState<UploadedAttachment[]>([]); // 存储已上传的附件信息
   const [pendingPastedImage, setPendingPastedImage] = useState<{ src: string; alt: string } | null>(null); // 新状态
+  
+  // 初始化 displayDate 为当前本地时间 YYYY-MM-DDTHH:mm 格式
+  const getInitialDisplayDate = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // 调整到本地时区
+    return now.toISOString().slice(0, 16);
+  };
+  const [displayDate, setDisplayDate] = useState<string>(getInitialDisplayDate());
+
   const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -341,6 +350,7 @@ const CreateArticlePage = () => {
       content: htmlContent,
       content_type: 'html', // Tiptap 输出 HTML
       category_id: Number(categoryId),
+      display_date: displayDate ? new Date(displayDate).toISOString() : null, // 转换为 ISO 字符串或 null
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       attachments: attachments.map(({ key: _key, ...rest }) => rest), // 移除 key 字段，只发送后端需要的附件元数据
     };
@@ -439,6 +449,19 @@ const CreateArticlePage = () => {
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label htmlFor="displayDate" className="block text-sm font-medium text-gray-700">
+            显示日期和时间
+          </label>
+          <input
+            type="datetime-local"
+            id="displayDate"
+            value={displayDate}
+            onChange={(e) => setDisplayDate(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
         </div>
 
         {/* 文件上传组件 */}

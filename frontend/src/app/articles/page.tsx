@@ -111,7 +111,7 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
               {/* <p className="text-gray-700 mb-3">{article.content?.substring(0, 150)}...</p> */}
               <div className="text-sm text-gray-500">
                 <span>分类: {article.category?.name || '未分类'}</span> | {/* 假设 Article 类型包含 category 对象 */}
-                <span>发布于: {new Date(article.created_at).toLocaleDateString()}</span>
+                <span>显示日期: {new Date(article.display_date || article.created_at).toLocaleDateString()}</span>
               </div>
             </article>
           ))}

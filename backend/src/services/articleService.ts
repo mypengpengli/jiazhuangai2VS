@@ -12,7 +12,8 @@ interface GetArticlesOptions {
     page?: number;
     limit?: number;
     categorySlug?: string;
-    // TODO: 添加排序选项 sortBy?: string; order?: 'asc' | 'desc';
+    sortBy?: 'created_at' | 'updated_at' | 'title' | 'display_date'; // 添加 display_date
+    orderDirection?: 'asc' | 'desc';
 }
 
 /**
@@ -22,14 +23,14 @@ interface GetArticlesOptions {
  * @returns 分页后的文章列表及总页数
  */
 export const getArticles = async (db: D1Database, options: GetArticlesOptions = {}): Promise<PaginatedArticlesResponse> => {
-    const { page = 1, limit = 10, categorySlug } = options;
+    const { page = 1, limit = 10, categorySlug, sortBy = 'display_date', orderDirection = 'desc' } = options; // 默认按 display_date 降序
     const offset = (page - 1) * limit;
 
-    console.log(`ArticleService: Fetching articles - Page: ${page}, Limit: ${limit}, CategorySlug: ${categorySlug}, Offset: ${offset}`);
+    console.log(`ArticleService: Fetching articles - Page: ${page}, Limit: ${limit}, CategorySlug: ${categorySlug}, SortBy: ${sortBy}, Order: ${orderDirection}, Offset: ${offset}`);
 
     let articlesQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.created_at, a.updated_at,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug -- 别名避免冲突
         FROM articles a
         LEFT JOIN categories c ON a.category_id = c.id
@@ -58,8 +59,33 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
         }
     }
 
-    // 添加排序 (示例：按创建时间降序)
-    articlesQuery += ' ORDER BY a.created_at DESC';
+    // 添加排序
+    let orderByClause = 'ORDER BY ';
+    switch (sortBy) {
+        case 'title':
+            orderByClause += 'a.title';
+            break;
+        case 'updated_at':
+            orderByClause += 'a.updated_at';
+            break;
+        case 'display_date':
+            orderByClause += 'a.display_date'; // 如果 display_date 可能为 NULL，考虑 COALESCE(a.display_date, a.created_at)
+            break;
+        case 'created_at':
+        default:
+            orderByClause += 'a.created_at';
+            break;
+    }
+    orderByClause += orderDirection === 'asc' ? ' ASC' : ' DESC';
+    // 添加次级排序，例如按 ID 或创建时间，确保分页时顺序稳定
+    if (sortBy !== 'created_at' && sortBy !== 'display_date') { // 如果主排序不是日期，则添加日期作为次级排序
+        orderByClause += ', a.display_date DESC, a.created_at DESC';
+    } else if (sortBy === 'display_date') {
+        orderByClause += ', a.created_at DESC'; // display_date 相同时按创建时间
+    }
+
+
+    articlesQuery += ` ${orderByClause}`;
 
     // 添加分页
     articlesQuery += ' LIMIT ? OFFSET ?';
@@ -94,6 +120,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
                 content: row.content,
                 category_id: row.category_id,
                 parent_id: row.parent_id,
+                display_date: row.display_date, // 添加 display_date
                 created_at: row.created_at,
                 updated_at: row.updated_at,
                 // attachments: [] // 暂时不填充附件
@@ -132,39 +159,26 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
  * @returns 新创建的文章对象
  */
 export const createArticle = async (db: D1Database, articleData: CreateArticleInput): Promise<Article> => {
-    const { title, slug, content_type, content, category_id, parent_id, attachments } = articleData;
-    console.log(`ArticleService: Creating article with slug: ${slug}, content_type: ${content_type}`);
+    // display_date 现在是可选的，在 CreateArticleInput 中定义
+    const { title, slug, content_type, content, category_id, parent_id, attachments, display_date } = articleData;
+    // 如果 display_date 未提供或为 null，则使用当前时间作为默认值
+    const finalDisplayDate = display_date || new Date().toISOString();
+    console.log(`ArticleService: Creating article with slug: ${slug}, content_type: ${content_type}, display_date: ${finalDisplayDate}`);
 
     try {
-        const statements = [];
-
         // 1. 插入文章
-        const articleStmt = db.prepare(
-            `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id)
-             VALUES (?, ?, ?, ?, ?, ?)
-             RETURNING id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at`
+        const createdArticleResult = await db.prepare(
+            `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id, display_date)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             RETURNING id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at`
         ).bind(
             title,
             slug,
             content_type,
             content || null,
             category_id || null,
-            parent_id || null
-        );
-        statements.push(articleStmt);
-        
-        // D1 batch 操作不支持 RETURNING，所以我们需要先插入文章，获取ID，再插入附件。
-        // 或者，如果不需要立即返回完整的文章对象，可以分两步。
-        // 这里我们先尝试直接插入文章并获取其信息，然后单独处理附件。
-        // 更安全的做法是使用事务，但 Hono 的 D1 绑定可能不直接暴露事务API，
-        // Cloudflare Workers D1 Client API 的 `db.batch()` 可以原子执行。
-
-        const createdArticleResult = await db.prepare(
-            `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id)
-             VALUES (?, ?, ?, ?, ?, ?)
-             RETURNING id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at`
-        ).bind(
-            title, slug, content_type, content || null, category_id || null, parent_id || null
+            parent_id || null,
+            finalDisplayDate // 绑定处理后的 display_date
         ).first<Article>();
 
         if (!createdArticleResult || !createdArticleResult.id) {
@@ -212,7 +226,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
     console.log(`ArticleService: Fetching article with slug: ${slug}`);
     const articleQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.created_at, a.updated_at,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug
         FROM articles a
         LEFT JOIN categories c ON a.category_id = c.id
@@ -247,6 +261,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
             content: articleRow.content,
             category_id: articleRow.category_id,
             parent_id: articleRow.parent_id,
+            display_date: articleRow.display_date, // 添加 display_date
             created_at: articleRow.created_at,
             updated_at: articleRow.updated_at,
             attachments: attachmentsResult.results || [],
@@ -280,8 +295,8 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
     console.log(`ArticleService: Updating article with ID: ${id}`);
 
     // 解构时排除 attachments，单独处理
-    const { attachments, ...articleFieldsToUpdate } = articleData;
-    const { title, slug, content_type, content, category_id, parent_id } = articleFieldsToUpdate;
+    const { attachments, display_date, ...articleBaseFields } = articleData;
+    const { title, slug, content_type, content, category_id, parent_id } = articleBaseFields;
 
 
     // 构建 SET 子句
@@ -292,24 +307,21 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
     if (slug !== undefined) { setClauses.push('slug = ?'); values.push(slug); }
     if (content_type !== undefined) { setClauses.push('content_type = ?'); values.push(content_type); }
     if (content !== undefined) { setClauses.push('content = ?'); values.push(content); }
-    if (articleFieldsToUpdate.hasOwnProperty('category_id')) { setClauses.push('category_id = ?'); values.push(category_id ?? null); }
-    if (articleFieldsToUpdate.hasOwnProperty('parent_id')) { setClauses.push('parent_id = ?'); values.push(parent_id ?? null); }
-    // image_urls 字段已移除，附件通过 attachments 参数处理
+    if (articleData.hasOwnProperty('category_id')) { setClauses.push('category_id = ?'); values.push(category_id ?? null); }
+    if (articleData.hasOwnProperty('parent_id')) { setClauses.push('parent_id = ?'); values.push(parent_id ?? null); }
+    if (articleData.hasOwnProperty('display_date')) {
+        setClauses.push('display_date = ?');
+        values.push(display_date === undefined ? null : display_date); // 修复类型错误，undefined 转为 null
+    }
 
     if (setClauses.length === 0 && (!attachments || attachments.length === 0)) {
         console.log(`ArticleService: No fields or attachments to update for article ID: ${id}.`);
-        const currentArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
+        const currentArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
         return currentArticle ?? null;
     }
-
-    const updateStatements = [];
-
-    if (setClauses.length > 0) {
+    
+    if (setClauses.length > 0 && !setClauses.some(clause => clause.startsWith('updated_at ='))) { // 确保不重复添加 updated_at
         setClauses.push('updated_at = CURRENT_TIMESTAMP');
-        const articleUpdateSql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at`;
-        const articleUpdateStmt = db.prepare(articleUpdateSql).bind(...values, id);
-        // D1 batch 不支持 RETURNING，所以主文章更新需要单独执行以获取结果
-        // updateStatements.push(articleUpdateStmt); // 不能直接放入 batch 如果需要 RETURNING
     }
     
     // TODO: 实现附件的更新逻辑 (删除旧的，添加新的)
@@ -334,11 +346,11 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
     try {
         let updatedArticle: Article | null = null;
         if (setClauses.length > 0) {
-            const articleUpdateSql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at`;
+            const articleUpdateSql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at`;
             updatedArticle = await db.prepare(articleUpdateSql).bind(...values, id).first<Article>();
-        } else {
-            // 如果只更新附件，需要先获取当前文章信息
-            updatedArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
+        } else if (attachments && attachments.length > 0) {
+            // 如果只更新附件 (当前附件更新逻辑未完成)，需要先获取当前文章信息
+            updatedArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
         }
 
 

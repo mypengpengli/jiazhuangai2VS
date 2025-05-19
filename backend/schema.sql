@@ -26,11 +26,12 @@ CREATE TABLE IF NOT EXISTS articles (
     content TEXT,
     category_id INTEGER,
     parent_id INTEGER, -- 用于树形结构 (AI相关纪事)
+    display_date TIMESTAMP NULL, -- 用户设定的显示日期，用于排序
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
     FOREIGN KEY (parent_id) REFERENCES articles(id) ON DELETE SET NULL -- 自引用
-);
+  );
 
 -- 文章附件表
 CREATE TABLE IF NOT EXISTS article_attachments (
@@ -51,3 +52,4 @@ CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories (slug);
 CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles (slug);
 CREATE INDEX IF NOT EXISTS idx_articles_category_id ON articles (category_id);
 CREATE INDEX IF NOT EXISTS idx_articles_parent_id ON articles (parent_id);
+CREATE INDEX IF NOT EXISTS idx_articles_display_date ON articles (display_date); -- 为显示日期添加索引
