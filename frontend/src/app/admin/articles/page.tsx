@@ -22,8 +22,8 @@ const AdminArticlesPage = () => {
       setError(null);
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-        // TODO: 后续可以支持分页
-        const response = await fetch(`${backendUrl}/api/articles?limit=100`, { // 获取较多数量以便展示
+        // 明确按 display_date 降序排序
+        const response = await fetch(`${backendUrl}/api/articles?limit=100&sortBy=display_date&orderDirection=desc`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -108,6 +108,7 @@ const AdminArticlesPage = () => {
                 <th className="py-2 px-4 border-b text-left">ID</th>
                 <th className="py-2 px-4 border-b text-left">标题</th>
                 <th className="py-2 px-4 border-b text-left">分类</th>
+                <th className="py-2 px-4 border-b text-left">显示日期</th>
                 <th className="py-2 px-4 border-b text-left">创建日期</th>
                 <th className="py-2 px-4 border-b text-left">操作</th>
               </tr>
@@ -122,6 +123,7 @@ const AdminArticlesPage = () => {
                     </Link>
                   </td>
                   <td className="py-2 px-4 border-b">{article.category?.name || '未分类'}</td>
+                  <td className="py-2 px-4 border-b">{article.display_date ? new Date(article.display_date).toLocaleDateString() : '未设置'}</td>
                   <td className="py-2 px-4 border-b">{new Date(article.created_at).toLocaleDateString()}</td>
                   <td className="py-2 px-4 border-b">
                     <Link href={`/admin/articles/edit/${article.slug}`} className="text-yellow-600 hover:underline mr-2">
