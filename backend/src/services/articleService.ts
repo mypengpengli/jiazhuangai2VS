@@ -69,7 +69,8 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
             orderByClause += 'a.updated_at';
             break;
         case 'display_date':
-            orderByClause += 'a.display_date'; // 如果 display_date 可能为 NULL，考虑 COALESCE(a.display_date, a.created_at)
+            // 使用 COALESCE 处理 NULL display_date，使其按 created_at 排序
+            orderByClause += `COALESCE(a.display_date, a.created_at)`;
             break;
         case 'created_at':
         default:
@@ -77,11 +78,18 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
             break;
     }
     orderByClause += orderDirection === 'asc' ? ' ASC' : ' DESC';
-    // 添加次级排序，例如按 ID 或创建时间，确保分页时顺序稳定
-    if (sortBy !== 'created_at' && sortBy !== 'display_date') { // 如果主排序不是日期，则添加日期作为次级排序
-        orderByClause += ', a.display_date DESC, a.created_at DESC';
-    } else if (sortBy === 'display_date') {
-        orderByClause += ', a.created_at DESC'; // display_date 相同时按创建时间
+    // 添加次级排序
+    // 如果主排序是 display_date (现在是 COALESCE)，则次级排序仍然可以是 created_at (如果需要更细致的控制)
+    // 或者，如果 COALESCE 已经足够，可以简化这里的次级排序逻辑
+    // 为保持明确，如果主排序键已经是基于日期的，我们仍然可以按 created_at 做最终稳定排序
+    if (sortBy === 'display_date') {
+        // 主排序已经是 COALESCE(a.display_date, a.created_at)
+        // 如果希望在 COALESCE 结果相同的情况下，再按原始 created_at 排序（虽然 COALESCE 已经用了它）
+        // 可以保留 a.created_at DESC，或者如果认为 COALESCE 后的主排序已足够，可以移除此特定次级排序
+        orderByClause += ', a.created_at DESC';
+    } else if (sortBy !== 'created_at') {
+        // 对于非日期主排序，仍然使用 display_date (COALESCE) 和 created_at 作为次级
+        orderByClause += `, COALESCE(a.display_date, a.created_at) DESC, a.created_at DESC`;
     }
 
 
