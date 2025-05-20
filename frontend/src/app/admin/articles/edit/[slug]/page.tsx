@@ -432,6 +432,8 @@ const EditArticlePage = () => {
       attachments: attachments.map(({ key: _key, ...rest }) => rest),
     };
 
+    console.log('Frontend: Submitting articleDataToSubmit:', JSON.stringify(articleDataToSubmit, null, 2)); // 正确位置的日志
+
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
       // PUT 请求发送 JSON 数据
@@ -441,7 +443,6 @@ const EditArticlePage = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-console.log('Frontend: Submitting articleDataToSubmit:', JSON.stringify(articleDataToSubmit, null, 2));
         body: JSON.stringify(articleDataToSubmit),
       });
 
