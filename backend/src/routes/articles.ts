@@ -77,7 +77,7 @@ const createArticleSchema = z.object({
     content: z.string().nullish(),
     category_id: z.number().int().positive().nullish(),
     parent_id: z.number().int().positive().nullish(),
-    display_date: z.string().nullish(), // 暂时放宽验证，移除 .datetime()
+    display_date: z.string().datetime({ message: "display_date 必须是有效的 ISO 8601 日期时间字符串" }).nullish(),
     attachments: z.array(z.object({ // 新增 attachments
         file_type: z.string().min(1),
         file_url: z.string().min(1, "文件路径/key不能为空"),
