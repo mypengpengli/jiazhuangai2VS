@@ -292,6 +292,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
  * @returns 更新后的文章对象，如果找不到则返回 null
  */
 export const updateArticle = async (db: D1Database, id: number, articleData: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at'>> & { attachments?: Partial<ArticleAttachment>[] }): Promise<Article | null> => {
+console.log(`ArticleService: Attempting to update article with ID: ${id}. Received raw articleData:`, JSON.stringify(articleData, null, 2));
     console.log(`ArticleService: Updating article with ID: ${id}`);
 
     // 解构时排除 attachments，单独处理
@@ -323,6 +324,8 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
     if (setClauses.length > 0 && !setClauses.some(clause => clause.startsWith('updated_at ='))) { // 确保不重复添加 updated_at
         setClauses.push('updated_at = CURRENT_TIMESTAMP');
     }
+console.log(`ArticleService: SQL Update - Constructed SET Clauses: ${setClauses.join(', ')}`);
+    console.log(`ArticleService: SQL Update - Constructed Values for bind: ${JSON.stringify(values)}`);
     
     // TODO: 实现附件的更新逻辑 (删除旧的，添加新的)
     // 这部分比较复杂，暂时跳过，仅更新文章主表字段
@@ -348,6 +351,7 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
         if (setClauses.length > 0) {
             const articleUpdateSql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at`;
             updatedArticle = await db.prepare(articleUpdateSql).bind(...values, id).first<Article>();
+console.log('ArticleService: SQL Update - RETURNING updatedArticle from DB:', JSON.stringify(updatedArticle, null, 2));
         } else if (attachments && attachments.length > 0) {
             // 如果只更新附件 (当前附件更新逻辑未完成)，需要先获取当前文章信息
             updatedArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
