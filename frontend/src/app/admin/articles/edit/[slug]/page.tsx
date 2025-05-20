@@ -441,6 +441,7 @@ const EditArticlePage = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+console.log('Frontend: Submitting articleDataToSubmit:', JSON.stringify(articleDataToSubmit, null, 2));
         body: JSON.stringify(articleDataToSubmit),
       });
 
