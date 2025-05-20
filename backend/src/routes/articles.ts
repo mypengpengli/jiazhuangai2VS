@@ -157,6 +157,9 @@ protectedArticleRoutes.put(
     zValidator('json', updateArticleSchema), // 恢复使用 zValidator 验证 JSON 请求体
     async (c) => {
         const { id } = c.req.valid('param');
+        const rawRequestBody = await c.req.json().catch(e => { console.error("Error parsing raw request body:", e); return {}; });
+        console.log(`Route: PUT /api/articles/${id} - Raw Request Body:`, JSON.stringify(rawRequestBody, null, 2));
+        
         const articleDataFromRequest = c.req.valid('json'); // 获取通过 Zod 验证的 JSON 数据
         const user = c.get('user');
         const articleId = parseInt(id, 10);
