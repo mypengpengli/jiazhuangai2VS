@@ -13,6 +13,12 @@ import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image';
 import TiptapLink from '@tiptap/extension-link';   // Renamed to avoid conflict
 import TextAlign from '@tiptap/extension-text-align'; // 导入 TextAlign
+import Color from '@tiptap/extension-color';
+import TextStyle from '@tiptap/extension-text-style';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
 import FileUpload from '../../../../../components/FileUpload'; // Corrected relative path
 import MenuBar from '../../../../../components/MenuBar'; // 导入 MenuBar 组件
 
@@ -174,9 +180,17 @@ const EditArticlePage = () => {
       StarterKit,
       TiptapImage,
       TiptapLink.configure({ openOnClick: false, autolink: true }),
-      TextAlign.configure({ // 添加 TextAlign 扩展
-        types: ['heading', 'paragraph'], // 指定支持对齐的节点类型
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
       }),
+      TextStyle,
+      Color,
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: '',
     editorProps: {

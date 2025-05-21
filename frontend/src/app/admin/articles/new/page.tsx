@@ -10,6 +10,12 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import LinkExtension from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align'; // 导入 TextAlign
+import Color from '@tiptap/extension-color';
+import TextStyle from '@tiptap/extension-text-style';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
 import FileUpload from '@/components/FileUpload';
 import MenuBar from '@/components/MenuBar';
 
@@ -178,9 +184,17 @@ const CreateArticlePage = () => {
         openOnClick: false,
         autolink: true,
       }),
-      TextAlign.configure({ // 添加 TextAlign 扩展
-        types: ['heading', 'paragraph'], // 指定支持对齐的节点类型
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
       }),
+      TextStyle, // TextStyle 通常需要在使用 Color 之前
+      Color,
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: '<p>开始写作...</p>',
     editorProps: {
