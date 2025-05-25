@@ -155,5 +155,52 @@ export const deleteCategory = async (db: D1Database, id: number): Promise<boolea
     }
 };
 
-// TODO: 实现获取单个分类的服务函数 (getCategoryById 或 getCategoryBySlug)
-// 需要接收 ID 或 slug，执行 SELECT 语句
+/**
+ * 根据 ID 获取单个分类
+ * @param db D1Database 实例
+ * @param id 分类 ID
+ * @returns 分类对象，如果找不到则返回 null
+ */
+export const getCategoryById = async (db: D1Database, id: number): Promise<Category | null> => {
+    console.log(`CategoryService: Fetching category with ID: ${id}`);
+    try {
+        const stmt = db.prepare('SELECT id, name, slug, description, created_at, updated_at FROM categories WHERE id = ?');
+        const result = await stmt.bind(id).first<Category>();
+        
+        if (!result) {
+            console.log(`CategoryService: Category with ID ${id} not found.`);
+            return null;
+        }
+        
+        console.log(`CategoryService: Found category with ID: ${id}`);
+        return result;
+    } catch (error) {
+        console.error(`Error in getCategoryById for ID ${id}:`, error);
+        throw new Error('Failed to fetch category from database.');
+    }
+};
+
+/**
+ * 根据 slug 获取单个分类
+ * @param db D1Database 实例
+ * @param slug 分类 slug
+ * @returns 分类对象，如果找不到则返回 null
+ */
+export const getCategoryBySlug = async (db: D1Database, slug: string): Promise<Category | null> => {
+    console.log(`CategoryService: Fetching category with slug: ${slug}`);
+    try {
+        const stmt = db.prepare('SELECT id, name, slug, description, created_at, updated_at FROM categories WHERE slug = ?');
+        const result = await stmt.bind(slug).first<Category>();
+        
+        if (!result) {
+            console.log(`CategoryService: Category with slug '${slug}' not found.`);
+            return null;
+        }
+        
+        console.log(`CategoryService: Found category with slug: ${slug}`);
+        return result;
+    } catch (error) {
+        console.error(`Error in getCategoryBySlug for slug '${slug}':`, error);
+        throw new Error('Failed to fetch category from database.');
+    }
+};

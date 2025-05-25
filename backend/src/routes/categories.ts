@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator'; // 导入验证器
 import { z } from 'zod'; // 导入 zod
-import { getAllCategories, createCategory, updateCategory, deleteCategory } from '../services/categoryService'; // 导入服务函数
+import { getAllCategories, getCategoryById, createCategory, updateCategory, deleteCategory } from '../services/categoryService'; // 导入服务函数
 import { authMiddleware } from '../middleware/authMiddleware'; // 导入认证中间件
 
 // 定义环境变量和变量类型 (与 auth.ts 类似)
@@ -27,6 +27,28 @@ categoryRoutes.get('/', async (c) => {
     return c.json({ error: 'Failed to fetch categories', message: error.message }, 500);
   }
 });
+
+// 获取单个分类 (公开访问)
+categoryRoutes.get(
+  '/:id',
+  zValidator('param', z.object({ id: z.string().regex(/^\d+$/, "ID 必须是数字") })), // 验证路径参数 ID
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const categoryId = parseInt(id, 10);
+    console.log(`Route: GET /api/categories/${categoryId}`);
+
+    try {
+      const category = await getCategoryById(c.env.DB, categoryId);
+      if (!category) {
+        return c.json({ error: 'Not Found', message: `Category with ID ${categoryId} not found.` }, 404);
+      }
+      return c.json(category);
+    } catch (error: any) {
+      console.error(`Error fetching category ${categoryId}:`, error);
+      return c.json({ error: 'Failed to fetch category', message: error.message }, 500);
+    }
+  }
+);
 
 // --- 需要认证的路由 ---
 // 应用认证中间件到后续需要保护的路由组
@@ -133,7 +155,5 @@ protectedCategoryRoutes.delete(
 
 // 将受保护的路由挂载到主分类路由下
 categoryRoutes.route('/', protectedCategoryRoutes);
-
-// TODO: 添加获取单个分类详情路由 (GET /:id 或 /:slug)
 
 export default categoryRoutes;
