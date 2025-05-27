@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_BACKEND_API_URL: 'https://jiazhuangai-backend.lipengkq.workers.dev',
+  },
   images: {
     remotePatterns: [
       {

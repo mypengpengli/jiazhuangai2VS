@@ -25,31 +25,60 @@ const app = new Hono<{ Bindings: Env }>();
 app.use('*', cors({
   origin: (origin) => {
     // 允许来自您的前端应用的请求
-    // TODO: 在生产环境中，您可能希望更严格地控制允许的源
-    // 例如，从环境变量读取允许的源列表
+    // 为了解决地理位置访问问题，我们增加一些灵活性
     const allowedOrigins = [
       'https://jiazhuangai2vs.pages.dev', // Pages 默认域名
       'https://www.jiazhuangai.com',    // 您的自定义主域名
       'http://localhost:3000'         // 本地前端开发 URL
       // 如果您还有其他前端访问域名，也需要加入这里
     ];
+    
+    // 如果没有 origin（比如直接访问），允许通过
+    if (!origin) {
+      return '*';
+    }
+    
+    // 检查是否在允许列表中
     if (allowedOrigins.includes(origin)) {
       return origin;
     }
+    
+    // 对于Cloudflare Pages的预览链接，通常格式为 *.pages.dev
+    if (origin.endsWith('.pages.dev')) {
+      return origin;
+    }
+    
     // 如果请求的 origin 不在允许列表中，则不返回 Access-Control-Allow-Origin 头部，
     // 浏览器会因此拒绝该跨域请求。
     return undefined;
   },
-  allowHeaders: ['Content-Type', 'Authorization'], // 确保 Content-Type 被允许, Authorization 为 JWT 准备
-  allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE'], // 确保 OPTIONS 和 POST 被允许
-  maxAge: 600, // 预检请求的缓存时间
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'], // 增加常用头部
+  allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'], // 增加 PATCH 方法
+  maxAge: 86400, // 增加预检请求的缓存时间到24小时
   credentials: true, // 如果您需要发送 cookies 或认证头部
 }));
+
+// 添加网络诊断中间件
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  const clientIP = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+  const country = c.req.header('CF-IPCountry') || 'unknown';
+  const colo = c.req.header('CF-RAY')?.split('-')[1] || 'unknown';
+  
+  console.log(`Request: ${c.req.method} ${c.req.url} | IP: ${clientIP} | Country: ${country} | Colo: ${colo}`);
+  
+  await next();
+  
+  const responseTime = Date.now() - start;
+  console.log(`Response time: ${responseTime}ms | Status: ${c.res.status}`);
+});
 
 // 根路由，用于基本测试
 app.get('/', (c) => {
   console.log('Accessing root route'); // 添加日志方便调试
-  return c.text('Hello from Jiazhuangai AI Backend!');
+  const clientIP = c.req.header('CF-Connecting-IP') || 'unknown';
+  const country = c.req.header('CF-IPCountry') || 'unknown';
+  return c.text(`Hello from Jiazhuangai AI Backend! IP: ${clientIP}, Country: ${country}`);
 });
 
 // 导入并挂载认证路由
