@@ -24,3 +24,9 @@ bucket_name = "jiazhuangai-files"
 [[kv_namespaces]]
 binding = "KV" # 在代码中访问 KV 的绑定名称
 id = "a120d00a55da47e682ad94852b8ab4cb"
+
+# 添加自定义域名路由
+[[routes]]
+pattern = "api.jiazhuangai.com/*"
+# script = "jiazhuangai-backend" # 如果 Worker 名称与项目名称一致，此行可省略，Wrangler 会自动关联
+zone_name = "jiazhuangai.com" # 指定 Worker 运行的区域（你的主域名）
