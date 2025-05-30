@@ -33,6 +33,7 @@ export interface Article {
   slug: string;
   content_type: string; // 新增：例如 'markdown', 'html'
   content?: string;
+  summary?: string; // 新增：文章摘要
   category_id?: number;
   parent_id?: number;
   display_date?: string | null; // 用户设定的显示日期，用于排序

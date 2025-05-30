@@ -20,65 +20,71 @@ type Env = {
 // 使用泛型绑定环境变量类型
 const app = new Hono<{ Bindings: Env }>();
 
-// 应用 CORS 中间件
-// 这应该放在所有路由定义之前，或者至少是需要 CORS 的路由之前
+// 1. 应用 CORS 中间件 (确保它是第一个应用的主中间件，除了可能的日志或非常底层的中间件)
 app.use('*', cors({
   origin: (origin) => {
-    // 允许来自您的前端应用的请求
-    // 为了解决地理位置访问问题，我们增加一些灵活性
     const allowedOrigins = [
+      'https://jiazhuangai.com',        // 新增：主站的根域名
+      'https://www.jiazhuangai.com',    // 主站的 www 子域名
       'https://jiazhuangai2vs.pages.dev', // Pages 默认域名
-      'https://www.jiazhuangai.com',    // 您的自定义主域名
       'http://localhost:3000'         // 本地前端开发 URL
-      // 如果您还有其他前端访问域名，也需要加入这里
     ];
-    
-    // 如果没有 origin（比如直接访问），允许通过
+
+    console.log(`CORS: Request origin: ${origin}`); // 调试日志
+
     if (!origin) {
-      return '*';
+      // 对于没有 origin 的请求 (例如直接的 curl 或服务器间请求)，如果允许，可以返回 '*' 或特定源
+      // 但对于浏览器发起的 CORS 请求，origin 总是存在的
+      // 如果你想允许某些工具或测试脚本，可以返回 '*'，但要小心安全影响
+      // 对于浏览器，没有 origin 通常意味着不是一个典型的 CORS 场景
+      console.log('CORS: No origin, potentially allowing.');
+      return '*'; // 或者根据你的安全策略返回 undefined
     }
-    
-    // 检查是否在允许列表中
+
     if (allowedOrigins.includes(origin)) {
+      console.log(`CORS: Origin ${origin} is allowed.`);
       return origin;
     }
-    
+
     // 对于Cloudflare Pages的预览链接，通常格式为 *.pages.dev
+    // 这个逻辑可能需要更精确，例如检查特定的项目名
     if (origin.endsWith('.pages.dev')) {
+      console.log(`CORS: Origin ${origin} ends with .pages.dev, allowing.`);
       return origin;
     }
-    
-    // 如果请求的 origin 不在允许列表中，则不返回 Access-Control-Allow-Origin 头部，
-    // 浏览器会因此拒绝该跨域请求。
-    return undefined;
+
+    console.log(`CORS: Origin ${origin} is NOT allowed.`);
+    return undefined; // 明确拒绝其他源
   },
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'], // 增加常用头部
-  allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'], // 增加 PATCH 方法
-  maxAge: 86400, // 增加预检请求的缓存时间到24小时
-  credentials: true, // 如果您需要发送 cookies 或认证头部
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Custom-Header'], // 可以根据需要添加更多头部
+  allowMethods: ['POST', 'GET', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'],
+  maxAge: 86400,
+  credentials: true,
 }));
 
-// 添加网络诊断中间件
+// 2. 添加网络诊断中间件 (可以放在 CORS 之后，因为它也记录请求信息)
 app.use('*', async (c, next) => {
   const start = Date.now();
   const clientIP = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
   const country = c.req.header('CF-IPCountry') || 'unknown';
   const colo = c.req.header('CF-RAY')?.split('-')[1] || 'unknown';
   
-  console.log(`Request: ${c.req.method} ${c.req.url} | IP: ${clientIP} | Country: ${country} | Colo: ${colo}`);
+  // 记录请求方法和URL，以及来源信息
+  console.log(`Request: ${c.req.method} ${c.req.url} | Origin: ${c.req.header('Origin')} | IP: ${clientIP} | Country: ${country} | Colo: ${colo}`);
   
   await next();
   
+  // 记录响应时间和状态
   const responseTime = Date.now() - start;
-  console.log(`Response time: ${responseTime}ms | Status: ${c.res.status}`);
+  console.log(`Response: ${c.req.method} ${c.req.url} | Status: ${c.res.status} | Time: ${responseTime}ms`);
 });
 
 // 根路由，用于基本测试
 app.get('/', (c) => {
-  console.log('Accessing root route'); // 添加日志方便调试
+  console.log('Accessing root route');
   const clientIP = c.req.header('CF-Connecting-IP') || 'unknown';
   const country = c.req.header('CF-IPCountry') || 'unknown';
-  return c.text(`Hello from Jiazhuangai AI Backend! IP: ${clientIP}, Country: ${country}`);
+  return c.text(`Hello from Jiazhuangai AI Backend! Your IP: ${clientIP}, Your Country: ${country}. API is live at api.jiazhuangai.com`);
 });
 
 // 导入并挂载认证路由
@@ -100,10 +106,11 @@ app.route('/api/r2', r2Routes); // 所有 /api/r2/* 的请求都由 r2Routes 处
 // 全局错误处理 (示例)
 app.onError((err, c) => {
   console.error('Unhandled Error:', err);
-  return c.json({ error: 'Internal Server Error', message: err.message }, 500);
+  // 避免在错误响应中直接暴露 err.message 的细节，除非确定是安全的
+  return c.json({ error: 'Internal Server Error', message: 'An unexpected error occurred.' }, 500);
 });
 
-console.log('Hono app initialized'); // 确认应用初始化
+console.log('Hono app initialized with updated CORS and logging.');
 
 export default app;
 // Minor change to trigger redeploy
