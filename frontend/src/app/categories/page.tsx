@@ -1,10 +1,11 @@
+/// <reference types="next" />
 export const runtime = 'edge';
 import React from 'react';
 import Link from 'next/link';
 import { Category } from '@/types/models'; // 复用类型定义
 
 // 定义从 API 获取的数据结构 (假设 API 直接返回 Category 数组)
-type CategoriesApiResponse = Category[];
+// type CategoriesApiResponse = Category[]; // getCategoriesData is unused
 
 // 定义顶级分类及其对应的子分类 slug
 interface TopLevelCategory {
@@ -25,14 +26,15 @@ const topLevelCategories: TopLevelCategory[] = [
   { name: '关于我们', slug: 'about', description: '了解我们的团队和使命' },
 ];
 
-// 在服务器组件中获取数据
+// 在服务器组件中获取数据 (此函数保持不变，用于获取所有原始分类)
+/* getCategoriesData is unused
 async function getCategoriesData(): Promise<CategoriesApiResponse | null> {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
   const apiUrl = `${backendUrl}/api/categories`;
 
   try {
     console.log(`Fetching categories from: ${apiUrl}`);
-    // @ts-ignore // Suppressing due to persistent specific type issue with fetch's next option
+    // @ts-expect-error // Using expect-error for fetch next option
     const res = await fetch(apiUrl, { next: { revalidate: 3600 } }); // Revalidate every hour
 
     if (!res.ok) {
@@ -50,6 +52,7 @@ async function getCategoriesData(): Promise<CategoriesApiResponse | null> {
     return null;
   }
 }
+*/
 
 // 分类列表页面组件 (异步服务器组件)
 export default async function CategoriesPage() {
@@ -64,7 +67,7 @@ export default async function CategoriesPage() {
           <Link
             key={category.slug}
             href={category.slug === 'about' ? '/about' : `/articles?category_slug=${category.slug}`}
-            // @ts-ignore // Suppressing due to persistent type issue with Link's className prop
+            // @ts-expect-error // Keeping for className if it's still an issue
             className="group block rounded-xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-purple-500 to-indigo-600 text-white overflow-hidden"
           >
             <h2 className="text-2xl font-semibold mb-3 group-hover:text-yellow-300 transition-colors duration-300">{category.name}</h2>

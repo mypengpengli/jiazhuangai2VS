@@ -1,7 +1,7 @@
 'use client'; // May need client-side interactivity for timeline features
 
 import React from 'react';
-import Link, { LinkProps } from 'next/link';
+import Link from 'next/link';
 import { Article } from '@/types/models';
 
 interface ArticleTimelineProps {
@@ -78,7 +78,7 @@ const ArticleTimeline: React.FC<ArticleTimelineProps> = ({ articles }) => {
                       {article.category?.name || '未分类'} &middot; {new Date(article.display_date || article.created_at).toLocaleDateString('zh-CN', { day: 'numeric' })}
                     </div>
                     <h3 className="text-xl font-bold mb-2 text-gray-800 hover:text-indigo-700 transition-colors duration-300">
-                      {/* @ts-ignore next-line */}
+                      {/* @ts-expect-error Ensuring this is expect-error */}
                       <Link href={`/articles/${article.slug}`} className="hover:underline">
                         {article.title}
                       </Link>
@@ -88,7 +88,7 @@ const ArticleTimeline: React.FC<ArticleTimelineProps> = ({ articles }) => {
                         {article.summary}
                       </p>
                     )}
-                    {/* @ts-ignore next-line */}
+                    {/* @ts-expect-error Ensuring this is expect-error */}
                     <Link href={`/articles/${article.slug}`} className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800 font-semibold transition-colors duration-300">
                       阅读详情
                       <svg className="ml-1.5 w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
