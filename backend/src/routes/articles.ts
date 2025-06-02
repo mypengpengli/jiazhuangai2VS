@@ -22,6 +22,7 @@ const getArticlesSchema = z.object({
     page: z.string().regex(/^\d+$/).optional().default('1').transform(Number),
     limit: z.string().regex(/^\d+$/).optional().default('10').transform(Number),
     category: z.string().optional(),
+    categories: z.string().optional(), // 新增：支持多个分类，逗号分隔
     sortBy: z.enum(['created_at', 'updated_at', 'title', 'display_date']).optional().default('display_date'),
     orderDirection: z.enum(['asc', 'desc']).optional().default('desc'),
 });
@@ -31,10 +32,18 @@ articleRoutes.get(
     '/',
     zValidator('query', getArticlesSchema),
     async (c) => {
-        const { page, limit, category, sortBy, orderDirection } = c.req.valid('query');
-        console.log(`Route: GET /api/articles - Page: ${page}, Limit: ${limit}, Category: ${category}, SortBy: ${sortBy}, Order: ${orderDirection}`);
+        const { page, limit, category, categories, sortBy, orderDirection } = c.req.valid('query');
+        console.log(`Route: GET /api/articles - Page: ${page}, Limit: ${limit}, Category: ${category}, Categories: ${categories}, SortBy: ${sortBy}, Order: ${orderDirection}`);
         try {
-            const result = await getArticles(c.env.DB, { page, limit, categorySlug: category, sortBy, orderDirection });
+            // 处理单个或多个分类
+            let categorySlugs: string[] = [];
+            if (categories) {
+                categorySlugs = categories.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            } else if (category) {
+                categorySlugs = [category];
+            }
+            
+            const result = await getArticles(c.env.DB, { page, limit, categorySlugs, sortBy, orderDirection });
             return c.json(result);
         } catch (error: any) {
             console.error('Error fetching articles:', error);

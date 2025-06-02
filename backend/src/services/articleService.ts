@@ -11,7 +11,8 @@ type Env = {
 interface GetArticlesOptions {
     page?: number;
     limit?: number;
-    categorySlug?: string;
+    categorySlug?: string; // 保持向后兼容
+    categorySlugs?: string[]; // 新增：支持多个分类
     sortBy?: 'created_at' | 'updated_at' | 'title' | 'display_date'; // 添加 display_date
     orderDirection?: 'asc' | 'desc';
 }
@@ -23,10 +24,10 @@ interface GetArticlesOptions {
  * @returns 分页后的文章列表及总页数
  */
 export const getArticles = async (db: D1Database, options: GetArticlesOptions = {}): Promise<PaginatedArticlesResponse> => {
-    const { page = 1, limit = 10, categorySlug, sortBy = 'display_date', orderDirection = 'desc' } = options; // 默认按 display_date 降序
+    const { page = 1, limit = 10, categorySlug, categorySlugs, sortBy = 'display_date', orderDirection = 'desc' } = options; // 默认按 display_date 降序
     const offset = (page - 1) * limit;
 
-    console.log(`ArticleService: Fetching articles - Page: ${page}, Limit: ${limit}, CategorySlug: ${categorySlug}, SortBy: ${sortBy}, Order: ${orderDirection}, Offset: ${offset}`);
+    console.log(`ArticleService: Fetching articles - Page: ${page}, Limit: ${limit}, CategorySlug: ${categorySlug}, CategorySlugs: ${categorySlugs}, SortBy: ${sortBy}, Order: ${orderDirection}, Offset: ${offset}`);
 
     let articlesQuery = `
         SELECT
@@ -39,21 +40,27 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
     const queryParams: (string | number)[] = [];
     const countParams: (string | number)[] = [];
 
-    // 处理分类过滤
-    if (categorySlug) {
-        // 需要先查询分类 ID
-        const categoryStmt = db.prepare('SELECT id FROM categories WHERE slug = ?');
-        const categoryResult = await categoryStmt.bind(categorySlug).first<{ id: number }>();
+    // 处理分类过滤：支持单个或多个分类
+    const effectiveCategorySlugs = categorySlugs || (categorySlug ? [categorySlug] : []);
+    
+    if (effectiveCategorySlugs.length > 0) {
+        // 查询所有相关分类的ID
+        const placeholders = effectiveCategorySlugs.map(() => '?').join(',');
+        const categoryStmt = db.prepare(`SELECT id FROM categories WHERE slug IN (${placeholders})`);
+        const categoryResults = await categoryStmt.bind(...effectiveCategorySlugs).all<{ id: number }>();
 
-        if (categoryResult) {
-            const categoryId = categoryResult.id;
-            articlesQuery += ' WHERE a.category_id = ?';
-            countQuery += ' WHERE a.category_id = ?';
-            queryParams.push(categoryId);
-            countParams.push(categoryId);
-            console.log(`ArticleService: Filtering by category ID: ${categoryId}`);
+        if (categoryResults.results && categoryResults.results.length > 0) {
+            const categoryIds = categoryResults.results.map(row => row.id);
+            const idPlaceholders = categoryIds.map(() => '?').join(',');
+            
+            articlesQuery += ` WHERE a.category_id IN (${idPlaceholders})`;
+            countQuery += ` WHERE a.category_id IN (${idPlaceholders})`;
+            queryParams.push(...categoryIds);
+            countParams.push(...categoryIds);
+            
+            console.log(`ArticleService: Filtering by category IDs: ${categoryIds.join(', ')}`);
         } else {
-            console.log(`ArticleService: Category slug '${categorySlug}' not found, returning empty list.`);
+            console.log(`ArticleService: Category slugs '${effectiveCategorySlugs.join(', ')}' not found, returning empty list.`);
             // 如果分类 slug 无效，直接返回空结果
             return { items: [], total_pages: 0, current_page: page }; // 使用 items
         }
