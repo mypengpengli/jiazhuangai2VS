@@ -64,7 +64,6 @@ async function getArticlesData(categorySlugParam?: string): Promise<ArticlesData
   try {
     console.log(`Fetching articles from: ${apiUrl}`);
     const res = await fetch(apiUrl, {
-      // @ts-expect-error // Keeping this one for now, will remove if no error on next line
       next: { revalidate: 60 }
     });
 
