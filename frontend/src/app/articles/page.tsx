@@ -26,10 +26,10 @@ interface ArticlesData {
 
 // 定义页面 props 类型，包含 searchParams (category_slug)
 interface ArticlesPageProps {
-  searchParams?: { // Made searchParams optional as a whole
+  searchParams: Promise<{ // Made searchParams a Promise as required by Next.js
     category_slug?: string;
     [key: string]: string | string[] | undefined;
-  };
+  }>;
 }
 
 // 在服务器组件中获取数据
@@ -101,8 +101,9 @@ async function getArticlesData(categorySlugParam?: string): Promise<ArticlesData
 
 // 文章列表页面组件 (异步服务器组件)
 export default async function ArticlesPage(props: ArticlesPageProps) {
-  // Access searchParams safely, defaulting to undefined if props.searchParams is not provided
-  const categorySlugFromQuery = props.searchParams?.category_slug;
+  // Access searchParams by awaiting the Promise
+  const resolvedSearchParams = await props.searchParams;
+  const categorySlugFromQuery = resolvedSearchParams?.category_slug;
 
   const articlesData = await getArticlesData(categorySlugFromQuery);
 
