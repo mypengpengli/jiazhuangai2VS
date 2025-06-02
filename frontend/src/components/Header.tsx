@@ -8,11 +8,11 @@ import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
 const categories = [
   { name: 'AI新鲜事', href: '/', slug: 'all' },
   { name: '大语言模型', href: '/articles?category_slug=language-models', slug: 'language-models' },
-  { name: '生图模型', href: '/articles?category_slug=image-generation', slug: 'image-generation' },
+  { name: '生图模型', href: '/articles?category_slugs=3d-generation,image-generation', slug: 'image-generation' },
   { name: '视频模型', href: '/articles?category_slug=video-models', slug: 'video-models' },
-  { name: '音频模型', href: '/articles?category_slug=audio-models', slug: 'audio-models' },
+  { name: '音频模型', href: '/articles?category_slugs=voice-models,music-models', slug: 'audio-models' },
   { name: 'AI硬件', href: '/articles?category_slug=ai-hardware', slug: 'ai-hardware' },
-  { name: 'AI工具', href: '/articles?category_slug=ai-tools', slug: 'ai-tools' },
+  { name: 'AI工具', href: '/articles?category_slugs=ai-open-source-tools,ai-proprietary-tools', slug: 'ai-tools' },
   { name: '关于我们', href: '/about', slug: 'about' },
 ];
 
