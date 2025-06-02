@@ -2,7 +2,7 @@
 export const runtime = 'edge';
 import React from 'react';
 import Link from 'next/link';
-import { Category } from '@/types/models'; // 复用类型定义
+// import { Category } from '@/types/models'; // Category is unused now
 
 // 定义从 API 获取的数据结构 (假设 API 直接返回 Category 数组)
 // type CategoriesApiResponse = Category[]; // getCategoriesData is unused
