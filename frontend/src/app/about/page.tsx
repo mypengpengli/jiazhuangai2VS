@@ -121,11 +121,11 @@ export default function About() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <div className="flex items-center justify-center space-x-2">
               <span className="text-xl">📧</span>
-              <span>contact@jiazhuang-ai.com</span>
+              <span>306100898@qq.com</span>
             </div>
             <div className="flex items-center justify-center space-x-2">
               <span className="text-xl">💬</span>
-              <span>微信：AIHelper2024</span>
+              <span>微信：lipengkq</span>
             </div>
           </div>
         </div>
