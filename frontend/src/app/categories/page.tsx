@@ -67,11 +67,11 @@ export default async function CategoriesPage() {
           <Link
             key={category.slug}
             href={category.slug === 'about' ? '/about' : `/articles?category_slug=${category.slug}`}
-            className="group block rounded-xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-purple-500 to-indigo-600 text-white overflow-hidden"
           >
-            <h2 className="text-2xl font-semibold mb-3 group-hover:text-yellow-300 transition-colors duration-300">{category.name}</h2>
-            <p className="text-sm text-indigo-100 group-hover:text-white transition-colors duration-300 min-h-[40px]">{category.description || '点击查看更多'}</p>
-            {/* 未来可以添加图标等 */}
+            <div className="group block rounded-xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-purple-500 to-indigo-600 text-white overflow-hidden">
+              <h2 className="text-2xl font-semibold mb-3 group-hover:text-yellow-300 transition-colors duration-300">{category.name}</h2>
+              <p className="text-sm text-indigo-100 group-hover:text-white transition-colors duration-300 min-h-[40px]">{category.description || '点击查看更多'}</p>
+            </div>
           </Link>
         ))}
       </div>
