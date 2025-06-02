@@ -5,37 +5,37 @@ import React from 'react';
 import { Article } from '@/types/models';
 import ArticleTimeline from '@/components/ArticleTimeline'; // 导入时间轴组件
 
-// 更新分类映射，与Header中的映射保持一致，使用数据库中的实际slug
+// 更新分类映射，使用图片中正确的数据库slug
 const categoryMappings = {
   'language-models': {
     name: '大语言模型',
     description: '各大厂商的语言模型动态',
-    slugs: ['ge-chang-yu-yan-mo-xing'] // 对应数据库中的 "各厂语言模型"
+    slugs: ['test'] // 对应数据库中的 "各厂语言模型"
   },
   'image-generation': {
     name: '生图模型',
     description: '最新的文生图、图生图技术',
-    slugs: ['sheng-tu-3d-lei', 'sheng-tu-ping-mian-lei'] // 对应 "生图3D类" + "生图平面类"
+    slugs: ['s', 'thyroid-basics'] // 对应 "生图3D类" + "生图平面类"
   },
   'video-models': {
     name: '视频模型', 
     description: '探索视频生成与编辑的未来',
-    slugs: ['shi-pin-mo-xing'] // 对应 "视频模型"
+    slugs: ['video'] // 对应 "视频模型"
   },
   'audio-models': {
     name: '音频模型',
     description: '语音合成、音乐创作等AI应用', 
-    slugs: ['yu-yin-mo-xing', 'yin-le-mo-xing'] // 对应 "语音模型" + "音乐模型"
+    slugs: ['voice', 'music'] // 对应 "语音模型" + "音乐模型"
   },
   'ai-hardware': {
     name: 'AI硬件',
     description: 'AI芯片、服务器及相关硬件设备',
-    slugs: ['ai-ying-jian-she-bei'] // 对应 "AI硬件设备"
+    slugs: ['hardware'] // 对应 "AI硬件设备"
   },
   'ai-tools': {
     name: 'AI工具',
     description: '实用的AI软件和工具推荐',
-    slugs: ['ai-kai-yuan-ruan-jian-gong-ju', 'ai-wei-kai-yuan-ruan-jian-gong-ju'] // 对应 "AI开源软件工具" + "AI未开源软件工具"
+    slugs: ['soft', 'locksoft'] // 对应 "AI开源软件工具" + "AI未开源软件工具"
   }
 };
 

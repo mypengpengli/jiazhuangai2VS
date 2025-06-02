@@ -7,12 +7,12 @@ import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
 // 定义导航分类
 const categories = [
   { name: 'AI新鲜事', href: '/', slug: 'all' },
-  { name: '大语言模型', href: '/articles?category=ge-chang-yu-yan-mo-xing', slug: 'language-models' },
-  { name: '生图模型', href: '/articles?categories=sheng-tu-3d-lei,sheng-tu-ping-mian-lei', slug: 'image-generation' },
-  { name: '视频模型', href: '/articles?category=shi-pin-mo-xing', slug: 'video-models' },
-  { name: '音频模型', href: '/articles?categories=yu-yin-mo-xing,yin-le-mo-xing', slug: 'audio-models' },
-  { name: 'AI硬件', href: '/articles?category=ai-ying-jian-she-bei', slug: 'ai-hardware' },
-  { name: 'AI工具', href: '/articles?categories=ai-kai-yuan-ruan-jian-gong-ju,ai-wei-kai-yuan-ruan-jian-gong-ju', slug: 'ai-tools' },
+  { name: '大语言模型', href: '/articles?category=test', slug: 'language-models' },
+  { name: '生图模型', href: '/articles?categories=s,thyroid-basics', slug: 'image-generation' },
+  { name: '视频模型', href: '/articles?category=video', slug: 'video-models' },
+  { name: '音频模型', href: '/articles?categories=voice,music', slug: 'audio-models' },
+  { name: 'AI硬件', href: '/articles?category=hardware', slug: 'ai-hardware' },
+  { name: 'AI工具', href: '/articles?categories=soft,locksoft', slug: 'ai-tools' },
   { name: '关于我们', href: '/about', slug: 'about' },
 ];
 
