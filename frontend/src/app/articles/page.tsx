@@ -48,57 +48,49 @@ interface ArticlesData {
 // 定义页面 props 类型，包含 searchParams
 interface ArticlesPageProps {
   searchParams: Promise<{
-    category_slug?: string;
-    category_slugs?: string; // 新增：支持多个分类
+    category?: string; // 修改：读取 category
+    categories?: string; // 修改：读取 categories
     [key: string]: string | string[] | undefined;
   }>;
 }
 
 // 在服务器组件中获取数据
-async function getArticlesData(categorySlugParam?: string, categorySlugsParam?: string): Promise<ArticlesData | null> {
+async function getArticlesData(categoryParam?: string, categoriesParam?: string): Promise<ArticlesData | null> {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
   let apiUrl = `${backendUrl}/api/articles?limit=100`; // 获取较多文章
 
   let actualCategorySlugs: string[] = [];
   let pageTitle = 'AI新鲜事'; // 默认标题
 
-  // 处理多个分类的情况
-  if (categorySlugsParam) {
-    const slugsArray = categorySlugsParam.split(',');
-    actualCategorySlugs = slugsArray;
-    
-    // 根据第一个分类设置页面标题
-    const firstSlug = slugsArray[0];
-    const mappingEntry = Object.entries(categoryMappings).find(([_key, mapping]) => 
-      mapping.slugs.includes(firstSlug)
-    );
+  if (categoriesParam) {
+    const slugsArray = categoriesParam.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    if (slugsArray.length > 0) {
+      actualCategorySlugs = slugsArray;
+      // 根据第一个slug在categoryMappings中找到对应的名称
+      const firstSlug = slugsArray[0];
+      const mappingEntry = Object.values(categoryMappings).find(mapping => mapping.slugs.includes(firstSlug));
+      if (mappingEntry) {
+        pageTitle = mappingEntry.name;
+      } else {
+        pageTitle = `多分类文章`; // Fallback
+      }
+    }
+  } else if (categoryParam && categoryParam !== 'all') {
+    actualCategorySlugs = [categoryParam];
+    // 根据单个slug在categoryMappings中找到对应的名称
+    const mappingEntry = Object.values(categoryMappings).find(mapping => mapping.slugs.includes(categoryParam));
     if (mappingEntry) {
-      pageTitle = mappingEntry[1].name;
+      pageTitle = mappingEntry.name;
     } else {
-      pageTitle = `多分类文章`;
+      pageTitle = `分类 ${categoryParam}下的文章`; // Fallback
     }
   }
-  // 处理单个分类的情况
-  else if (categorySlugParam && categorySlugParam !== 'all') {
-    const mapping = categoryMappings[categorySlugParam as keyof typeof categoryMappings];
-    if (mapping) {
-      pageTitle = mapping.name;
-      actualCategorySlugs = mapping.slugs;
-    } else {
-      // 直接使用传入的slug
-      actualCategorySlugs = [categorySlugParam];
-      pageTitle = `分类 ${categorySlugParam}下的文章`;
-    }
-  } else if (!categorySlugParam || categorySlugParam === 'all') {
-    pageTitle = 'AI新鲜事'; // 显示所有文章
-  }
+  // 如果是 'all' 或没有指定分类，则 pageTitle 保持 'AI新鲜事'
 
   if (actualCategorySlugs.length > 0) {
     if (actualCategorySlugs.length === 1) {
-      // 单个分类使用category参数
       apiUrl += `&category=${encodeURIComponent(actualCategorySlugs[0])}`;
     } else {
-      // 多个分类使用categories参数
       apiUrl += `&categories=${encodeURIComponent(actualCategorySlugs.join(','))}`;
     }
   }
@@ -141,19 +133,25 @@ async function getArticlesData(categorySlugParam?: string, categorySlugsParam?: 
 export default async function ArticlesPage(props: ArticlesPageProps) {
   // Access searchParams by awaiting the Promise
   const resolvedSearchParams = await props.searchParams;
-  const categorySlugFromQuery = resolvedSearchParams?.category_slug;
-  const categorySlugsFromQuery = resolvedSearchParams?.category_slugs;
+  
+  const categoryFromQuery = resolvedSearchParams?.category; // 修改：读取 category
+  const categoriesFromQuery = resolvedSearchParams?.categories; // 修改：读取 categories
 
-  const articlesData = await getArticlesData(categorySlugFromQuery, categorySlugsFromQuery);
+  const articlesData = await getArticlesData(categoryFromQuery, categoriesFromQuery); // 修改：传递正确的参数
 
-  // If articlesData is null (error during fetch) or items is null/undefined (unexpected API response)
   if (!articlesData || !articlesData.items) {
-    let title = 'AI新鲜事';
-    if (categorySlugsFromQuery) {
-      title = '多分类文章';
-    } else if (categorySlugFromQuery) {
-      const mapping = categoryMappings[categorySlugFromQuery as keyof typeof categoryMappings];
-      title = mapping ? mapping.name : `分类 ${categorySlugFromQuery} 下的文章`;
+    let title = 'AI新鲜事'; // 默认标题
+    // 根据传入的参数尝试恢复标题，逻辑与 getArticlesData 中类似
+    if (categoriesFromQuery) {
+        const slugsArray = categoriesFromQuery.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        if (slugsArray.length > 0) {
+            const firstSlug = slugsArray[0];
+            const mappingEntry = Object.values(categoryMappings).find(mapping => mapping.slugs.includes(firstSlug));
+            title = mappingEntry ? mappingEntry.name : `多分类文章`;
+        }
+    } else if (categoryFromQuery && categoryFromQuery !== 'all') {
+        const mappingEntry = Object.values(categoryMappings).find(mapping => mapping.slugs.includes(categoryFromQuery));
+        title = mappingEntry ? mappingEntry.name : `分类 ${categoryFromQuery} 下的文章`;
     }
     
     return (
