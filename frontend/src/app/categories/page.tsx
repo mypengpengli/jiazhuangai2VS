@@ -67,7 +67,6 @@ export default async function CategoriesPage() {
           <Link
             key={category.slug}
             href={category.slug === 'about' ? '/about' : `/articles?category_slug=${category.slug}`}
-            // @ts-expect-error // Keeping for className if it's still an issue
             className="group block rounded-xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-purple-500 to-indigo-600 text-white overflow-hidden"
           >
             <h2 className="text-2xl font-semibold mb-3 group-hover:text-yellow-300 transition-colors duration-300">{category.name}</h2>
