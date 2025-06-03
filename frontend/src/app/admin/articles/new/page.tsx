@@ -179,10 +179,16 @@ const CreateArticlePage = () => {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Image,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+      }),
       LinkExtension.configure({
         openOnClick: false,
         autolink: true,
+        HTMLAttributes: {
+          class: 'text-blue-600 underline hover:text-blue-800 cursor-pointer',
+        },
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -191,15 +197,31 @@ const CreateArticlePage = () => {
       Color,
       Table.configure({
         resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse border border-gray-300 w-full',
+        },
       }),
-      TableRow,
-      TableHeader,
-      TableCell,
+      TableRow.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-300',
+        },
+      }),
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-300 bg-gray-100 font-bold p-2 text-left',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-300 p-2',
+        },
+      }),
     ],
     content: '<p>开始写作...</p>',
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl m-5 focus:outline-none border border-gray-300 p-4 rounded-md min-h-[200px]',
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none focus:outline-none border border-gray-300 p-4 rounded-b-md min-h-[400px] bg-white',
+        style: 'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;',
       },
       handlePaste(view, event, _slice) { // slice is the ProseMirror Slice
         const editor = this as Editor; // 'this' is the Editor instance
