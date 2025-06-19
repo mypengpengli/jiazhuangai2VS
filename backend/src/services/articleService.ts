@@ -300,6 +300,76 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
 };
 
 /**
+ * 获取“本站推荐”分类下标题为“关于如何领取咸鱼这家的免费试吃教程”的文章
+ * @param db D1Database 实例
+ * @returns 文章对象或 null
+ */
+export const getVipArticle = async (db: D1Database): Promise<ArticleWithCategoryAndAttachments | null> => {
+    const targetTitle = "关于如何领取咸鱼这家的免费试吃教程";
+    const targetCategorySlug = "ben-zhan-tui-jian"; // "本站推荐" 的 slug
+    console.log(`ArticleService: Fetching VIP article with title: "${targetTitle}" and category slug: "${targetCategorySlug}"`);
+
+    const articleQuery = `
+        SELECT
+            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.created_at, a.updated_at,
+            c.id as category_cat_id, c.name as category_name, c.slug as category_slug
+        FROM articles a
+        JOIN categories c ON a.category_id = c.id
+        WHERE a.title = ? AND c.slug = ?
+    `;
+
+    try {
+        const articleStmt = db.prepare(articleQuery);
+        const articleRow = await articleStmt.bind(targetTitle, targetCategorySlug).first<any>();
+
+        if (!articleRow) {
+            console.log(`ArticleService: VIP article not found.`);
+            return null;
+        }
+
+        console.log(`ArticleService: Found VIP article with ID: ${articleRow.id}`);
+
+        // 获取附件信息
+        const attachmentsQuery = `
+            SELECT id, article_id, file_type, file_url, filename, description, created_at
+            FROM article_attachments
+            WHERE article_id = ?
+        `;
+        const attachmentsStmt = db.prepare(attachmentsQuery);
+        const attachmentsResult = await attachmentsStmt.bind(articleRow.id).all<ArticleAttachment>();
+
+        const article: ArticleWithCategoryAndAttachments = {
+            id: articleRow.id,
+            title: articleRow.title,
+            slug: articleRow.slug,
+            content_type: articleRow.content_type,
+            content: articleRow.content,
+            category_id: articleRow.category_id,
+            parent_id: articleRow.parent_id,
+            display_date: articleRow.display_date,
+            created_at: articleRow.created_at,
+            updated_at: articleRow.updated_at,
+            attachments: attachmentsResult.results || [],
+        };
+
+        if (articleRow.category_cat_id) {
+            article.category = {
+                id: articleRow.category_cat_id,
+                name: articleRow.category_name,
+                slug: articleRow.category_slug,
+                created_at: '', 
+                updated_at: '',
+            };
+        }
+        return article;
+
+    } catch (error) {
+        console.error(`Error in getVipArticle:`, error);
+        throw new Error('Failed to fetch VIP article from database.');
+    }
+};
+
+/**
  * 更新指定 ID 的文章
  * @param db D1Database 实例
  * @param id 要更新的文章 ID

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2 } from '../services/articleService'; // 重新加入 uploadImageToR2
+import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2, getVipArticle } from '../services/articleService'; // 重新加入 uploadImageToR2
 import { authMiddleware } from '../middleware/authMiddleware';
 import { Article, CreateArticleInput, ArticleAttachment } from '../models'; // 更新导入
 
@@ -51,6 +51,21 @@ articleRoutes.get(
         }
     }
 );
+
+// 获取 VIP 文章
+articleRoutes.get('/vip', async (c) => {
+    console.log(`Route: GET /api/articles/vip`);
+    try {
+        const article = await getVipArticle(c.env.DB);
+        if (!article) {
+            return c.json({ error: 'Not Found', message: 'VIP article not found.' }, 404);
+        }
+        return c.json(article);
+    } catch (error: any) {
+        console.error('Error fetching VIP article:', error);
+        return c.json({ error: 'Failed to fetch VIP article', message: error.message }, 500);
+    }
+});
 
 // 获取单篇文章详情 (按 slug) (公开访问)
 articleRoutes.get(
