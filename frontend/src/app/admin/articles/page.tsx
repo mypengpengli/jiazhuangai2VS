@@ -118,17 +118,29 @@ const AdminArticlesPage = () => {
                 <tr key={article.id} className="hover:bg-gray-50">
                   <td className="py-2 px-4 border-b">{article.id}</td>
                   <td className="py-2 px-4 border-b">
-                    <Link href={`/articles/${article.slug}`} target="_blank" className="text-blue-600 hover:underline">
-                        {article.title}
-                    </Link>
+                    {article.slug ? (
+                        <Link href={`/articles/${article.slug}`} target="_blank" className="text-blue-600 hover:underline">
+                            {article.title}
+                        </Link>
+                    ) : (
+                        <span className="text-gray-500" title="这篇文章缺少 SLUG，无法生成访问链接。请编辑并添加。">
+                            {article.title}
+                        </span>
+                    )}
                   </td>
                   <td className="py-2 px-4 border-b">{article.category?.name || '未分类'}</td>
                   <td className="py-2 px-4 border-b">{article.display_date ? new Date(article.display_date).toLocaleDateString() : '未设置'}</td>
                   <td className="py-2 px-4 border-b">{new Date(article.created_at).toLocaleDateString()}</td>
                   <td className="py-2 px-4 border-b">
-                    <Link href={`/admin/articles/edit/${article.slug}`} className="text-yellow-600 hover:underline mr-2">
-                      编辑
-                    </Link>
+                     {article.slug ? (
+                        <Link href={`/admin/articles/edit/${article.slug}`} className="text-yellow-600 hover:underline mr-2">
+                            编辑
+                        </Link>
+                     ) : (
+                        <span className="text-gray-400 cursor-not-allowed mr-2" title="无法编辑，因为缺少 SLUG。">
+                            编辑
+                        </span>
+                     )}
                     <button
                       onClick={() => handleDeleteArticle(article.id)}
                       className="text-red-600 hover:underline"
