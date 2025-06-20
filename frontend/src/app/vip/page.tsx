@@ -14,22 +14,31 @@ const VIPPage = () => {
     const fetchVipArticle = async () => {
       try {
         setLoading(true);
-        // 注意：这里的 URL 是相对于你的 Next.js 应用的，Next.js 会代理到你在 next.config.js 中设置的后端地址
+        setError(null); // 重置错误状态
+
         const response = await fetch('/api/articles/vip');
         
         if (!response.ok) {
-          if (response.status === 404) {
-            setError('未能找到指定的VIP文章。');
+          // 尝试解析后端的JSON错误响应
+          const errorData = await response.json().catch(() => null);
+          if (errorData && errorData.message) {
+            // 使用后端返回的详细错误信息
+            setError(errorData.message);
           } else {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            // 为其他HTTP错误提供通用消息
+            setError(`加载文章时出错，服务器状态: ${response.status}`);
           }
         } else {
           const data: Article = await response.json();
           setArticle(data);
         }
-      } catch (e: any) {
+      } catch (e: unknown) { // 修复: 将 'any' 类型改为 'unknown'
         console.error('获取VIP文章失败:', e);
-        setError(e.message || '获取文章时发生未知错误。');
+        if (e instanceof Error) {
+          setError(e.message);
+        } else {
+          setError('获取文章时发生未知的客户端错误。');
+        }
       } finally {
         setLoading(false);
       }
