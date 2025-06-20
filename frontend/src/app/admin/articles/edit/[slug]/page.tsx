@@ -5,8 +5,19 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import dynamic from 'next/dynamic';
 import { Article, Category } from '@/types/models';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TiptapImage from '@tiptap/extension-image';
+import TiptapLink from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+import Color from '@tiptap/extension-color';
+import TextStyle from '@tiptap/extension-text-style';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
+import MenuBar from '@/components/MenuBar';
 
-const TiptapEditor = dynamic(() => import('@/components/Tiptap/TiptapEditor'), { ssr: false });
 const FileUpload = dynamic(() => import('@/components/FileUpload'), { ssr: false });
 
 type UploadedAttachment = {
@@ -36,6 +47,33 @@ const EditArticlePage = () => {
   const params = useParams();
   const slug = params.slug as string;
 
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TiptapImage.configure({ inline: true, allowBase64: true }),
+      TiptapLink.configure({ openOnClick: false, autolink: true }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextStyle,
+      Color,
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+    ],
+    content: content,
+    onUpdate: ({ editor }) => {
+        const html = editor.getHTML();
+        setHtmlContent(html);
+        const json = editor.getJSON();
+        setContent(JSON.stringify(json));
+    },
+    editorProps: {
+        attributes: {
+            class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none focus:outline-none border border-gray-300 p-4 rounded-b-md min-h-[400px] bg-white',
+        },
+    }
+  });
+
   const fetchArticle = useCallback(async () => {
     if (!slug || !token) return;
     setIsLoading(true);
@@ -49,6 +87,9 @@ const EditArticlePage = () => {
       setArticle(data);
       setTitle(data.title);
       setContent(data.content || '');
+      if(editor && !editor.isDestroyed) {
+        editor.commands.setContent(data.content || '');
+      }
       setHtmlContent(data.content || '');
       setDisplayDate(data.display_date ? new Date(data.display_date).toISOString().split('T')[0] : '');
       setCategoryId(data.category_id?.toString() || '0');
@@ -88,14 +129,10 @@ const EditArticlePage = () => {
     setHtmlContent(newHtmlContent);
   };
 
-  const handleAttachmentUpload = (key: string, url: string, fileType: string, fileName?: string) => {
+  const handleAttachmentUpload = (attachment: { key: string; file_url: string; file_type: string; filename?: string; publicUrl?: string }) => {
     const newAttachment: UploadedAttachment = {
         id: Date.now(), // Temporary ID for new uploads
-        key,
-        file_url: url,
-        file_type: fileType,
-        filename: fileName,
-        publicUrl: url,
+        ...attachment,
         created_at: new Date().toISOString()
     };
     setAttachments(prev => [...prev, newAttachment]);
@@ -229,21 +266,41 @@ const EditArticlePage = () => {
             <>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">内容</label>
-                    <TiptapEditor
-                        content={content}
-                        onContentChange={handleContentChange}
-                        token={token}
-                    />
+                    <MenuBar editor={editor} />
+                    <EditorContent editor={editor} />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">附件</label>
-                    <FileUpload
-                        onUploadComplete={handleAttachmentUpload}
-                        onRemove={handleRemoveAttachment}
-                        existingAttachments={attachments.map(att => ({ ...att, article_id: article?.id || 0 }))}
-                        token={token}
-                    />
+                    <label className="block text-sm font-medium text-gray-700">附件上传</label>
+                    {token && article && (
+                        <FileUpload
+                            onUploadSuccess={handleAttachmentUpload}
+                            onUploadError={(e) => setError(`上传失败: ${e}`)}
+                            directoryPrefix={`articles/${article.id}/`}
+                        />
+                    )}
                 </div>
+
+                {attachments.length > 0 && (
+                    <div className="mt-4">
+                       <h3 className="text-md font-medium text-gray-700">当前附件:</h3>
+                       <ul className="list-disc list-inside mt-2 space-y-1">
+                         {attachments.map((att) => (
+                           <li key={att.key} className="text-sm text-gray-600 flex justify-between items-center py-1">
+                             <a href={att.publicUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">
+                               {att.filename || att.key}
+                             </a>
+                             <button
+                                 type="button"
+                                 onClick={() => handleRemoveAttachment(att.key)}
+                                 className="ml-4 text-xs bg-red-200 hover:bg-red-300 text-red-700 px-2 py-1 rounded"
+                               >
+                                 移除
+                             </button>
+                           </li>
+                         ))}
+                       </ul>
+                    </div>
+                )}
             </>
         )}
 

@@ -5,6 +5,11 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import dynamic from 'next/dynamic';
 import { Article, Category } from '@/types/models';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
 
 const TiptapEditor = dynamic(() => import('@/components/Tiptap/TiptapEditor'), { ssr: false });
 const FileUpload = dynamic(() => import('@/components/FileUpload'), { ssr: false });
@@ -179,6 +184,30 @@ const EditArticlePage = () => {
     }
   };
 
+  const editor = useEditor({
+    extensions: [
+        StarterKit,
+        Image.configure({
+            inline: true,
+            allowBase64: true,
+        }),
+        Link.configure({
+            openOnClick: false,
+            autolink: true,
+        }),
+        TextAlign.configure({
+            types: ['heading', 'paragraph'],
+        }),
+    ],
+    content: article ? article.content : '',
+    editable: false,
+  });
+
+  useEffect(() => {
+    if (article && editor && !editor.isDestroyed) {
+      editor.commands.setContent(article.content);
+    }
+  }, [article, editor]);
 
   if (!article && !error) return <div>正在加载文章...</div>;
   if (error) return <div className="text-red-500 bg-red-100 p-4 rounded">{error}</div>;
@@ -229,11 +258,7 @@ const EditArticlePage = () => {
             <>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">内容</label>
-                    <TiptapEditor
-                        content={content}
-                        onContentChange={handleContentChange}
-                        token={token}
-                    />
+                    <EditorContent editor={editor} />
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">附件</label>
