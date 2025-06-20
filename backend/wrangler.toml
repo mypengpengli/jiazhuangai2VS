@@ -14,21 +14,23 @@ mode = "smart" # 智能路由，自动选择最佳数据中心
 # 例如，您可以使用 openssl rand -hex 32 来生成一个。
 JWT_SECRET = "replace-this-with-your-actual-strong-secret-key-that-is-at-least-32-characters-long"
 
-[[d1_databases]]
-binding = "DB" # 在代码中访问数据库的绑定名称
-database_name = "jiazhuangai"
-database_id = "69c4b792-fca3-48f6-a280-1c9977ed1dee"
-[[r2_buckets]]
-binding = "BUCKET" # 在代码中访问存储桶的绑定名称
-bucket_name = "jiazhuangai-files"
+# Routes configuration
+routes = [
+    { pattern = "api.jiazhuangai.com/*", zone_name = "jiazhuangai.com" }
+]
+
+# KV Namespace binding
 [[kv_namespaces]]
-binding = "KV" # 在代码中访问 KV 的绑定名称
+binding = "KV"
 id = "a120d00a55da47e682ad94852b8ab4cb"
 
-# 添加自定义域名路由
-[[routes]]
-pattern = "api.jiazhuangai.com/*"
-# script = "jiazhuangai-backend" # 如果 Worker 名称与项目名称一致，此行可省略，Wrangler 会自动关联
-zone_name = "jiazhuangai.com" # 指定 Worker 运行的区域（你的主域名）
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "jiazhuangai"
+database_id = "69c4b792-fca3-48f6-a280-1c9977ed1dee"
 
-# Force redeploy 2024-07-06 13:00
+# R2 Bucket binding
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "jiazhuangai-files"
