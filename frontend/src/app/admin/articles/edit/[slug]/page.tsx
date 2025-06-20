@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import dynamic from 'next/dynamic';
 import { Article, Category } from '@/types/models';
-import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image';
 import TiptapLink from '@tiptap/extension-link';
@@ -106,7 +106,7 @@ const EditArticlePage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [slug, token]);
+  }, [slug, token, editor]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -123,11 +123,6 @@ const EditArticlePage = () => {
     fetchCategories();
     fetchArticle();
   }, [fetchArticle]);
-
-  const handleContentChange = (newContent: string, newHtmlContent: string) => {
-    setContent(newContent);
-    setHtmlContent(newHtmlContent);
-  };
 
   const handleAttachmentUpload = (attachment: { key: string; file_url: string; file_type: string; filename?: string; publicUrl?: string }) => {
     const newAttachment: UploadedAttachment = {

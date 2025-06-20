@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Category } from '@/types/models'; // 假设 Category 类型已定义
-import { useEditor, EditorContent, Editor } from '@tiptap/react'; // Import Editor
+import { useEditor, EditorContent } from '@tiptap/react'; // Import Editor
 import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image';
 import TiptapLink from '@tiptap/extension-link';
@@ -21,30 +21,8 @@ import MenuBar from '@/components/MenuBar';
 
 const FileUpload = dynamic(() => import('@/components/FileUpload'), { ssr: false });
 
-interface ZodIssueSimple {
-  path: (string | number)[];
-  message: string;
-}
-
-// 定义附件类型，与后端 CreateArticleInput 中的 attachments 数组元素对应
-interface AttachmentInput {
-  file_url: string;
-  file_type: string;
-  filename?: string;
-  description?: string;
-  // 'key' is used internally by FileUpload's onUploadSuccess but not sent to backend directly in this structure
-}
-
 type UploadedAttachment = {
   key: string;
-  file_type: string;
-  file_url: string;
-  filename?: string | null;
-  description?: string | null;
-  publicUrl?: string | null;
-};
-
-type AttachmentPayload = {
   file_type: string;
   file_url: string;
   filename?: string | null;
@@ -108,11 +86,6 @@ const CreateArticlePage = () => {
     };
     fetchCategories();
   }, []);
-
-  const handleContentChange = (newContent: string, newHtmlContent: string) => {
-    setContent(newContent);
-    setHtmlContent(newHtmlContent);
-  };
 
   const handleAttachmentUpload = (attachment: { key: string; file_url: string; file_type: string; filename?: string; publicUrl?: string }) => {
     setAttachments(prev => [...prev, { ...attachment }]);
