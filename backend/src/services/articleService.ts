@@ -312,7 +312,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
  */
 export const getVipArticle = async (db: D1Database): Promise<VipArticleResult> => {
     const targetTitle = "关于如何领取咸鱼这家的免费试吃教程";
-    const targetCategorySlug = "ben-zhan-tui-jian"; // "本站推荐" 的 slug
+    const targetCategorySlug = "vip"; // "本站推荐" 的 slug, 已更正为 'vip'
     console.log(`ArticleService: Fetching VIP article with title: "${targetTitle}" and category slug: "${targetCategorySlug}"`);
 
     try {
