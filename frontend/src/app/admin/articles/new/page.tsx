@@ -38,6 +38,13 @@ interface UploadedAttachment extends AttachmentInput {
   publicUrl?: string; // Full public URL for accessing the file
 }
 
+type AttachmentPayload = {
+  file_type: string;
+  file_url: string;
+  filename?: string | null;
+  description?: string | null;
+  publicUrl?: string | null;
+};
 
 const CreateArticlePage = () => {
   const [title, setTitle] = useState('');
@@ -362,14 +369,14 @@ const CreateArticlePage = () => {
   };
 
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editor) {
       setError('编辑器未初始化');
       return;
     }
     if (!token) {
-      setError('用户未认证');
+      setError('用户未认证，无法创建文章。');
       return;
     }
     const htmlContent = editor.getHTML();
@@ -381,29 +388,39 @@ const CreateArticlePage = () => {
     setIsLoading(true);
     setError(null);
 
-    const articleData = {
-      title,
-      content: htmlContent,
-      content_type: 'html', // Tiptap 输出 HTML
-      category_id: Number(categoryId),
-      display_date: displayDate ? new Date(displayDate).toISOString() : null, // 转换为 ISO 字符串或 null
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      attachments: attachments.map(({ key: _key, ...rest }) => rest), // 移除 key 字段，只发送后端需要的附件元数据
-    };
-
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
+      
+      const dataToSend: {
+        title: string;
+        content: string;
+        content_type: string;
+        display_date: string | null;
+        category_id?: number;
+        attachments: AttachmentPayload[];
+      } = {
+        title,
+        content: htmlContent,
+        content_type: 'html',
+        display_date: displayDate ? new Date(displayDate).toISOString() : null,
+        attachments: attachments.map(({ key, ...rest }) => rest), // 移除 key
+      };
+
+      if (categoryId && categoryId !== '0') {
+        dataToSend.category_id = parseInt(categoryId, 10);
+      }
+      
       const response = await fetch(`${backendUrl}/api/articles`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(articleData),
+        body: JSON.stringify(dataToSend),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: `创建文章失败，状态码: ${response.status}` }));
+        const errorData = await response.json().catch(() => ({}));
         console.error("创建文章失败，后端返回的原始数据:", JSON.stringify(errorData, null, 2));
         let detailedMessage = `HTTP error! status: ${response.status}`;
         if (errorData && errorData.error && errorData.error.issues && Array.isArray(errorData.error.issues)) {
