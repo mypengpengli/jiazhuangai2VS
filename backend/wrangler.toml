@@ -1,6 +1,6 @@
 name = "jiazhuangai-backend" # Worker 名称
 main = "src/index.ts" # 入口文件 (稍后创建)
-compatibility_date = "2025-05-05" # 使用当前日期或根据需要调整
+compatibility_date = "2024-05-30" # 使用当前日期或根据需要调整
 
 # 确保Workers在全球都可访问
 [placement]
@@ -12,7 +12,7 @@ mode = "smart" # 智能路由，自动选择最佳数据中心
 [vars]
 # 重要：请将下面的 JWT_SECRET 替换为一个长而随机的、安全的字符串！
 # 例如，您可以使用 openssl rand -hex 32 来生成一个。
-JWT_SECRET = "replace-this-with-your-actual-strong-jwt-secret"
+JWT_SECRET = "replace-this-with-your-actual-strong-secret-key-that-is-at-least-32-characters-long"
 
 [[d1_databases]]
 binding = "DB" # 在代码中访问数据库的绑定名称
@@ -30,3 +30,5 @@ id = "a120d00a55da47e682ad94852b8ab4cb"
 pattern = "api.jiazhuangai.com/*"
 # script = "jiazhuangai-backend" # 如果 Worker 名称与项目名称一致，此行可省略，Wrangler 会自动关联
 zone_name = "jiazhuangai.com" # 指定 Worker 运行的区域（你的主域名）
+
+# Force redeploy 2024-07-06 13:00
