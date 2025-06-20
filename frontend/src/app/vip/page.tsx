@@ -1,21 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
-import Link from '@tiptap/extension-link';
-import TextAlign from '@tiptap/extension-text-align';
 import { Article } from '@/types/models';
 
 const VIPPage = () => {
   const [article, setArticle] = useState<Article | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
     const fetchVipArticle = async () => {
       setIsLoading(true);
       setError(null);
@@ -40,26 +33,6 @@ const VIPPage = () => {
     fetchVipArticle();
   }, []);
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Image,
-      Link.configure({ openOnClick: true, autolink: true }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
-    ],
-    content: article?.content || '',
-    editable: false,
-  });
-
-  useEffect(() => {
-    if (article && editor && !editor.isDestroyed) {
-      editor.commands.setContent(article.content || '');
-    }
-  }, [article, editor]);
-
-  if (!isMounted) {
-    return null; // or a loading spinner
-  }
 
   if (isLoading) {
     return <div className="container mx-auto px-4 py-8 text-center">正在加载 VIP 文章...</div>;
@@ -82,7 +55,8 @@ const VIPPage = () => {
               发布于 {new Date(article.display_date).toLocaleDateString()}
             </div>
         )}
-        <EditorContent editor={editor} />
+        {/* 使用 dangerouslySetInnerHTML 来渲染 HTML 内容 */}
+        <div dangerouslySetInnerHTML={{ __html: article.content || '' }} />
       </article>
     </div>
   );
