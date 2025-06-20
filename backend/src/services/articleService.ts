@@ -17,6 +17,12 @@ interface GetArticlesOptions {
     orderDirection?: 'asc' | 'desc';
 }
 
+// 定义 getVipArticle 的返回类型
+type VipArticleResult =
+    | { status: 'found'; article: ArticleWithCategoryAndAttachments }
+    | { status: 'not_found'; reason: 'category_not_found' | 'article_not_found' | 'mismatch' }
+    | { status: 'error'; message: string };
+
 /**
  * 获取文章列表 (支持分页和分类过滤)
  * @param db D1Database 实例
@@ -300,31 +306,56 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
 };
 
 /**
- * 获取“本站推荐”分类下标题为“关于如何领取咸鱼这家的免费试吃教程”的文章
+ * 获取"本站推荐"分类下标题为"关于如何领取咸鱼这家的免费试吃教程"的文章
  * @param db D1Database 实例
  * @returns 文章对象或 null
  */
-export const getVipArticle = async (db: D1Database): Promise<ArticleWithCategoryAndAttachments | null> => {
+export const getVipArticle = async (db: D1Database): Promise<VipArticleResult> => {
     const targetTitle = "关于如何领取咸鱼这家的免费试吃教程";
     const targetCategorySlug = "ben-zhan-tui-jian"; // "本站推荐" 的 slug
     console.log(`ArticleService: Fetching VIP article with title: "${targetTitle}" and category slug: "${targetCategorySlug}"`);
 
-    const articleQuery = `
-        SELECT
-            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.created_at, a.updated_at,
-            c.id as category_cat_id, c.name as category_name, c.slug as category_slug
-        FROM articles a
-        JOIN categories c ON a.category_id = c.id
-        WHERE a.title = ? AND c.slug = ?
-    `;
-
     try {
-        const articleStmt = db.prepare(articleQuery);
-        const articleRow = await articleStmt.bind(targetTitle, targetCategorySlug).first<any>();
+        // 1. 验证分类是否存在
+        const categoryStmt = db.prepare('SELECT id, name, slug FROM categories WHERE slug = ?');
+        const category = await categoryStmt.bind(targetCategorySlug).first<Category>();
 
+        if (!category) {
+            console.log(`ArticleService: VIP article check failed - Category with slug "${targetCategorySlug}" not found.`);
+            return { status: 'not_found', reason: 'category_not_found' };
+        }
+
+        // 2. 验证文章是否存在
+        const articleByTitleStmt = db.prepare('SELECT id, title, category_id FROM articles WHERE title = ?');
+        const articleByTitle = await articleByTitleStmt.bind(targetTitle).first<Article>();
+
+        if (!articleByTitle) {
+            console.log(`ArticleService: VIP article check failed - Article with title "${targetTitle}" not found.`);
+            return { status: 'not_found', reason: 'article_not_found' };
+        }
+
+        // 3. 验证文章是否属于该分类
+        if (articleByTitle.category_id !== category.id) {
+             console.log(`ArticleService: VIP article check failed - Article found, but category_id (${articleByTitle.category_id}) does not match expected category id (${category.id}).`);
+            return { status: 'not_found', reason: 'mismatch' };
+        }
+
+        // 4. 如果所有检查都通过，获取完整的文章信息
+        const fullArticleQuery = `
+            SELECT
+                a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.created_at, a.updated_at,
+                c.id as category_cat_id, c.name as category_name, c.slug as category_slug
+            FROM articles a
+            JOIN categories c ON a.category_id = c.id
+            WHERE a.id = ?
+        `;
+        const articleRow = await db.prepare(fullArticleQuery).bind(articleByTitle.id).first<any>();
+        
+        // 这个检查理论上不应该失败，因为我们已经验证过文章存在
         if (!articleRow) {
-            console.log(`ArticleService: VIP article not found.`);
-            return null;
+            // 这可能表示数据不一致，虽然不太可能发生
+             console.log(`ArticleService: Inconsistency found. Article with ID ${articleByTitle.id} could not be fully retrieved after initial check.`);
+             return { status: 'error', message: 'Data inconsistency error.'};
         }
 
         console.log(`ArticleService: Found VIP article with ID: ${articleRow.id}`);
@@ -361,11 +392,11 @@ export const getVipArticle = async (db: D1Database): Promise<ArticleWithCategory
                 updated_at: '',
             };
         }
-        return article;
+        return { status: 'found', article: article };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error(`Error in getVipArticle:`, error);
-        throw new Error('Failed to fetch VIP article from database.');
+        return { status: 'error', message: error.message || 'Failed to fetch VIP article from database.' };
     }
 };
 

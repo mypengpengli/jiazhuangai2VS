@@ -56,14 +56,38 @@ articleRoutes.get(
 articleRoutes.get('/vip', async (c) => {
     console.log(`Route: GET /api/articles/vip`);
     try {
-        const article = await getVipArticle(c.env.DB);
-        if (!article) {
-            return c.json({ error: 'Not Found', message: 'VIP article not found.' }, 404);
+        const result = await getVipArticle(c.env.DB);
+
+        if (result.status === 'found') {
+            return c.json(result.article);
         }
-        return c.json(article);
+
+        if (result.status === 'not_found') {
+            let message = 'VIP article not found.';
+            if (result.reason === 'category_not_found') {
+                message = 'VIP article category (ben-zhan-tui-jian) could not be found.';
+            } else if (result.reason === 'article_not_found') {
+                message = 'The specific VIP article title was not found in the database.';
+            } else if (result.reason === 'mismatch') {
+                message = 'The VIP article was found, but it is not assigned to the correct VIP category.';
+            }
+            return c.json({ error: 'Not Found', message }, 404);
+        }
+        
+        // Handle 'error' status
+        if (result.status === 'error') {
+            console.error('Error fetching VIP article (from service):', result.message);
+            return c.json({ error: 'Failed to fetch VIP article', message: result.message }, 500);
+        }
+
+        // Fallback for any other unhandled cases
+        return c.json({ error: 'Internal Server Error', message: 'An unexpected result status was received.' }, 500);
+
     } catch (error: any) {
-        console.error('Error fetching VIP article:', error);
-        return c.json({ error: 'Failed to fetch VIP article', message: error.message }, 500);
+        // This catch block will now mostly handle errors from the Hono framework itself
+        // or issues before getVipArticle is even called.
+        console.error('Error in VIP article route handler:', error);
+        return c.json({ error: 'Failed to process request for VIP article', message: error.message }, 500);
     }
 });
 
