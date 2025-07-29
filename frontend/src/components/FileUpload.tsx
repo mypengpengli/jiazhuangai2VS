@@ -37,7 +37,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadSuccess, onUploadError,
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ fileName: file.name, contentType: file.type, directoryPrefix }),
+          body: JSON.stringify({ filename: file.name, contentType: file.type, directoryPrefix }),
         });
 
         if (!presignedUrlResponse.ok) {

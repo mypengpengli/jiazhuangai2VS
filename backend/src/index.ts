@@ -26,6 +26,44 @@ app.route('/api/articles', articleRoutes);
 app.route('/api/categories', categoryRoutes);
 app.route('/api/r2', r2Routes);
 
+// Debug route to check bindings
+app.get('/api/debug', async (c) => {
+  const env = c.env;
+  const bindings = {
+    hasDB: !!env.DB,
+    hasKV: !!(env as any).KV,
+    hasBucket: !!(env as any).R2_BUCKET || !!(env as any).BUCKET,
+    hasJWT: !!env.JWT_SECRET,
+    envKeys: Object.keys(env),
+  };
+  
+  // Try to query categories if DB exists
+  let categoriesError = null;
+  let categoriesCount = 0;
+  
+  if (env.DB) {
+    try {
+      const result = await env.DB.prepare('SELECT COUNT(*) as count FROM categories').first<{count: number}>();
+      categoriesCount = result?.count || 0;
+    } catch (e: any) {
+      categoriesError = e.message || String(e);
+    }
+  }
+  
+  return c.json({
+    bindings,
+    database: {
+      bound: !!env.DB,
+      categoriesCount,
+      error: categoriesError,
+    },
+    request: {
+      url: c.req.url,
+      headers: Object.fromEntries(c.req.raw.headers.entries()),
+    },
+  });
+});
+
 // Global error handler
 app.onError((err, c) => {
   console.error(`${err}`);

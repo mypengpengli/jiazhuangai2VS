@@ -20,7 +20,7 @@ categoryRoutes.get('/', async (c) => {
   console.log('Route: GET /api/categories');
   try {
     const categories = await getAllCategories(c.env.DB); // 调用服务函数
-    return c.json(categories);
+    return c.json({ items: categories }); // 修改为返回 { items: [...] } 格式
     // --- 移除临时占位符 ---
   } catch (error: any) {
     console.error('Error fetching categories:', error);

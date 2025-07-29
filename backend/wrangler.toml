@@ -19,10 +19,10 @@ routes = [
     { pattern = "api.jiazhuangai.com/*", zone_name = "jiazhuangai.com" }
 ]
 
-# KV Namespace binding
-[[kv_namespaces]]
-binding = "KV"
-id = "a120d00a55da47e682ad94852b8ab4cb"
+# KV Namespace binding - 暂时注释掉，等部署成功后再添加
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "ab3b3fc290524272877b9107c13f2af5"
 
 # D1 Database binding
 [[d1_databases]]

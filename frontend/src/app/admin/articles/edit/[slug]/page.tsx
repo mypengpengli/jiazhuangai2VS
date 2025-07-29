@@ -70,8 +70,8 @@ const EditArticlePage = () => {
         setContent(JSON.stringify(json));
     },
     editorProps: {
-        attributes: {
-            class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none focus:outline-none border border-gray-300 p-4 rounded-b-md min-h-[400px] bg-white',
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl max-w-none focus:outline-none border border-gray-300 p-4 rounded-b-md min-h-[400px] bg-white',
         },
     }
   });
@@ -186,7 +186,7 @@ const EditArticlePage = () => {
       setIsLoading(false);
     }
   };
-  
+
   const handleDelete = async () => {
     if (!article || !token || !window.confirm('确定要删除这篇文章吗？此操作无法撤销。')) {
         return;
@@ -258,7 +258,7 @@ const EditArticlePage = () => {
             ))}
           </select>
         </div>
-        
+
         {token && (
             <>
                 <div>
@@ -266,7 +266,7 @@ const EditArticlePage = () => {
                     <MenuBar editor={editor} />
                     <EditorContent editor={editor} />
                 </div>
-                <div>
+        <div>
                     <label className="block text-sm font-medium text-gray-700">附件上传</label>
                     {token && article && (
                         <FileUpload
@@ -275,29 +275,29 @@ const EditArticlePage = () => {
                             directoryPrefix={`articles/${article.id}/`}
                         />
                     )}
-                </div>
+        </div>
 
-                {attachments.length > 0 && (
-                    <div className="mt-4">
-                       <h3 className="text-md font-medium text-gray-700">当前附件:</h3>
-                       <ul className="list-disc list-inside mt-2 space-y-1">
+          {attachments.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-md font-medium text-gray-700">当前附件:</h3>
+              <ul className="list-disc list-inside mt-2 space-y-1">
                          {attachments.map((att) => (
                            <li key={att.key} className="text-sm text-gray-600 flex justify-between items-center py-1">
                              <a href={att.publicUrl || '#'} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">
-                               {att.filename || att.key}
-                             </a>
-                             <button
-                                 type="button"
+                          {att.filename || att.key}
+                        </a>
+                        <button
+                          type="button"
                                  onClick={() => handleRemoveAttachment(att.key)}
                                  className="ml-4 text-xs bg-red-200 hover:bg-red-300 text-red-700 px-2 py-1 rounded"
-                               >
-                                 移除
-                             </button>
-                           </li>
-                         ))}
-                       </ul>
-                    </div>
-                )}
+                      >
+                        移除
+                      </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
             </>
         )}
 
@@ -322,13 +322,13 @@ const EditArticlePage = () => {
                 >
                     返回列表
                 </button>
-                <button
-                    type="submit"
+          <button
+            type="submit"
                     className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-blue-300"
                     disabled={isLoading}
-                >
+          >
                     {isLoading ? '正在保存...' : '保存更改'}
-                </button>
+          </button>
             </div>
         </div>
       </form>
