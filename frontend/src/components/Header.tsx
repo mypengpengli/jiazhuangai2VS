@@ -13,7 +13,6 @@ const categories = [
   { name: '音频模型', href: '/articles?categories=voice,music', slug: 'audio-models' },
   { name: 'AI硬件', href: '/articles?category=hardware', slug: 'ai-hardware' },
   { name: 'AI工具', href: '/articles?categories=soft,locksoft', slug: 'ai-tools' },
-  { name: '本站推荐', href: '/vip', slug: 'vip' },
   { name: '关于我们', href: '/about', slug: 'about' },
 ];
 
