@@ -13,6 +13,7 @@ interface GetArticlesOptions {
     limit?: number;
     categorySlug?: string; // 保持向后兼容
     categorySlugs?: string[]; // 新增：支持多个分类
+    search?: string; // 新增：搜索关键词
     sortBy?: 'created_at' | 'updated_at' | 'title' | 'display_date'; // 添加 display_date
     orderDirection?: 'asc' | 'desc';
 }
@@ -26,14 +27,14 @@ type VipArticleResult =
 /**
  * 获取文章列表 (支持分页和分类过滤)
  * @param db D1Database 实例
- * @param options 选项: page, limit, categorySlug
+ * @param options 选项: page, limit, categorySlug, search
  * @returns 分页后的文章列表及总页数
  */
 export const getArticles = async (db: D1Database, options: GetArticlesOptions = {}): Promise<PaginatedArticlesResponse> => {
-    const { page = 1, limit = 10, categorySlug, categorySlugs, sortBy = 'display_date', orderDirection = 'desc' } = options; // 默认按 display_date 降序
+    const { page = 1, limit = 10, categorySlug, categorySlugs, search, sortBy = 'display_date', orderDirection = 'desc' } = options; // 默认按 display_date 降序
     const offset = (page - 1) * limit;
 
-    console.log(`ArticleService: Fetching articles - Page: ${page}, Limit: ${limit}, CategorySlug: ${categorySlug}, CategorySlugs: ${categorySlugs}, SortBy: ${sortBy}, Order: ${orderDirection}, Offset: ${offset}`);
+    console.log(`ArticleService: Fetching articles - Page: ${page}, Limit: ${limit}, CategorySlug: ${categorySlug}, CategorySlugs: ${categorySlugs}, Search: ${search}, SortBy: ${sortBy}, Order: ${orderDirection}, Offset: ${offset}`);
 
     let articlesQuery = `
         SELECT
@@ -45,6 +46,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
     let countQuery = 'SELECT COUNT(*) as total FROM articles a';
     const queryParams: (string | number)[] = [];
     const countParams: (string | number)[] = [];
+    const whereClauses: string[] = [];
 
     // 处理分类过滤：支持单个或多个分类
     const effectiveCategorySlugs = categorySlugs || (categorySlug ? [categorySlug] : []);
@@ -59,8 +61,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
             const categoryIds = categoryResults.results.map(row => row.id);
             const idPlaceholders = categoryIds.map(() => '?').join(',');
             
-            articlesQuery += ` WHERE a.category_id IN (${idPlaceholders})`;
-            countQuery += ` WHERE a.category_id IN (${idPlaceholders})`;
+            whereClauses.push(`a.category_id IN (${idPlaceholders})`);
             queryParams.push(...categoryIds);
             countParams.push(...categoryIds);
             
@@ -70,6 +71,22 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
             // 如果分类 slug 无效，直接返回空结果
             return { items: [], total_pages: 0, current_page: page }; // 使用 items
         }
+    }
+
+    // 处理搜索关键词
+    if (search && search.trim()) {
+        const searchTerm = `%${search.trim()}%`;
+        whereClauses.push(`(a.title LIKE ? OR a.content LIKE ?)`);
+        queryParams.push(searchTerm, searchTerm);
+        countParams.push(searchTerm, searchTerm);
+        console.log(`ArticleService: Searching for: ${search}`);
+    }
+
+    // 构建 WHERE 子句
+    if (whereClauses.length > 0) {
+        const whereClause = ' WHERE ' + whereClauses.join(' AND ');
+        articlesQuery += whereClause;
+        countQuery += whereClause;
     }
 
     // 添加排序
