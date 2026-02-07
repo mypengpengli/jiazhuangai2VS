@@ -1,4 +1,4 @@
-'use client'; // May need client-side interactivity for timeline features
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
@@ -10,100 +10,108 @@ interface ArticleTimelineProps {
 
 const ArticleTimeline: React.FC<ArticleTimelineProps> = ({ articles }) => {
   if (!articles || articles.length === 0) {
-    return <p className="text-center text-gray-600">暂无文章可显示在时间轴上。</p>;
+    return <p className="text-center text-gray-600">暂无文章可显示。</p>;
   }
 
-  // Group articles by year and month for a more structured timeline
-  const groupedArticles: { [year: string]: { [month: string]: Article[] } } = {};
+  // 分类图标映射
+  const getCategoryIcon = (categoryName: string | undefined) => {
+    const iconMap: { [key: string]: string } = {
+      '各厂语言模型': '💬',
+      '大语言模型': '💬',
+      '生图模型': '🎨',
+      '视频模型': '🎬',
+      '音频模型': '🎵',
+      'AI硬件': '🔧',
+      'AI工具': '⚡',
+      'AI开源软件工具': '🔓',
+      'AI未开源软件工具': '🔒',
+      '本站推荐': '⭐',
+    };
+    return iconMap[categoryName || ''] || '📄';
+  };
+
+  // 按日期分组
+  const groupedByDate: { [date: string]: Article[] } = {};
   articles.forEach(article => {
     const date = new Date(article.display_date || article.created_at);
-    const year = date.getFullYear().toString();
-    const month = date.toLocaleString('zh-CN', { month: 'long' }); // e.g., '五月'
+    const dateKey = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+    if (!groupedByDate[dateKey]) {
+      groupedByDate[dateKey] = [];
+    }
+    groupedByDate[dateKey].push(article);
+  });
 
-    if (!groupedArticles[year]) {
-      groupedArticles[year] = {};
-    }
-    if (!groupedArticles[year][month]) {
-      groupedArticles[year][month] = [];
-    }
-    groupedArticles[year][month].push(article);
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => {
+    const dateA = new Date(groupedByDate[a][0].display_date || groupedByDate[a][0].created_at);
+    const dateB = new Date(groupedByDate[b][0].display_date || groupedByDate[b][0].created_at);
+    return dateB.getTime() - dateA.getTime();
   });
 
   return (
-    <div className="relative antialiased">
-      {/* Vertical line of the timeline */}
-      <div className="absolute top-0 bottom-0 left-1/2 w-1 bg-indigo-300 transform -translate-x-1/2 hidden md:block"></div>
-
-      {Object.keys(groupedArticles).sort((a, b) => parseInt(b) - parseInt(a)).map(year => (
-        <div key={year} className="mb-12">
-          <div className="flex items-center justify-center mb-8 md:mb-0">
-            <div className="md:absolute md:left-1/2 md:transform md:-translate-x-1/2 z-10">
-              <div className="bg-indigo-600 text-white font-bold rounded-full py-2 px-6 shadow-lg">
-                {year}年
-              </div>
-            </div>
+    <div className="space-y-8">
+      {sortedDates.map((dateKey) => (
+        <div key={dateKey} className="relative">
+          {/* 日期标签 */}
+          <div className="sticky top-4 z-10 mb-4">
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white text-sm font-semibold rounded-full shadow-lg shadow-purple-500/20">
+              📅 {dateKey}
+            </span>
           </div>
 
-          {Object.keys(groupedArticles[year]).sort((a, b) => {
-            // Simple month sort (can be improved for actual date comparison if months are not unique)
-            const monthOrder = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
-            // Corrected month sorting to handle potential missing months in monthOrder
-            const indexA = monthOrder.indexOf(a);
-            const indexB = monthOrder.indexOf(b);
-            if (indexA === -1 && indexB === -1) return 0;
-            if (indexA === -1) return 1; // Put unknown months at the end
-            if (indexB === -1) return -1; // Put unknown months at the end
-            return indexB - indexA; // Sort descending by month display
-          }).map(month => (
-            <div key={month} className="mb-10">
-              <div className="flex items-center justify-center mb-6 md:mb-0">
-                 <div className="md:absolute md:left-1/2 md:transform md:-translate-x-1/2 z-10 md:mt-10">
-                    <div className="bg-purple-500 text-white font-semibold rounded-full py-1 px-4 shadow-md text-sm">
-                        {month}
-                    </div>
-                </div>
-              </div>
-              
-              {groupedArticles[year][month].map((article, index) => (
-                <div 
-                    key={article.id} 
-                    className={`mb-8 flex md:items-center w-full ${index % 2 === 0 ? 'md:flex-row-reverse' : 'md:flex-row'} justify-between`}
-                >
-                  <div className="hidden md:block w-5/12"></div> {/* Spacer */}
-                  <div className="md:absolute md:left-1/2 md:transform md:-translate-x-1/2 z-10">
-                    <div className="bg-gray-300 w-5 h-5 rounded-full border-4 border-white shadow-sm"></div>
+          {/* 文章卡片网格 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {groupedByDate[dateKey].map((article) => (
+              <article 
+                key={article.id}
+                className="group bg-white rounded-xl border border-gray-100 hover:border-purple-200 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 overflow-hidden"
+              >
+                <div className="p-5">
+                  {/* 分类和时间 */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-cyan-50 to-purple-50 text-purple-700 rounded-full text-xs font-semibold border border-purple-100">
+                      {getCategoryIcon(article.category?.name)} {article.category?.name || '未分类'}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {new Date(article.display_date || article.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                  <div className="bg-white rounded-xl shadow-xl overflow-hidden w-full md:w-5/12 p-6 transform hover:shadow-2xl hover:scale-105 transition-all duration-300 ease-in-out">
-                    <div className="text-xs text-indigo-600 uppercase font-semibold mb-1">
-                      {article.category?.name || '未分类'} &middot; {new Date(article.display_date || article.created_at).toLocaleDateString('zh-CN', { day: 'numeric' })}
-                    </div>
-                    <h3 className="text-xl font-bold mb-2 text-gray-800 hover:text-indigo-700 transition-colors duration-300">
-                      <Link href={`/articles/${article.slug}`}>
-                        <span className="hover:underline">
-                          {article.title}
-                        </span>
-                      </Link>
-                    </h3>
-                    {article.summary && (
-                      <p className="text-gray-600 text-sm leading-relaxed mb-3">
-                        {article.summary}
-                      </p>
-                    )}
+
+                  {/* 标题 */}
+                  <h3 className="text-lg font-bold text-gray-800 group-hover:text-purple-700 transition-colors mb-2 line-clamp-2">
                     <Link href={`/articles/${article.slug}`}>
-                      <span className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800 font-semibold transition-colors duration-300">
-                        阅读详情
-                        <svg className="ml-1.5 w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                      <span className="hover:underline decoration-purple-400 decoration-2 underline-offset-4">
+                        {article.title}
                       </span>
                     </Link>
-                  </div>
+                  </h3>
+
+                  {/* 摘要 */}
+                  {article.summary && (
+                    <p className="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-2">
+                      {article.summary}
+                    </p>
+                  )}
+
+                  {/* 阅读更多 */}
+                  <Link href={`/articles/${article.slug}`}>
+                    <span className="inline-flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800 font-medium transition-all duration-300 group-hover:gap-3">
+                      阅读详情
+                      <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                      </svg>
+                    </span>
+                  </Link>
                 </div>
-              ))}
-            </div>
-          ))}
+
+                {/* 底部装饰条 */}
+                <div className="h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+              </article>
+            ))}
+          </div>
         </div>
       ))}
     </div>
   );
 };
 
-export default ArticleTimeline; 
+export default ArticleTimeline;

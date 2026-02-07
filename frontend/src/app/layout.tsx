@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "家装AI助手",
-  description: "家装AI助手，提供智能家装设计、方案推荐和行业资讯。",
+  title: "加装AI助手 - AI资讯与工具导航",
+  description: "加装AI助手，为你加装最新AI能力。探索大语言模型、生图模型、视频模型等前沿AI技术资讯与工具推荐。",
 };
 
 export default function RootLayout({
