@@ -13,6 +13,7 @@ mode = "smart" # 智能路由，自动选择最佳数据中心
 # 重要：请将下面的 JWT_SECRET 替换为一个长而随机的、安全的字符串！
 # 例如，您可以使用 openssl rand -hex 32 来生成一个。
 JWT_SECRET = "replace-this-with-your-actual-strong-secret-key-that-is-at-least-32-characters-long"
+RESEND_API_KEY = "re_4zSrigc5_ANAJPZRY9sK5CzU4ipovAA9F"
 
 # Routes configuration
 routes = [

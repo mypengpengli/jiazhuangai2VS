@@ -73,7 +73,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2.5 text-sm text-gray-400">
               <li className="flex items-center gap-2">
                 <span className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">📧</span>
-                contact@jiazhuangai.com
+                306100898@qq.com
               </li>
               <li className="flex items-center gap-2">
                 <span className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">🌐</span>

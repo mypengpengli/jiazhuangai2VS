@@ -14,6 +14,7 @@ export type Env = {
   DB: D1Database;
   JWT_SECRET: string;
   R2_BUCKET: R2Bucket;
+  RESEND_API_KEY: string;
 };
 
 const app = new Hono<{ Bindings: Env }>();
