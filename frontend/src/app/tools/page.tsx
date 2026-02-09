@@ -10,15 +10,6 @@ const tools = [
     tags: ['开源', '免费', 'AI助手'],
     stars: 5,
   },
-  {
-    name: 'OpenClaw',
-    description: '强大的 AI 代理框架，支持多渠道消息、定时任务、浏览器自动化等功能。',
-    features: ['多渠道消息集成', '定时任务调度', '浏览器自动化', '技能系统'],
-    url: 'https://github.com/openclaw/openclaw',
-    icon: '🦞',
-    tags: ['开源', '免费', 'AI代理'],
-    stars: 100,
-  },
 ];
 
 export default function ToolsPage() {
