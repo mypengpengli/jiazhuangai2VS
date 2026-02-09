@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import SubscribeForm from './SubscribeForm';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -80,19 +81,7 @@ const Footer: React.FC = () => {
               </li>
             </ul>
             {/* 订阅表单 */}
-            <div className="mt-4">
-              <p className="text-sm text-gray-400 mb-2">订阅AI资讯</p>
-              <div className="flex gap-2">
-                <input 
-                  type="email" 
-                  placeholder="输入邮箱" 
-                  className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500/50"
-                />
-                <button className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 rounded-lg text-sm font-medium transition-colors">
-                  订阅
-                </button>
-              </div>
-            </div>
+            <SubscribeForm />
           </div>
         </div>
         

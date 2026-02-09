@@ -53,3 +53,13 @@ CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles (slug);
 CREATE INDEX IF NOT EXISTS idx_articles_category_id ON articles (category_id);
 CREATE INDEX IF NOT EXISTS idx_articles_parent_id ON articles (parent_id);
 CREATE INDEX IF NOT EXISTS idx_articles_display_date ON articles (display_date); -- 为显示日期添加索引
+
+-- 订阅者表
+CREATE TABLE IF NOT EXISTS subscribers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active INTEGER DEFAULT 1 -- 1=活跃, 0=已取消
+);
+
+CREATE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers (email);
