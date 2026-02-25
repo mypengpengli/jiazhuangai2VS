@@ -31,12 +31,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Google AdSense */}
-        <Script
+        <script
+          async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8993064905196407"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        ></script>
+      </head>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         {/* Google Analytics */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
@@ -50,10 +53,6 @@ export default function RootLayout({
             gtag('config', '${GA_MEASUREMENT_ID}');
           `}
         </Script>
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
         <AuthProvider> {/* Wrap Layout (and thus children) with AuthProvider */}
           <Layout>{children}</Layout>
         </AuthProvider>
