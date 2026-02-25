@@ -6,7 +6,7 @@ import Layout from "@/components/Layout"; // Import the Layout component
 import { AuthProvider } from "@/context/AuthContext"; // Import the AuthProvider
 
 // Google Analytics 测量 ID
-const GA_MEASUREMENT_ID = "G-LHKQVHP4QE";
+const GA_MEASUREMENT_ID = "G-7NJ868H0TH";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
