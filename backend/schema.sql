@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS articles (
     category_id INTEGER,
     parent_id INTEGER, -- 用于树形结构 (AI相关纪事)
     display_date TIMESTAMP NULL, -- 用户设定的显示日期，用于排序
+    view_count INTEGER NOT NULL DEFAULT 0, -- 浏览量
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
@@ -53,6 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles (slug);
 CREATE INDEX IF NOT EXISTS idx_articles_category_id ON articles (category_id);
 CREATE INDEX IF NOT EXISTS idx_articles_parent_id ON articles (parent_id);
 CREATE INDEX IF NOT EXISTS idx_articles_display_date ON articles (display_date); -- 为显示日期添加索引
+CREATE INDEX IF NOT EXISTS idx_articles_view_count ON articles (view_count); -- 为浏览量添加索引
 
 -- 订阅者表
 CREATE TABLE IF NOT EXISTS subscribers (

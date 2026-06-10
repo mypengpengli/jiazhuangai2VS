@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2, getVipArticle } from '../services/articleService'; // 重新加入 uploadImageToR2
+import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2, getVipArticle, incrementViewCount } from '../services/articleService'; // 重新加入 uploadImageToR2
 import { authMiddleware } from '../middleware/authMiddleware';
 import { Article, CreateArticleInput, ArticleAttachment } from '../models'; // 更新导入
 
@@ -24,7 +24,7 @@ const getArticlesSchema = z.object({
     category: z.string().optional(),
     categories: z.string().optional(), // 新增：支持多个分类，逗号分隔
     search: z.string().optional(), // 新增：搜索关键词
-    sortBy: z.enum(['created_at', 'updated_at', 'title', 'display_date']).optional().default('display_date'),
+    sortBy: z.enum(['created_at', 'updated_at', 'title', 'display_date', 'view_count']).optional().default('display_date'),
     orderDirection: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 
@@ -112,6 +112,26 @@ articleRoutes.get(
     }
 );
 
+
+// 文章浏览量 +1 (公开访问)
+articleRoutes.post(
+    '/:slug/view',
+    zValidator('param', z.object({ slug: z.string().min(1, "Slug 不能为空") })),
+    async (c) => {
+        const { slug } = c.req.valid('param');
+        console.log(`Route: POST /api/articles/${slug}/view`);
+        try {
+            const viewCount = await incrementViewCount(c.env.DB, slug);
+            if (viewCount === null) {
+                return c.json({ error: 'Not Found', message: `Article with slug '${slug}' not found.` }, 404);
+            }
+            return c.json({ view_count: viewCount });
+        } catch (error: any) {
+            console.error(`Error incrementing view count for slug ${slug}:`, error);
+            return c.json({ error: 'Failed to increment view count', message: error.message }, 500);
+        }
+    }
+);
 
 // --- 需要认证的路由 ---
 const protectedArticleRoutes = new Hono<{ Bindings: Env, Variables: Variables }>();

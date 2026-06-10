@@ -14,7 +14,7 @@ interface GetArticlesOptions {
     categorySlug?: string; // 保持向后兼容
     categorySlugs?: string[]; // 新增：支持多个分类
     search?: string; // 新增：搜索关键词
-    sortBy?: 'created_at' | 'updated_at' | 'title' | 'display_date'; // 添加 display_date
+    sortBy?: 'created_at' | 'updated_at' | 'title' | 'display_date' | 'view_count'; // 添加 display_date 和 view_count
     orderDirection?: 'asc' | 'desc';
 }
 
@@ -38,7 +38,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
 
     let articlesQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.view_count, a.created_at, a.updated_at,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug -- 别名避免冲突
         FROM articles a
         LEFT JOIN categories c ON a.category_id = c.id
@@ -97,6 +97,9 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
             break;
         case 'updated_at':
             orderByClause += 'a.updated_at';
+            break;
+        case 'view_count':
+            orderByClause += 'a.view_count';
             break;
         case 'display_date':
             // 使用 COALESCE 处理 NULL display_date，使其按 created_at 排序
@@ -159,6 +162,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
                 category_id: row.category_id,
                 parent_id: row.parent_id,
                 display_date: row.display_date, // 添加 display_date
+                view_count: row.view_count ?? 0,
                 created_at: row.created_at,
                 updated_at: row.updated_at,
                 // attachments: [] // 暂时不填充附件
@@ -264,7 +268,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
     console.log(`ArticleService: Fetching article with slug: ${slug}`);
     const articleQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.view_count, a.created_at, a.updated_at,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug
         FROM articles a
         LEFT JOIN categories c ON a.category_id = c.id
@@ -300,6 +304,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
             category_id: articleRow.category_id,
             parent_id: articleRow.parent_id,
             display_date: articleRow.display_date, // 添加 display_date
+            view_count: articleRow.view_count ?? 0,
             created_at: articleRow.created_at,
             updated_at: articleRow.updated_at,
             attachments: attachmentsResult.results || [],
@@ -319,6 +324,29 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
     } catch (error) {
         console.error(`Error in getArticleBySlug for slug ${slug}:`, error);
         throw new Error('Failed to fetch article from database.');
+    }
+};
+
+/**
+ * 文章浏览量 +1
+ * @param db D1Database 实例
+ * @param slug 文章的 slug
+ * @returns 自增后的浏览量，文章不存在时返回 null
+ */
+export const incrementViewCount = async (db: D1Database, slug: string): Promise<number | null> => {
+    try {
+        const result = await db.prepare(
+            'UPDATE articles SET view_count = COALESCE(view_count, 0) + 1 WHERE slug = ? RETURNING view_count'
+        ).bind(slug).first<{ view_count: number }>();
+
+        if (!result) {
+            console.log(`ArticleService: incrementViewCount - article with slug '${slug}' not found.`);
+            return null;
+        }
+        return result.view_count;
+    } catch (error) {
+        console.error(`Error in incrementViewCount for slug ${slug}:`, error);
+        throw new Error('Failed to increment view count.');
     }
 };
 

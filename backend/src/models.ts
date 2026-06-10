@@ -25,6 +25,7 @@ export interface Article {
   category_id?: number;
   parent_id?: number;
   display_date?: string | null; // 用户设定的显示日期，用于排序
+  view_count?: number; // 浏览量
   created_at: string;
   updated_at: string;
 }
