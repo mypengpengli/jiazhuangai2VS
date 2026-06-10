@@ -26,10 +26,41 @@
   display: block; /* 确保 img 是块级元素以便 margin auto 生效 */
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  /* font-family is handled by layout.tsx font variables */
+  /* Geist 仅含拉丁字符，补充中文字体回退栈 */
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+}
+
+/* 选中文字配色与品牌色呼应 */
+::selection {
+  background: #ddd6fe;
+  color: #312e81;
+}
+
+/* 更细更柔和的滚动条 (WebKit) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* ===== 文章正文排版样式 (.article-content) =====

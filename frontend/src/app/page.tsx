@@ -88,7 +88,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-3xl shadow-2xl shadow-purple-900/20">
         {/* 动态背景效果 */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
@@ -167,8 +167,8 @@ export default async function Home() {
             )}
           </div>
 
-          {/* 右侧：侧边栏 */}
-          <div className="lg:w-80 space-y-6">
+          {/* 右侧：侧边栏（大屏跟随滚动） */}
+          <div className="lg:w-80 space-y-6 lg:sticky lg:top-6 lg:self-start">
             {/* 热门文章 */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-orange-500 to-pink-500 px-5 py-4">

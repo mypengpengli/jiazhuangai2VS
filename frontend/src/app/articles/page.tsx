@@ -178,7 +178,7 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* 页面头部 */}
-      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-16">
+      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-16 rounded-3xl shadow-2xl shadow-purple-900/20 overflow-hidden">
         <div className="container mx-auto px-4 text-center">
           {currentCategory && (
             <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-white/10 border border-white/20 rounded-full text-white/80 text-sm">

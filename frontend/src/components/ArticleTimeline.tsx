@@ -30,7 +30,7 @@ const getCategoryIcon = (categoryName: string | undefined) => {
 // 单个文章卡片组件，用 React.memo 避免重复渲染
 const ArticleCard = React.memo(({ article }: { article: Article }) => (
   <article
-    className="group bg-white rounded-xl border border-gray-100 hover:border-purple-200 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 overflow-hidden"
+    className="group bg-white rounded-xl border border-gray-100 hover:border-purple-200 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
   >
     <div className="p-5">
       {/* 分类和时间 */}
