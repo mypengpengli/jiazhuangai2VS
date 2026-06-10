@@ -7,6 +7,7 @@ import { AuthProvider } from "@/context/AuthContext"; // Import the AuthProvider
 
 // Google Analytics 测量 ID
 const GA_MEASUREMENT_ID = "G-7NJ868H0TH";
+const ADSENSE_CLIENT_ID = "ca-pub-8993064905196407";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,6 +22,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "加装AI助手 - AI资讯与工具导航",
   description: "加装AI助手，为你加装最新AI能力。探索大语言模型、生图模型、视频模型等前沿AI技术资讯与工具推荐。",
+  other: {
+    "google-adsense-account": ADSENSE_CLIENT_ID,
+  },
 };
 
 export default function RootLayout({
@@ -29,11 +33,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <head>
         <script
           async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8993064905196407"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
           crossOrigin="anonymous"
         ></script>
       </head>
