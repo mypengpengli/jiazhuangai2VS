@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
 
 // 定义导航分类
@@ -20,9 +21,17 @@ const categories = [
 const Header: React.FC = () => {
   const { user, token, isLoading, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const handleLogout = () => {
     logout();
+  };
+
+  const isActiveCategory = (href: string) => {
+    if (href === '/') {
+      return pathname === '/' || pathname.startsWith('/articles');
+    }
+    return pathname === href;
   };
 
   return (
@@ -92,22 +101,30 @@ const Header: React.FC = () => {
         </div>
 
         {/* 分类导航栏 */}
-        <div className="border-t border-white/70">
+        <div className="border-t border-white/60 py-3">
           <div className={`${isMenuOpen ? 'block' : 'hidden'} md:block`}>
-            <div className="flex flex-col md:flex-row md:items-center py-3 space-y-2 md:space-y-0 md:space-x-1 overflow-x-auto">
-              {categories.map((category) => (
-                <Link
-                  key={category.slug}
-                  href={category.href}
-                >
-                  <span 
-                    className="block px-4 py-2 rounded-lg border border-transparent text-sm font-medium text-slate-700 transition-all duration-300 hover:scale-105 hover:border-white/70 hover:bg-white/55 hover:text-sky-700 hover:shadow-sm hover:shadow-sky-900/5 transform whitespace-nowrap backdrop-blur-xl"
-                    onClick={() => setIsMenuOpen(false)}
+            <div className="inline-flex max-w-full flex-col gap-1 overflow-x-auto rounded-2xl border border-white/75 bg-white/45 p-1.5 shadow-[0_12px_34px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:flex-row md:items-center">
+              {categories.map((category) => {
+                const isActive = isActiveCategory(category.href);
+
+                return (
+                  <Link
+                    key={category.slug}
+                    href={category.href}
                   >
-                    {category.name}
-                  </span>
-                </Link>
-              ))}
+                    <span 
+                      className={`block whitespace-nowrap rounded-xl border px-3.5 py-2 text-sm font-medium transition-all duration-300 ${
+                        isActive
+                          ? 'border-white/25 bg-slate-900/80 text-white shadow-lg shadow-slate-900/18'
+                          : 'border-transparent text-slate-600 hover:border-white/80 hover:bg-white/75 hover:text-sky-700 hover:shadow-sm hover:shadow-sky-900/5'
+                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {category.name}
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>
