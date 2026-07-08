@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
 
 // 定义导航分类
@@ -22,6 +22,7 @@ const Header: React.FC = () => {
   const { user, token, isLoading, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const handleLogout = () => {
     logout();
@@ -29,8 +30,19 @@ const Header: React.FC = () => {
 
   const isActiveCategory = (href: string) => {
     if (href === '/') {
-      return pathname === '/' || pathname.startsWith('/articles');
+      return pathname === '/' || (pathname === '/articles' && !searchParams.get('category') && !searchParams.get('categories') && !searchParams.get('search'));
     }
+
+    const [hrefPath, hrefQuery = ''] = href.split('?');
+    if (pathname !== hrefPath) {
+      return false;
+    }
+
+    if (hrefQuery) {
+      const expected = new URLSearchParams(hrefQuery);
+      return Array.from(expected.entries()).every(([key, value]) => searchParams.get(key) === value);
+    }
+
     return pathname === href;
   };
 

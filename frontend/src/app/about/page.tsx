@@ -2,20 +2,20 @@ import React from 'react';
 
 export default function About() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="space-y-6">
+      <div className="max-w-6xl mx-auto">
         {/* 页面标题 */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+        <div className="mx-auto mb-6 max-w-3xl overflow-hidden rounded-xl border border-white/25 bg-slate-950/70 px-4 py-4 text-center shadow-[0_22px_70px_rgba(15,23,42,0.28)] backdrop-blur-2xl">
+          <h1 className="text-xl sm:text-2xl font-bold mb-1 bg-gradient-to-r from-white via-cyan-100 to-violet-200 bg-clip-text text-transparent">
             关于我们
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-sm text-slate-200">
             致力于AI技术普及和应用推广的创新团队
           </p>
         </div>
 
         {/* 团队使命 */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-12">
+        <div className="bg-white/85 rounded-2xl p-8 mb-8 border border-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
           <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">我们的使命</h2>
           <p className="text-lg text-gray-700 leading-relaxed text-center">
             我们致力于成为连接AI技术与实际应用的桥梁，通过深入浅出的内容分享，
@@ -24,8 +24,8 @@ export default function About() {
         </div>
 
         {/* 团队特色 */}
-        <div className="grid md:grid-cols-2 gap-8 mb-12">
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+        <div className="grid md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-white/85 rounded-xl border border-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-6 hover:shadow-xl hover:shadow-sky-500/12 transition-shadow duration-300 backdrop-blur-xl">
             <div className="text-4xl mb-4">🚀</div>
             <h3 className="text-xl font-bold text-gray-800 mb-3">前沿视野</h3>
             <p className="text-gray-600">
@@ -33,7 +33,7 @@ export default function About() {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white/85 rounded-xl border border-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-6 hover:shadow-xl hover:shadow-sky-500/12 transition-shadow duration-300 backdrop-blur-xl">
             <div className="text-4xl mb-4">🎯</div>
             <h3 className="text-xl font-bold text-gray-800 mb-3">实用导向</h3>
             <p className="text-gray-600">
@@ -41,7 +41,7 @@ export default function About() {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white/85 rounded-xl border border-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-6 hover:shadow-xl hover:shadow-sky-500/12 transition-shadow duration-300 backdrop-blur-xl">
             <div className="text-4xl mb-4">📚</div>
             <h3 className="text-xl font-bold text-gray-800 mb-3">深度解析</h3>
             <p className="text-gray-600">
@@ -49,7 +49,7 @@ export default function About() {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-white/85 rounded-xl border border-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-6 hover:shadow-xl hover:shadow-sky-500/12 transition-shadow duration-300 backdrop-blur-xl">
             <div className="text-4xl mb-4">🌐</div>
             <h3 className="text-xl font-bold text-gray-800 mb-3">开放分享</h3>
             <p className="text-gray-600">
@@ -59,7 +59,7 @@ export default function About() {
         </div>
 
         {/* 内容分类介绍 */}
-        <div className="bg-gray-50 rounded-2xl p-8 mb-12">
+        <div className="bg-white/85 rounded-2xl p-8 mb-8 border border-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
           <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">内容分类</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="text-center">
@@ -113,7 +113,7 @@ export default function About() {
         </div>
 
         {/* 联系方式 */}
-        <div className="text-center bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-2xl p-8">
+        <div className="text-center border border-white/25 bg-slate-950/70 text-white rounded-2xl p-8 shadow-[0_22px_70px_rgba(15,23,42,0.22)] backdrop-blur-2xl">
           <h2 className="text-3xl font-bold mb-6">与我们联系</h2>
           <p className="text-lg mb-6">
             有任何建议、合作意向或技术问题，欢迎随时与我们联系

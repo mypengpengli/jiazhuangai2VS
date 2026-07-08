@@ -14,36 +14,36 @@ const tools = [
 
 export default function ToolsPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="space-y-6">
       <div className="max-w-6xl mx-auto">
         {/* 页面标题 */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-cyan-500 to-purple-600 bg-clip-text text-transparent">
+        <div className="mx-auto mb-6 max-w-3xl overflow-hidden rounded-xl border border-white/25 bg-slate-950/70 px-4 py-4 text-center shadow-[0_22px_70px_rgba(15,23,42,0.28)] backdrop-blur-2xl">
+          <h1 className="text-xl sm:text-2xl font-bold mb-1 bg-gradient-to-r from-white via-cyan-100 to-violet-200 bg-clip-text text-transparent">
             🛠️ 推荐工具
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-sm text-slate-200">
             精选实用的 AI 工具，提升你的工作效率
           </p>
         </div>
 
         {/* 工具卡片列表 */}
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-4">
           {tools.map((tool) => (
             <div
               key={tool.name}
-              className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-purple-200"
+              className="bg-white/85 rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.06)] hover:shadow-xl hover:shadow-sky-500/12 transition-all duration-300 overflow-hidden border border-white/80 hover:border-sky-200/90 backdrop-blur-xl"
             >
               {/* 卡片头部 */}
-              <div className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 p-6">
+              <div className="border-b border-white/70 bg-white/55 p-6">
                 <div className="flex items-center gap-4">
                   <span className="text-5xl">{tool.icon}</span>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">{tool.name}</h2>
+                    <h2 className="text-2xl font-bold text-slate-800">{tool.name}</h2>
                     <div className="flex items-center gap-2 mt-1">
                       {tool.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="px-2 py-0.5 bg-white/20 rounded-full text-xs text-cyan-300"
+                          className="px-2 py-0.5 bg-white/70 border border-sky-100 rounded-full text-xs text-sky-700"
                         >
                           {tag}
                         </span>
@@ -65,7 +65,7 @@ export default function ToolsPage() {
                     {tool.features.map((feature) => (
                       <span
                         key={feature}
-                        className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-sm"
+                          className="px-3 py-1 bg-white/70 border border-sky-100 text-sky-700 rounded-lg text-sm"
                       >
                         ✓ {feature}
                       </span>
@@ -78,7 +78,7 @@ export default function ToolsPage() {
                   href={tool.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full text-center py-3 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white font-medium rounded-xl transition-colors"
+                  className="block w-full text-center py-3 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 text-white font-medium rounded-xl transition-colors shadow-lg shadow-cyan-500/20"
                 >
                   访问项目 →
                 </a>

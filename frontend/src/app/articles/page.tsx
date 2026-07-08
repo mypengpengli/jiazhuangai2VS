@@ -176,40 +176,40 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
   const { items: articles, pageTitle, totalCount } = articlesData;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-[linear-gradient(135deg,#f7fbff_0%,#e8f8f5_42%,#f7f0ff_100%)]">
       {/* 页面头部 */}
-      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-16 rounded-3xl shadow-2xl shadow-purple-900/20 overflow-hidden">
-        <div className="container mx-auto px-4 text-center">
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-white/25 bg-slate-950/70 px-4 py-4 shadow-[0_22px_70px_rgba(15,23,42,0.28)] backdrop-blur-2xl">
+        <div className="mx-auto text-center">
           {currentCategory && (
-            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-white/10 border border-white/20 rounded-full text-white/80 text-sm">
+            <div className="inline-flex items-center gap-2 mb-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-white/80 text-xs">
               <span className="text-xl">{currentCategory.icon}</span>
               <span>分类浏览</span>
             </div>
           )}
           {searchFromQuery && (
-            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-full text-cyan-400 text-sm">
+            <div className="inline-flex items-center gap-2 mb-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-cyan-100 text-xs">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <span>搜索结果</span>
             </div>
           )}
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-cyan-200 to-purple-200 bg-clip-text text-transparent">
+          <h1 className="text-xl sm:text-2xl font-bold mb-1 bg-gradient-to-r from-white via-cyan-100 to-violet-200 bg-clip-text text-transparent">
             {pageTitle}
           </h1>
           {currentCategory && (
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+            <p className="text-sm text-slate-200 max-w-2xl mx-auto">
               {currentCategory.description}
             </p>
           )}
-          <div className="mt-6 text-gray-400">
+          <div className="mt-2 text-xs text-slate-300">
             共 <span className="text-cyan-400 font-semibold">{totalCount}</span> 篇文章
           </div>
         </div>
       </div>
 
       {/* 分类导航 */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm">
+      <div className="hidden">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2 py-4 overflow-x-auto">
             <Link href="/">
@@ -247,7 +247,7 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
       </div>
 
       {/* 文章列表 */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-4 md:py-5">
         {articles.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">📭</div>

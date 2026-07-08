@@ -59,18 +59,21 @@ export default async function CategoriesPage() {
   // const categories = await getCategoriesData(); // 原始分类数据，暂时不用直接展示
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-10 text-center text-gray-800">探索AI新世界</h1>
+    <div className="space-y-6">
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-white/25 bg-slate-950/70 px-4 py-4 text-center shadow-[0_22px_70px_rgba(15,23,42,0.28)] backdrop-blur-2xl">
+        <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-white via-cyan-100 to-violet-200 bg-clip-text text-transparent">探索AI新世界</h1>
+        <p className="mt-1 text-sm text-slate-200">按模型、工具和应用方向浏览资讯</p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {topLevelCategories.map((category) => (
           <Link
             key={category.slug}
-            href={category.slug === 'about' ? '/about' : `/articles?category_slug=${category.slug}`}
+            href={category.slug === 'about' ? '/about' : category.slug === 'all' ? '/articles' : category.children && category.children.length === 1 ? `/articles?category=${category.children[0]}` : category.children && category.children.length > 1 ? `/articles?categories=${category.children.join(',')}` : `/articles?category=${category.slug}`}
           >
-            <div className="group block rounded-xl p-6 shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-purple-500 to-indigo-600 text-white overflow-hidden">
-              <h2 className="text-2xl font-semibold mb-3 group-hover:text-yellow-300 transition-colors duration-300">{category.name}</h2>
-              <p className="text-sm text-indigo-100 group-hover:text-white transition-colors duration-300 min-h-[40px]">{category.description || '点击查看更多'}</p>
+            <div className="group block rounded-xl border border-white/80 bg-white/85 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-sky-200/90 hover:shadow-xl hover:shadow-sky-500/12">
+              <h2 className="text-lg font-semibold mb-2 text-slate-800 group-hover:text-sky-700 transition-colors duration-300">{category.name}</h2>
+              <p className="text-sm text-slate-500 group-hover:text-slate-700 transition-colors duration-300 min-h-[40px]">{category.description || '点击查看更多'}</p>
             </div>
           </Link>
         ))}
