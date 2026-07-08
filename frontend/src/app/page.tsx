@@ -86,17 +86,17 @@ export default async function Home() {
   const hotArticles = await getHotArticles(articles);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#eefbff_36%,#f7f5ff_68%,#ffffff_100%)]">
+    <div className="min-h-screen bg-[linear-gradient(135deg,#f7fbff_0%,#e8f8f5_42%,#f7f0ff_100%)]">
       {/* Compact Search Section */}
-      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-white/70 bg-white/45 shadow-[0_18px_60px_rgba(56,189,248,0.16)] backdrop-blur-2xl">
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-white/25 bg-slate-950/70 shadow-[0_22px_70px_rgba(15,23,42,0.28)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between md:px-6">
           <div className="text-center md:max-w-xs md:text-left">
             <h1 className="text-xl font-bold leading-tight sm:text-2xl">
-              <span className="bg-gradient-to-r from-slate-900 via-sky-700 to-violet-700 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-white via-cyan-100 to-violet-200 bg-clip-text text-transparent">
                 AI新鲜事
               </span>
             </h1>
-            <p className="mt-1 text-sm leading-relaxed text-slate-600">
+            <p className="mt-1 text-sm leading-relaxed text-slate-200">
               快速发现最新模型、工具和实用资讯
             </p>
           </div>
@@ -130,7 +130,7 @@ export default async function Home() {
           {/* 右侧：侧边栏（大屏跟随滚动） */}
           <div className="lg:w-80 space-y-6 lg:sticky lg:top-6 lg:self-start">
             {/* 热门文章 */}
-            <div className="bg-white/70 rounded-2xl shadow-sm shadow-sky-900/5 border border-white/70 overflow-hidden backdrop-blur-xl">
+            <div className="bg-white/85 rounded-2xl shadow-[0_14px_40px_rgba(15,23,42,0.08)] border border-white/80 overflow-hidden backdrop-blur-xl">
               <div className="border-b border-white/70 bg-white/55 px-5 py-4">
                 <h3 className="text-lg font-bold bg-gradient-to-r from-orange-500 to-rose-500 bg-clip-text text-transparent flex items-center gap-2">
                   🔥 热门文章
@@ -177,7 +177,7 @@ export default async function Home() {
             </div>
 
             {/* 分类导航 */}
-            <div className="bg-white/70 rounded-2xl shadow-sm shadow-sky-900/5 border border-white/70 overflow-hidden backdrop-blur-xl">
+            <div className="bg-white/85 rounded-2xl shadow-[0_14px_40px_rgba(15,23,42,0.08)] border border-white/80 overflow-hidden backdrop-blur-xl">
               <div className="border-b border-white/70 bg-white/55 px-5 py-4">
                 <h3 className="text-lg font-bold bg-gradient-to-r from-cyan-600 to-violet-600 bg-clip-text text-transparent flex items-center gap-2">
                   📂 分类导航
@@ -204,7 +204,7 @@ export default async function Home() {
             </div>
 
             {/* 关于我们 */}
-            <div className="bg-white/70 rounded-2xl p-5 text-slate-700 border border-white/70 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
+            <div className="bg-white/85 rounded-2xl p-5 text-slate-700 border border-white/80 shadow-[0_14px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl">
               <h3 className="text-lg font-bold mb-3 flex items-center gap-2 bg-gradient-to-r from-sky-700 to-violet-700 bg-clip-text text-transparent">
                 🚀 关于加装AI助手
               </h3>
