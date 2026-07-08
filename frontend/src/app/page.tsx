@@ -87,56 +87,32 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-2xl shadow-xl shadow-purple-900/10">
-        {/* 动态背景效果 */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
-          <div className="absolute -top-16 left-1/4 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-20 right-1/4 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="relative container mx-auto px-4 py-7 sm:py-8 md:py-9 lg:py-10">
-          <div className="text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 mb-3 px-4 py-2 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 rounded-full text-cyan-400 text-xs sm:text-sm font-medium backdrop-blur-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-              </span>
-              为你加装最新AI能力
-            </div>
-            
-            <h1 className="text-4xl sm:text-5xl font-black mb-3 leading-tight">
+      {/* Compact Search Section */}
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-purple-100 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-lg shadow-purple-900/10">
+        <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between md:px-6">
+          <div className="text-center md:max-w-xs md:text-left">
+            <h1 className="text-xl font-bold leading-tight sm:text-2xl">
               <span className="bg-gradient-to-r from-white via-cyan-200 to-purple-200 bg-clip-text text-transparent">
-                加装AI助手
+                AI新鲜事
               </span>
             </h1>
-            
-            <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed mb-5">
-              探索人工智能的最新进展，发现改变世界的技术创新与实用工具
+            <p className="mt-1 text-sm leading-relaxed text-gray-300">
+              快速发现最新模型、工具和实用资讯
             </p>
-
-            {/* 搜索框 */}
-            <div className="max-w-lg mx-auto">
-              <SearchBox compact />
-            </div>
           </div>
-        </div>
-        
-        {/* 波浪分隔 */}
-        <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
-          <svg className="w-full h-8 md:h-10" viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="rgb(248 250 252)"/>
-          </svg>
+
+          <div className="w-full md:max-w-sm">
+            <SearchBox compact />
+          </div>
         </div>
       </div>
 
       {/* 主内容区 */}
-      <div className="container mx-auto px-4 py-5 md:py-6">
+      <div className="container mx-auto px-4 py-4 md:py-5">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* 左侧：文章时间轴 */}
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-5">
+            <div className="flex items-center gap-3 mb-4">
               <div className="w-1.5 h-8 bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full"></div>
               <h2 className="text-2xl font-bold text-gray-800">最新资讯</h2>
             </div>

@@ -144,18 +144,18 @@ const ArticleTimeline: React.FC<ArticleTimelineProps> = ({ articles }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {sortedDates.map((dateKey) => (
         <div key={dateKey} className="relative">
           {/* 日期标签 */}
-          <div className="sticky top-4 z-10 mb-3">
+          <div className="sticky top-4 z-10 mb-2">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-cyan-500 to-purple-500 text-white text-sm font-semibold rounded-full shadow-lg shadow-purple-500/20">
               📅 {dateKey}
             </span>
           </div>
 
           {/* 文章卡片网格 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {groupedByDate[dateKey].map((article) => (
               <ArticleCard key={article.id} article={article} />
             ))}
