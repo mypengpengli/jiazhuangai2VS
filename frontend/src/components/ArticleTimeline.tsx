@@ -30,12 +30,12 @@ const getCategoryIcon = (categoryName: string | undefined) => {
 // 单个文章卡片组件，用 React.memo 避免重复渲染
 const ArticleCard = React.memo(({ article }: { article: Article }) => (
   <article
-    className="group bg-white rounded-xl border border-gray-100 hover:border-purple-200 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+    className="group bg-white/75 rounded-xl border border-white/70 shadow-sm shadow-sky-900/5 backdrop-blur-xl hover:border-sky-200/90 hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
   >
     <div className="p-5">
       {/* 分类和时间 */}
       <div className="flex items-center justify-between mb-3">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-cyan-50 to-purple-50 text-purple-700 rounded-full text-xs font-semibold border border-purple-100">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/60 text-sky-700 rounded-full text-xs font-semibold border border-sky-100">
           {getCategoryIcon(article.category?.name)} {article.category?.name || '未分类'}
         </span>
         <span className="inline-flex items-center gap-2 text-xs text-gray-400">
@@ -53,9 +53,9 @@ const ArticleCard = React.memo(({ article }: { article: Article }) => (
       </div>
 
       {/* 标题 */}
-      <h3 className="text-lg font-bold text-gray-800 group-hover:text-purple-700 transition-colors mb-2 line-clamp-2">
+      <h3 className="text-lg font-bold text-slate-800 group-hover:text-sky-700 transition-colors mb-2 line-clamp-2">
         <Link href={`/articles/${article.slug}`}>
-          <span className="hover:underline decoration-purple-400 decoration-2 underline-offset-4">
+          <span className="hover:underline decoration-sky-400 decoration-2 underline-offset-4">
             {article.title}
           </span>
         </Link>
@@ -70,7 +70,7 @@ const ArticleCard = React.memo(({ article }: { article: Article }) => (
 
       {/* 阅读更多 */}
       <Link href={`/articles/${article.slug}`}>
-        <span className="inline-flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800 font-medium transition-all duration-300 group-hover:gap-3">
+        <span className="inline-flex items-center gap-2 text-sm text-sky-600 hover:text-sky-800 font-medium transition-all duration-300 group-hover:gap-3">
           阅读详情
           <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
@@ -80,7 +80,7 @@ const ArticleCard = React.memo(({ article }: { article: Article }) => (
     </div>
 
     {/* 底部装饰条 */}
-    <div className="h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+    <div className="h-1 bg-gradient-to-r from-cyan-400 via-sky-500 to-violet-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
   </article>
 ));
 ArticleCard.displayName = 'ArticleCard';

@@ -26,21 +26,21 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 text-white shadow-2xl border-b border-purple-500/30">
+    <header className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.82),rgba(236,254,255,0.68),rgba(245,243,255,0.72))] text-slate-800 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
       <nav className="container mx-auto px-4">
         {/* 顶部栏 - Logo和用户操作 */}
         <div className="flex justify-between items-center py-4">
           <Link href="/">
-            <span className="text-2xl font-bold hover:text-cyan-400 transition-colors duration-300 flex items-center gap-2">
+            <span className="text-2xl font-bold transition-colors duration-300 flex items-center gap-2">
               <span className="text-3xl">🚀</span>
-              <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">加装AI助手</span>
+              <span className="bg-gradient-to-r from-sky-600 via-cyan-500 to-violet-600 bg-clip-text text-transparent">加装AI助手</span>
             </span>
           </Link>
           
           <div className="flex items-center space-x-2">
             {/* 移动端菜单按钮 */}
             <button
-              className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="md:hidden p-2 rounded-lg border border-white/60 bg-white/45 hover:bg-white/70 transition-colors"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,20 +55,20 @@ const Header: React.FC = () => {
               ) : token ? (
                 <div className="flex items-center space-x-3">
                   <Link href="/profile">
-                    <span className="px-4 py-2 bg-white/10 hover:bg-cyan-500/30 border border-cyan-500/50 rounded-full transition-all duration-300 text-sm font-medium backdrop-blur-sm">
+                    <span className="px-4 py-2 bg-white/55 hover:bg-white/80 border border-sky-200/80 rounded-full transition-all duration-300 text-sm font-medium text-slate-700 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
                       👤 {user?.username || '个人资料'}
                     </span>
                   </Link>
                   {user?.role === 'admin' && (
                     <Link href="/admin">
-                      <span className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 rounded-full transition-all duration-300 text-sm font-medium shadow-lg shadow-orange-500/30">
+                      <span className="px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-orange-500/20">
                         ⚙️ 管理后台
                       </span>
                     </Link>
                   )}
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 rounded-full transition-all duration-300 text-sm font-medium shadow-lg shadow-red-500/30"
+                    className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-rose-500/20"
                   >
                     🚪 注销
                   </button>
@@ -76,12 +76,12 @@ const Header: React.FC = () => {
               ) : (
                 <div className="flex items-center space-x-3">
                   <Link href="/login">
-                    <span className="px-4 py-2 bg-white/10 hover:bg-cyan-500/30 border border-cyan-500/50 rounded-full transition-all duration-300 text-sm font-medium backdrop-blur-sm">
+                    <span className="px-4 py-2 bg-white/55 hover:bg-white/80 border border-sky-200/80 rounded-full transition-all duration-300 text-sm font-medium text-slate-700 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
                       🔑 登录
                     </span>
                   </Link>
                   <Link href="/register">
-                    <span className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 rounded-full transition-all duration-300 text-sm font-medium shadow-lg shadow-emerald-500/30">
+                    <span className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-cyan-500/20">
                       ✨ 注册
                     </span>
                   </Link>
@@ -92,7 +92,7 @@ const Header: React.FC = () => {
         </div>
 
         {/* 分类导航栏 */}
-        <div className="border-t border-purple-500/30">
+        <div className="border-t border-white/70">
           <div className={`${isMenuOpen ? 'block' : 'hidden'} md:block`}>
             <div className="flex flex-col md:flex-row md:items-center py-3 space-y-2 md:space-y-0 md:space-x-1 overflow-x-auto">
               {categories.map((category) => (
@@ -101,7 +101,7 @@ const Header: React.FC = () => {
                   href={category.href}
                 >
                   <span 
-                    className="block px-4 py-2 rounded-lg hover:bg-gradient-to-r hover:from-cyan-500/20 hover:to-purple-500/20 border border-transparent hover:border-cyan-500/30 transition-all duration-300 text-sm font-medium hover:scale-105 transform whitespace-nowrap"
+                    className="block px-4 py-2 rounded-lg border border-transparent text-sm font-medium text-slate-700 transition-all duration-300 hover:scale-105 hover:border-white/70 hover:bg-white/55 hover:text-sky-700 hover:shadow-sm hover:shadow-sky-900/5 transform whitespace-nowrap backdrop-blur-xl"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {category.name}
@@ -114,14 +114,14 @@ const Header: React.FC = () => {
 
         {/* 移动端用户操作 */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-white/20 py-4">
+          <div className="md:hidden border-t border-white/70 py-4">
             {isLoading ? (
               <div className="px-4 py-2 text-sm animate-pulse">加载中...</div>
             ) : token ? (
               <div className="space-y-2">
                 <Link href="/profile">
                   <span 
-                    className="block px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-300 text-sm font-medium"
+                    className="block px-4 py-2 bg-white/55 hover:bg-white/80 rounded-lg transition-all duration-300 text-sm font-medium text-slate-700"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     👤 {user?.username || '个人资料'}
@@ -130,7 +130,7 @@ const Header: React.FC = () => {
                 {user?.role === 'admin' && (
                   <Link href="/admin">
                     <span 
-                      className="block px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition-all duration-300 text-sm font-medium"
+                      className="block px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition-all duration-300 text-sm font-medium text-white"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       ⚙️ 管理后台
@@ -142,7 +142,7 @@ const Header: React.FC = () => {
                     handleLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="block w-full text-left px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-all duration-300 text-sm font-medium"
+                  className="block w-full text-left px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-all duration-300 text-sm font-medium text-white"
                 >
                   🚪 注销
                 </button>
@@ -151,7 +151,7 @@ const Header: React.FC = () => {
               <div className="space-y-2">
                 <Link href="/login">
                   <span 
-                    className="block px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-300 text-sm font-medium"
+                    className="block px-4 py-2 bg-white/55 hover:bg-white/80 rounded-lg transition-all duration-300 text-sm font-medium text-slate-700"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     🔑 登录
@@ -159,7 +159,7 @@ const Header: React.FC = () => {
                 </Link>
                 <Link href="/register">
                   <span 
-                    className="block px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg transition-all duration-300 text-sm font-medium"
+                    className="block px-4 py-2 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 rounded-lg transition-all duration-300 text-sm font-medium text-white"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     ✨ 注册
