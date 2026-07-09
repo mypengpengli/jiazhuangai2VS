@@ -4,6 +4,8 @@
 export interface User {
   id: string; // 从 JWT 的 'sub' 字段获取，通常是字符串
   username: string;
+  display_name?: string | null;
+  bio?: string | null;
   role?: string; // 从 JWT 获取，设为可选以保持灵活性
   // created_at 在仅通过 JWT 获取用户信息时不可用，因此设为可选
   created_at?: string; // D1 返回的是 ISO 8601 字符串

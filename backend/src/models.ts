@@ -3,6 +3,9 @@
 export interface User {
   id: number;
   username: string;
+  display_name?: string | null;
+  bio?: string | null;
+  role?: string;
   // 注意：密码哈希不应包含在此模型中，避免意外泄露
   created_at: string; // D1 返回的是 ISO 8601 字符串
 }

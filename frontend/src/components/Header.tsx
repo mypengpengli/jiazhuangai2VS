@@ -21,6 +21,7 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const displayUserName = user?.display_name || user?.username;
 
   const handleLogout = () => {
     logout();
@@ -99,7 +100,7 @@ const Header: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <Link href="/profile">
                   <span className="px-4 py-2 bg-white/55 hover:bg-white/80 border border-sky-200/80 rounded-full transition-all duration-300 text-sm font-medium text-slate-700 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
-                    👤 {user?.username || '个人资料'}
+                    👤 {displayUserName || '个人资料'}
                   </span>
                 </Link>
                 {user?.role === 'admin' && (
@@ -145,7 +146,7 @@ const Header: React.FC = () => {
                     className="block px-4 py-2 bg-white/55 hover:bg-white/80 rounded-lg transition-all duration-300 text-sm font-medium text-slate-700"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    👤 {user?.username || '个人资料'}
+                    👤 {displayUserName || '个人资料'}
                   </span>
                 </Link>
                 {user?.role === 'admin' && (

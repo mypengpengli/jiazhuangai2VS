@@ -2,6 +2,8 @@
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
+    display_name TEXT,
+    bio TEXT,
     password TEXT NOT NULL, -- 存储哈希后的密码
     role TEXT NOT NULL DEFAULT 'user', -- 添加角色列，默认为 'user'
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

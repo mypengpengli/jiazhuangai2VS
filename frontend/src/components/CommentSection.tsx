@@ -18,6 +18,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ articleSlug }) => {
   const [error, setError] = useState<string | null>(null);
 
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
+  const displayUserName = user?.display_name || user?.username || '当前用户';
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -98,7 +99,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ articleSlug }) => {
       {token ? (
         <form onSubmit={handleSubmit} className="mb-6 space-y-3">
           <div className="text-sm text-slate-500">
-            以 <span className="font-medium text-slate-700">{user?.username || '当前用户'}</span> 身份评论
+            以 <span className="font-medium text-slate-700">{displayUserName}</span> 身份评论
           </div>
           <textarea
             value={content}

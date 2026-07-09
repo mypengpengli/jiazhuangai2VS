@@ -1,4 +1,5 @@
 import { CommentStatus, CommentWithAuthor } from '../models';
+import { ensureUserProfileColumns } from './authService';
 
 let ensureCommentsTablePromise: Promise<void> | null = null;
 
@@ -25,6 +26,8 @@ const ensureCommentsTable = async (db: D1Database): Promise<void> => {
         db.prepare('CREATE INDEX IF NOT EXISTS idx_comments_status ON comments (status)'),
         db.prepare('CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments (created_at)'),
       ]);
+
+      await ensureUserProfileColumns(db);
     })();
   }
 
@@ -50,7 +53,7 @@ export const getCommentsByArticleSlug = async (db: D1Database, slug: string): Pr
   const result = await db.prepare(`
     SELECT
       cm.id, cm.article_id, cm.user_id, cm.content, cm.status, cm.created_at, cm.updated_at,
-      u.username,
+      COALESCE(NULLIF(u.display_name, ''), u.username) as username,
       a.title as article_title,
       a.slug as article_slug
     FROM comments cm
@@ -99,7 +102,7 @@ export const getAdminComments = async (db: D1Database): Promise<CommentWithAutho
   const result = await db.prepare(`
     SELECT
       cm.id, cm.article_id, cm.user_id, cm.content, cm.status, cm.created_at, cm.updated_at,
-      u.username,
+      COALESCE(NULLIF(u.display_name, ''), u.username) as username,
       a.title as article_title,
       a.slug as article_slug
     FROM comments cm
@@ -118,7 +121,7 @@ export const getCommentById = async (db: D1Database, id: number): Promise<Commen
   const row = await db.prepare(`
     SELECT
       cm.id, cm.article_id, cm.user_id, cm.content, cm.status, cm.created_at, cm.updated_at,
-      u.username,
+      COALESCE(NULLIF(u.display_name, ''), u.username) as username,
       a.title as article_title,
       a.slug as article_slug
     FROM comments cm
