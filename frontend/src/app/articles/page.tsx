@@ -177,77 +177,27 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(135deg,#f7fbff_0%,#e8f8f5_42%,#f7f0ff_100%)]">
-      {/* 页面头部 */}
-      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-white/25 bg-slate-950/70 px-4 py-4 shadow-[0_22px_70px_rgba(15,23,42,0.28)] backdrop-blur-2xl">
-        <div className="mx-auto text-center">
-          {currentCategory && (
-            <div className="inline-flex items-center gap-2 mb-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-white/80 text-xs">
-              <span className="text-xl">{currentCategory.icon}</span>
-              <span>分类浏览</span>
-            </div>
-          )}
-          {searchFromQuery && (
-            <div className="inline-flex items-center gap-2 mb-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-cyan-100 text-xs">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span>搜索结果</span>
-            </div>
-          )}
-          <h1 className="text-xl sm:text-2xl font-bold mb-1 bg-gradient-to-r from-white via-cyan-100 to-violet-200 bg-clip-text text-transparent">
-            {pageTitle}
-          </h1>
-          {currentCategory && (
-            <p className="text-sm text-slate-200 max-w-2xl mx-auto">
-              {currentCategory.description}
-            </p>
-          )}
-          <div className="mt-2 text-xs text-slate-300">
-            共 <span className="text-cyan-400 font-semibold">{totalCount}</span> 篇文章
-          </div>
-        </div>
-      </div>
-
-      {/* 分类导航 */}
-      <div className="hidden">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-2 py-4 overflow-x-auto">
-            <Link href="/">
-              <span className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                !categoryFromQuery && !categoriesFromQuery && !searchFromQuery
-                  ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}>
-                🔥 全部
-              </span>
-            </Link>
-            {Object.entries(categoryMappings).map(([key, value]) => {
-              const isActive = value.slugs.some(slug => 
-                categoryFromQuery === slug || 
-                (categoriesFromQuery && categoriesFromQuery.split(',').includes(slug))
-              );
-              const href = value.slugs.length === 1 
-                ? `/articles?category=${value.slugs[0]}`
-                : `/articles?categories=${value.slugs.join(',')}`;
-              
-              return (
-                <Link key={key} href={href}>
-                  <span className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                    isActive
-                      ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}>
-                    {value.icon} {value.name}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
       {/* 文章列表 */}
       <div className="container mx-auto px-4 py-4 md:py-5">
+        <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-white/80 bg-white/72 px-3 py-2 shadow-[0_10px_28px_rgba(15,23,42,0.07)] backdrop-blur-2xl">
+          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-sky-100 bg-sky-50/80 text-sm text-sky-700">
+            {searchFromQuery ? (
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            ) : (
+              currentCategory?.icon || '🔥'
+            )}
+          </span>
+          <h1 className="min-w-0 truncate text-lg font-bold text-slate-900">
+            {pageTitle}
+          </h1>
+          <span className="h-1 w-1 flex-shrink-0 rounded-full bg-slate-300"></span>
+          <span className="flex-shrink-0 text-sm font-medium text-cyan-700">
+            {totalCount} 篇
+          </span>
+        </div>
+
         {articles.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">📭</div>

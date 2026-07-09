@@ -88,15 +88,15 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-[linear-gradient(135deg,#f7fbff_0%,#e8f8f5_42%,#f7f0ff_100%)]">
       {/* Compact Search Section */}
-      <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-white/25 bg-slate-950/70 shadow-[0_22px_70px_rgba(15,23,42,0.28)] backdrop-blur-2xl">
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl border border-white/80 bg-white/68 shadow-[0_16px_44px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between md:px-6">
           <div className="text-center md:max-w-xs md:text-left">
             <h1 className="text-xl font-bold leading-tight sm:text-2xl">
-              <span className="bg-gradient-to-r from-white via-cyan-100 to-violet-200 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-slate-900 via-sky-700 to-violet-700 bg-clip-text text-transparent">
                 AI新鲜事
               </span>
             </h1>
-            <p className="mt-1 text-sm leading-relaxed text-slate-200">
+            <p className="mt-1 text-sm leading-relaxed text-slate-600">
               快速发现最新模型、工具和实用资讯
             </p>
           </div>

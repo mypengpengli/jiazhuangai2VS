@@ -7,15 +7,12 @@ import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
 
 // 定义导航分类
 const categories = [
-  { name: '🔥 AI新鲜事', href: '/', slug: 'all' },
   { name: '💬 大语言模型', href: '/articles?category=test', slug: 'language-models' },
   { name: '🎨 生图模型', href: '/articles?categories=s,thyroid-basics', slug: 'image-generation' },
   { name: '🎬 视频模型', href: '/articles?category=video', slug: 'video-models' },
   { name: '🎵 音频模型', href: '/articles?categories=voice,music', slug: 'audio-models' },
   { name: '🔧 AI硬件', href: '/articles?category=hardware', slug: 'ai-hardware' },
   { name: '⚡ AI工具', href: '/articles?categories=soft,locksoft', slug: 'ai-tools' },
-  { name: '🛠️ 推荐工具', href: '/tools', slug: 'tools' },
-  { name: '📖 关于我们', href: '/about', slug: 'about' },
 ];
 
 const Header: React.FC = () => {
@@ -49,73 +46,27 @@ const Header: React.FC = () => {
   return (
     <header className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.82),rgba(236,254,255,0.68),rgba(245,243,255,0.72))] text-slate-800 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
       <nav className="container mx-auto px-4">
-        {/* 顶部栏 - Logo和用户操作 */}
-        <div className="flex justify-between items-center py-4">
-          <Link href="/">
-            <span className="text-2xl font-bold transition-colors duration-300 flex items-center gap-2">
-              <span className="text-3xl">🚀</span>
-              <span className="bg-gradient-to-r from-sky-600 via-cyan-500 to-violet-600 bg-clip-text text-transparent">加装AI助手</span>
-            </span>
-          </Link>
-          
-          <div className="flex items-center space-x-2">
-            {/* 移动端菜单按钮 */}
+        <div className="flex flex-col gap-3 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center justify-between gap-3 lg:flex-shrink-0">
+            <Link href="/">
+              <span className="flex items-center gap-2 text-xl font-bold transition-colors duration-300">
+                <span className="text-3xl">🚀</span>
+                <span className="bg-gradient-to-r from-sky-600 via-cyan-500 to-violet-600 bg-clip-text text-transparent">加装AI助手</span>
+              </span>
+            </Link>
+
             <button
-              className="md:hidden p-2 rounded-lg border border-white/60 bg-white/45 hover:bg-white/70 transition-colors"
+              className="lg:hidden p-2 rounded-lg border border-white/60 bg-white/45 hover:bg-white/70 transition-colors"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-
-            {/* 桌面端用户操作 */}
-            <div className="hidden md:flex items-center space-x-3">
-              {isLoading ? (
-                <div className="px-4 py-2 text-sm animate-pulse">加载中...</div>
-              ) : token ? (
-                <div className="flex items-center space-x-3">
-                  <Link href="/profile">
-                    <span className="px-4 py-2 bg-white/55 hover:bg-white/80 border border-sky-200/80 rounded-full transition-all duration-300 text-sm font-medium text-slate-700 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
-                      👤 {user?.username || '个人资料'}
-                    </span>
-                  </Link>
-                  {user?.role === 'admin' && (
-                    <Link href="/admin">
-                      <span className="px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-orange-500/20">
-                        ⚙️ 管理后台
-                      </span>
-                    </Link>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-rose-500/20"
-                  >
-                    🚪 注销
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-3">
-                  <Link href="/login">
-                    <span className="px-4 py-2 bg-white/55 hover:bg-white/80 border border-sky-200/80 rounded-full transition-all duration-300 text-sm font-medium text-slate-700 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
-                      🔑 登录
-                    </span>
-                  </Link>
-                  <Link href="/register">
-                    <span className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-cyan-500/20">
-                      ✨ 注册
-                    </span>
-                  </Link>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
 
-        {/* 分类导航栏 */}
-        <div className="border-t border-white/60 py-3">
-          <div className={`${isMenuOpen ? 'block' : 'hidden'} md:block`}>
-            <div className="inline-flex max-w-full flex-col gap-1 overflow-x-auto rounded-2xl border border-white/75 bg-white/45 p-1.5 shadow-[0_12px_34px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:flex-row md:items-center">
+          <div className={`${isMenuOpen ? 'block' : 'hidden'} lg:block lg:min-w-0 lg:flex-1`}>
+            <div className="flex max-w-full flex-col gap-1 overflow-x-auto rounded-2xl border border-white/75 bg-white/48 p-1.5 shadow-[0_12px_34px_rgba(15,23,42,0.07)] backdrop-blur-2xl lg:flex-row lg:items-center lg:justify-center">
               {categories.map((category) => {
                 const isActive = isActiveCategory(category.href);
 
@@ -127,7 +78,7 @@ const Header: React.FC = () => {
                     <span 
                       className={`block whitespace-nowrap rounded-xl border px-3.5 py-2 text-sm font-medium transition-all duration-300 ${
                         isActive
-                          ? 'border-white/25 bg-slate-900/80 text-white shadow-lg shadow-slate-900/18'
+                          ? 'border-cyan-200/80 bg-white/90 text-sky-700 shadow-md shadow-cyan-500/12'
                           : 'border-transparent text-slate-600 hover:border-white/80 hover:bg-white/75 hover:text-sky-700 hover:shadow-sm hover:shadow-sky-900/5'
                       }`}
                       onClick={() => setIsMenuOpen(false)}
@@ -139,11 +90,51 @@ const Header: React.FC = () => {
               })}
             </div>
           </div>
+
+          <div className="hidden lg:flex items-center space-x-3 lg:flex-shrink-0">
+            {isLoading ? (
+              <div className="px-4 py-2 text-sm animate-pulse">加载中...</div>
+            ) : token ? (
+              <div className="flex items-center space-x-3">
+                <Link href="/profile">
+                  <span className="px-4 py-2 bg-white/55 hover:bg-white/80 border border-sky-200/80 rounded-full transition-all duration-300 text-sm font-medium text-slate-700 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
+                    👤 {user?.username || '个人资料'}
+                  </span>
+                </Link>
+                {user?.role === 'admin' && (
+                  <Link href="/admin">
+                    <span className="px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-orange-500/20">
+                      ⚙️ 管理后台
+                    </span>
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-rose-500/20"
+                >
+                  🚪 注销
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <Link href="/login">
+                  <span className="px-4 py-2 bg-white/55 hover:bg-white/80 border border-sky-200/80 rounded-full transition-all duration-300 text-sm font-medium text-slate-700 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
+                    🔑 登录
+                  </span>
+                </Link>
+                <Link href="/register">
+                  <span className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-cyan-500/20">
+                    ✨ 注册
+                  </span>
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 移动端用户操作 */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-white/70 py-4">
+          <div className="lg:hidden border-t border-white/70 py-4">
             {isLoading ? (
               <div className="px-4 py-2 text-sm animate-pulse">加载中...</div>
             ) : token ? (
