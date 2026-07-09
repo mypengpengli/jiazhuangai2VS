@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { Category } from '@/types/models'; // 假设 Category 类型已定义
+import { Article, Category } from '@/types/models'; // 假设 Category 类型已定义
 import { useEditor, EditorContent } from '@tiptap/react'; // Import Editor
 import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image';
@@ -37,6 +37,8 @@ const CreateArticlePage = () => {
   const [displayDate, setDisplayDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<string>('0');
+  const [parentId, setParentId] = useState<string>('0');
+  const [experienceArticles, setExperienceArticles] = useState<Article[]>([]);
   const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,8 @@ const CreateArticlePage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const presetCategory = searchParams.get('category');
+  const selectedCategory = categories.find((cat) => cat.id.toString() === categoryId);
+  const isExperienceArticle = selectedCategory?.slug === 'site-experience';
 
   const editor = useEditor({
     extensions: [
@@ -90,6 +94,24 @@ const CreateArticlePage = () => {
   }, []);
 
   useEffect(() => {
+    const fetchExperienceArticles = async () => {
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
+        const response = await fetch(`${backendUrl}/api/articles?category=site-experience&limit=200&sortBy=display_date&orderDirection=desc`);
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        setExperienceArticles(data.items || []);
+      } catch (err) {
+        console.error('获取经验文档列表失败:', err);
+      }
+    };
+
+    fetchExperienceArticles();
+  }, []);
+
+  useEffect(() => {
     if (!presetCategory || categories.length === 0 || categoryId !== '0') {
       return;
     }
@@ -99,6 +121,12 @@ const CreateArticlePage = () => {
       setCategoryId(matchedCategory.id.toString());
     }
   }, [categories, categoryId, presetCategory]);
+
+  useEffect(() => {
+    if (!isExperienceArticle) {
+      setParentId('0');
+    }
+  }, [isExperienceArticle]);
 
   const handleAttachmentUpload = (attachment: { key: string; file_url: string; file_type: string; filename?: string; publicUrl?: string }) => {
     setAttachments(prev => [...prev, { ...attachment }]);
@@ -135,6 +163,7 @@ const CreateArticlePage = () => {
         display_date: string | null;
         attachments: Omit<UploadedAttachment, 'key'>[];
         category_id?: number;
+        parent_id?: number;
       } = {
         title,
         content: htmlContent,
@@ -145,6 +174,10 @@ const CreateArticlePage = () => {
 
       if (categoryId && categoryId !== '0') {
         dataToSend.category_id = parseInt(categoryId, 10);
+      }
+
+      if (isExperienceArticle && parentId !== '0') {
+        dataToSend.parent_id = parseInt(parentId, 10);
       }
       
       const response = await fetch(`${backendUrl}/api/articles`, {
@@ -229,6 +262,27 @@ const CreateArticlePage = () => {
                     ))}
                 </select>
             </div>
+            {isExperienceArticle && (
+                <div className="rounded-md border border-cyan-100 bg-cyan-50/60 p-4">
+                    <label htmlFor="parentDocument" className="block text-sm font-medium text-gray-700">父级文档</label>
+                    <select
+                        id="parentDocument"
+                        value={parentId}
+                        onChange={(e) => setParentId(e.target.value)}
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-md"
+                    >
+                        <option value="0">-- 作为一级文档 --</option>
+                        {experienceArticles.map((article) => (
+                            <option key={article.id} value={article.id.toString()}>
+                                {article.parent_id ? '　└ ' : ''}{article.title}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="mt-2 text-xs text-slate-500">
+                        用它维护类似飞书/IDEA 文档的层级目录；不选父级时会显示在左侧目录顶层。
+                    </p>
+                </div>
+            )}
              <div>
                 <label className="block text-sm font-medium text-gray-700">内容</label>
                 <MenuBar editor={editor} />

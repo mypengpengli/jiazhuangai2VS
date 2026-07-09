@@ -239,15 +239,32 @@ protectedArticleRoutes.put(
             // 准备传递给服务层的数据
             // updateArticleSchema 已经是 partial，所以字段都是可选的
             // attachments 字段会直接传递给 updateArticle 服务 (即使其内部当前未处理)
-            const dataToUpdate: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'>> & { attachments?: Partial<ArticleAttachment>[] } = {
-                ...articleDataFromRequest,
-                // 将 null 值转换成 undefined，因为服务层可能期望 undefined 表示不更新
-                category_id: articleDataFromRequest.category_id === null ? undefined : articleDataFromRequest.category_id,
-                parent_id: articleDataFromRequest.parent_id === null ? undefined : articleDataFromRequest.parent_id,
-                content: articleDataFromRequest.content === null ? undefined : articleDataFromRequest.content,
-                display_date: articleDataFromRequest.display_date === null ? undefined : articleDataFromRequest.display_date, // 添加 display_date
-                attachments: articleDataFromRequest.attachments === null ? undefined : articleDataFromRequest.attachments,
-            };
+            const dataToUpdate: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'>> & { attachments?: Partial<ArticleAttachment>[] } = {};
+
+            if (Object.prototype.hasOwnProperty.call(articleDataFromRequest, 'title')) {
+                dataToUpdate.title = articleDataFromRequest.title;
+            }
+            if (Object.prototype.hasOwnProperty.call(articleDataFromRequest, 'slug')) {
+                dataToUpdate.slug = articleDataFromRequest.slug;
+            }
+            if (Object.prototype.hasOwnProperty.call(articleDataFromRequest, 'content_type')) {
+                dataToUpdate.content_type = articleDataFromRequest.content_type;
+            }
+            if (Object.prototype.hasOwnProperty.call(articleDataFromRequest, 'content')) {
+                dataToUpdate.content = articleDataFromRequest.content === null ? undefined : articleDataFromRequest.content;
+            }
+            if (Object.prototype.hasOwnProperty.call(articleDataFromRequest, 'category_id')) {
+                dataToUpdate.category_id = articleDataFromRequest.category_id === null ? undefined : articleDataFromRequest.category_id;
+            }
+            if (Object.prototype.hasOwnProperty.call(articleDataFromRequest, 'parent_id')) {
+                dataToUpdate.parent_id = articleDataFromRequest.parent_id === null ? undefined : articleDataFromRequest.parent_id;
+            }
+            if (Object.prototype.hasOwnProperty.call(articleDataFromRequest, 'display_date')) {
+                dataToUpdate.display_date = articleDataFromRequest.display_date === null ? undefined : articleDataFromRequest.display_date;
+            }
+            if (Object.prototype.hasOwnProperty.call(articleDataFromRequest, 'attachments')) {
+                dataToUpdate.attachments = articleDataFromRequest.attachments === null ? undefined : articleDataFromRequest.attachments;
+            }
 
             // 如果 slug 为空字符串或 null，也设为 undefined，避免更新为空 slug
             if (articleDataFromRequest.slug === '' || articleDataFromRequest.slug === null) {

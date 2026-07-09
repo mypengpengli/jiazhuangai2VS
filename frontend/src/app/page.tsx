@@ -202,7 +202,6 @@ export default async function Home() {
               <div className="p-4">
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { icon: '📘', name: '本站经验分享', href: '/experience' },
                     { icon: '💬', name: '大语言模型', href: '/articles?category=test' },
                     { icon: '🎨', name: '生图模型', href: '/articles?categories=s,thyroid-basics' },
                     { icon: '🎬', name: '视频模型', href: '/articles?category=video' },

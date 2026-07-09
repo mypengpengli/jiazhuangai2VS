@@ -22,7 +22,50 @@ type Heading = {
   level: number;
 };
 
+type DocNode = Article & {
+  children: DocNode[];
+};
+
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+
+const getArticleTime = (article: Article) =>
+  new Date(article.display_date || article.created_at).getTime();
+
+const sortByDisplayDateDesc = (articles: Article[]) =>
+  [...articles].sort((a, b) => getArticleTime(b) - getArticleTime(a));
+
+const formatDate = (article: Article) =>
+  new Date(article.display_date || article.created_at).toLocaleDateString('zh-CN');
+
+const buildDocTree = (articles: Article[]): DocNode[] => {
+  const sortedArticles = sortByDisplayDateDesc(articles);
+  const nodeMap = new Map<number, DocNode>();
+  const roots: DocNode[] = [];
+
+  sortedArticles.forEach((article) => {
+    nodeMap.set(article.id, { ...article, children: [] });
+  });
+
+  sortedArticles.forEach((article) => {
+    const node = nodeMap.get(article.id);
+    if (!node) {
+      return;
+    }
+
+    const parent = article.parent_id ? nodeMap.get(article.parent_id) : null;
+    if (parent && parent.id !== node.id) {
+      parent.children.push(node);
+      return;
+    }
+
+    roots.push(node);
+  });
+
+  return roots;
+};
+
+const flattenDocTree = (nodes: DocNode[]): DocNode[] =>
+  nodes.flatMap((node) => [node, ...flattenDocTree(node.children)]);
 
 const buildContentWithToc = (html?: string | null): { html: string; headings: Heading[] } => {
   if (!html) {
@@ -52,7 +95,7 @@ const buildContentWithToc = (html?: string | null): { html: string; headings: He
 
 const getExperienceArticles = async (): Promise<Article[]> => {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-  const apiUrl = `${backendUrl}/api/articles?category=${EXPERIENCE_CATEGORY}&limit=50&sortBy=display_date&orderDirection=desc`;
+  const apiUrl = `${backendUrl}/api/articles?category=${EXPERIENCE_CATEGORY}&limit=200&sortBy=display_date&orderDirection=desc`;
 
   try {
     const response = await fetch(apiUrl, { next: { revalidate: 60 } });
@@ -73,18 +116,65 @@ const getExcerpt = (article: Article) => {
     return article.summary;
   }
 
-  return stripTags(article.content || '').slice(0, 90);
+  return stripTags(article.content || '').slice(0, 110);
 };
+
+const DocTreeList = ({
+  nodes,
+  activeId,
+  nested = false,
+}: {
+  nodes: DocNode[];
+  activeId?: number;
+  nested?: boolean;
+}) => (
+  <ul className={nested ? 'mt-1 space-y-1 border-l border-slate-200/80 pl-3' : 'space-y-1'}>
+    {nodes.map((node) => {
+      const active = activeId === node.id;
+      const hasChildren = node.children.length > 0;
+
+      return (
+        <li key={node.id}>
+          <Link href={`/experience?slug=${node.slug}`} aria-current={active ? 'page' : undefined}>
+            <span
+              className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${
+                active
+                  ? 'border-cyan-200 bg-cyan-50/90 text-sky-800 shadow-sm shadow-cyan-500/10'
+                  : 'border-transparent text-slate-600 hover:border-white/80 hover:bg-white/80 hover:text-sky-700'
+              }`}
+            >
+              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-white/70 text-xs">
+                {hasChildren ? '▣' : '□'}
+              </span>
+              <span className="min-w-0">
+                <span className="line-clamp-2 font-medium">{node.title}</span>
+                <span className="mt-0.5 block text-xs text-slate-400">{formatDate(node)}</span>
+              </span>
+            </span>
+          </Link>
+
+          {hasChildren && (
+            <div className="ml-4">
+              <DocTreeList nodes={node.children} activeId={activeId} nested />
+            </div>
+          )}
+        </li>
+      );
+    })}
+  </ul>
+);
 
 export default async function ExperiencePage({ searchParams }: ExperiencePageProps) {
   const resolvedSearchParams = await searchParams;
   const articles = await getExperienceArticles();
-  const activeArticle = articles.find((article) => article.slug === resolvedSearchParams.slug) || articles[0] || null;
+  const docTree = buildDocTree(articles);
+  const flattenedDocs = flattenDocTree(docTree);
+  const activeArticle = flattenedDocs.find((article) => article.slug === resolvedSearchParams.slug) || flattenedDocs[0] || null;
   const { html, headings } = buildContentWithToc(activeArticle?.content);
 
   return (
     <div className="min-h-screen bg-[linear-gradient(135deg,#f7fbff_0%,#eefcf9_48%,#f6f0ff_100%)]">
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[280px_minmax(0,1fr)_260px]">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[300px_minmax(0,1fr)_270px]">
         <aside className="lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-2xl border border-white/80 bg-white/72 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
             <div className="mb-4">
@@ -95,30 +185,12 @@ export default async function ExperiencePage({ searchParams }: ExperiencePagePro
               </p>
             </div>
 
-            <nav className="space-y-1">
-              {articles.length > 0 ? (
-                articles.map((article) => {
-                  const active = activeArticle?.id === article.id;
-                  return (
-                    <Link key={article.id} href={`/experience?slug=${article.slug}`}>
-                      <span
-                        className={`block rounded-xl border px-3 py-2.5 text-sm transition ${
-                          active
-                            ? 'border-cyan-200 bg-cyan-50/85 text-sky-800 shadow-sm shadow-cyan-500/10'
-                            : 'border-transparent text-slate-600 hover:border-white/80 hover:bg-white/80 hover:text-sky-700'
-                        }`}
-                      >
-                        <span className="line-clamp-2 font-medium">{article.title}</span>
-                        <span className="mt-1 block text-xs text-slate-400">
-                          {new Date(article.display_date || article.created_at).toLocaleDateString('zh-CN')}
-                        </span>
-                      </span>
-                    </Link>
-                  );
-                })
+            <nav aria-label="经验分享文档目录">
+              {docTree.length > 0 ? (
+                <DocTreeList nodes={docTree} activeId={activeArticle?.id} />
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-white/60 px-3 py-4 text-sm text-slate-500">
-                  还没有经验文档。
+                  还没有经验文档。后台新建文章时选择“本站经验分享”分类即可显示在这里。
                 </div>
               )}
             </nav>
@@ -187,21 +259,21 @@ export default async function ExperiencePage({ searchParams }: ExperiencePagePro
                   ))}
                 </nav>
               ) : (
-                <p className="text-sm leading-6 text-slate-400">正文里的二级/三级标题会自动生成目录。</p>
+                <p className="text-sm leading-6 text-slate-400">正文里的二级、三级标题会自动生成目录。</p>
               )}
             </div>
 
             <div className="rounded-2xl border border-white/80 bg-white/70 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.07)] backdrop-blur-2xl">
-              <h3 className="mb-2 text-sm font-bold text-slate-800">管理员维护</h3>
+              <h3 className="mb-2 text-sm font-bold text-slate-800">如何维护结构</h3>
               <p className="mb-3 text-sm leading-6 text-slate-500">
-                用后台文章管理维护本页内容，分类选择“本站经验分享”。
+                后台新建或编辑文章时，分类选“本站经验分享”。不选父级就是一级文档，选择父级后会作为子文档显示在左侧目录中。
               </p>
               <div className="flex flex-col gap-2">
                 <Link href="/admin/articles?category=site-experience" className="rounded-xl border border-sky-100 bg-sky-50/75 px-3 py-2 text-sm font-medium text-sky-700 hover:bg-sky-100">
-                  管理经验文章
+                  管理经验文档
                 </Link>
                 <Link href="/admin/articles/new?category=site-experience" className="rounded-xl border border-violet-100 bg-violet-50/75 px-3 py-2 text-sm font-medium text-violet-700 hover:bg-violet-100">
-                  新建经验文章
+                  新建经验文档
                 </Link>
               </div>
             </div>

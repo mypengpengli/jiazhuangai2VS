@@ -41,6 +41,8 @@ const EditArticlePage = () => {
   const [displayDate, setDisplayDate] = useState<string>('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<string>('0');
+  const [parentId, setParentId] = useState<string>('0');
+  const [experienceArticles, setExperienceArticles] = useState<Article[]>([]);
   const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +50,9 @@ const EditArticlePage = () => {
   const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
+  const selectedCategory = categories.find((cat) => cat.id.toString() === categoryId) || article?.category;
+  const isExperienceArticle = selectedCategory?.slug === 'site-experience';
+  const listHref = isExperienceArticle ? '/admin/articles?category=site-experience' : '/admin/articles';
 
   const editor = useEditor({
     extensions: [
@@ -95,6 +100,7 @@ const EditArticlePage = () => {
       setHtmlContent(data.content || '');
       setDisplayDate(data.display_date ? new Date(data.display_date).toISOString().split('T')[0] : '');
       setCategoryId(data.category_id?.toString() || '0');
+      setParentId(data.parent_id?.toString() || '0');
       
       const fetchedAttachments = (data.attachments || []).map(att => ({
           ...att,
@@ -125,6 +131,30 @@ const EditArticlePage = () => {
     fetchCategories();
     fetchArticle();
   }, [fetchArticle]);
+
+  useEffect(() => {
+    const fetchExperienceArticles = async () => {
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
+        const response = await fetch(`${backendUrl}/api/articles?category=site-experience&limit=200&sortBy=display_date&orderDirection=desc`);
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        setExperienceArticles(data.items || []);
+      } catch (err) {
+        console.error('获取经验文档列表失败:', err);
+      }
+    };
+
+    fetchExperienceArticles();
+  }, []);
+
+  useEffect(() => {
+    if (!isExperienceArticle) {
+      setParentId('0');
+    }
+  }, [isExperienceArticle]);
 
   const handleAttachmentUpload = (attachment: { key: string; file_url: string; file_type: string; filename?: string; publicUrl?: string }) => {
     const newAttachment: UploadedAttachment = {
@@ -158,19 +188,29 @@ const EditArticlePage = () => {
         description: att.description
       }));
 
+      const dataToSend: {
+        title: string;
+        content: string;
+        display_date: string | null;
+        category_id: number | null;
+        parent_id: number | null;
+        attachments: typeof attachmentsPayload;
+      } = {
+        title,
+        content: htmlContent,
+        display_date: displayDate ? new Date(displayDate).toISOString() : null,
+        category_id: categoryId !== '0' ? parseInt(categoryId, 10) : null,
+        parent_id: isExperienceArticle && parentId !== '0' ? parseInt(parentId, 10) : null,
+        attachments: attachmentsPayload,
+      };
+
       const response = await fetch(`${backendUrl}/api/articles/${article.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title,
-          content: htmlContent,
-          display_date: displayDate ? new Date(displayDate).toISOString() : null,
-          category_id: categoryId !== '0' ? parseInt(categoryId, 10) : null,
-          attachments: attachmentsPayload,
-        }),
+        body: JSON.stringify(dataToSend),
       });
 
       if (!response.ok) {
@@ -179,7 +219,7 @@ const EditArticlePage = () => {
       }
 
       alert('文章更新成功！');
-      router.push('/admin/articles');
+      router.push(listHref);
     } catch (err) {
       setError(err instanceof Error ? err.message : '更新文章时发生未知错误。');
     } finally {
@@ -205,7 +245,7 @@ const EditArticlePage = () => {
             throw new Error(errorData.message || '删除失败');
         }
         alert('文章已删除');
-        router.push('/admin/articles');
+        router.push(listHref);
     } catch (err) {
         setError(err instanceof Error ? err.message : '删除文章时发生错误');
     } finally {
@@ -258,6 +298,30 @@ const EditArticlePage = () => {
             ))}
           </select>
         </div>
+
+        {isExperienceArticle && (
+          <div className="rounded-md border border-cyan-100 bg-cyan-50/60 p-4">
+            <label htmlFor="parentDocument" className="block text-sm font-medium text-gray-700">父级文档</label>
+            <select
+              id="parentDocument"
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-md"
+            >
+              <option value="0">-- 作为一级文档 --</option>
+              {experienceArticles
+                .filter((item) => item.id !== article?.id)
+                .map((item) => (
+                  <option key={item.id} value={item.id.toString()}>
+                    {item.parent_id ? '　└ ' : ''}{item.title}
+                  </option>
+                ))}
+            </select>
+            <p className="mt-2 text-xs text-slate-500">
+              用它维护类似文档中心的层级目录；不选父级时会显示在左侧目录顶层。
+            </p>
+          </div>
+        )}
 
         {token && (
             <>
@@ -316,7 +380,7 @@ const EditArticlePage = () => {
             <div className="flex space-x-4">
                 <button
                     type="button"
-                    onClick={() => router.push('/admin/articles')}
+                    onClick={() => router.push(listHref)}
                     className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded"
                     disabled={isLoading}
                 >

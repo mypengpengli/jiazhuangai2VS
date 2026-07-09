@@ -2,6 +2,7 @@
 export const runtime = 'edge';
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Article } from '@/types/models';
 import ArticleFeed from '@/components/ArticleFeed';
 
@@ -150,6 +151,15 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
   const categoryFromQuery = resolvedSearchParams?.category;
   const categoriesFromQuery = resolvedSearchParams?.categories;
   const searchFromQuery = resolvedSearchParams?.search as string | undefined;
+
+  const requestedCategorySlugs = [
+    ...(categoryFromQuery && categoryFromQuery !== 'all' ? [categoryFromQuery] : []),
+    ...(categoriesFromQuery ? categoriesFromQuery.split(',').map((slug) => slug.trim()).filter(Boolean) : []),
+  ];
+
+  if (requestedCategorySlugs.includes('site-experience')) {
+    redirect('/experience');
+  }
 
   const articlesData = await getArticlesData(categoryFromQuery, categoriesFromQuery, searchFromQuery);
 

@@ -19,6 +19,8 @@ interface GetArticlesOptions {
     orderDirection?: 'asc' | 'desc';
 }
 
+const EXPERIENCE_CATEGORY_SLUG = 'site-experience';
+
 // 定义 getVipArticle 的返回类型
 type VipArticleResult =
     | { status: 'found'; article: ArticleWithCategoryAndAttachments }
@@ -73,6 +75,10 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
             // 如果分类 slug 无效，直接返回空结果
             return { items: [], total_pages: 0, current_page: page, total_items: 0 }; // 使用 items
         }
+    } else {
+        whereClauses.push(`(a.category_id IS NULL OR a.category_id NOT IN (SELECT id FROM categories WHERE slug = ?))`);
+        queryParams.push(EXPERIENCE_CATEGORY_SLUG);
+        countParams.push(EXPERIENCE_CATEGORY_SLUG);
     }
 
     // 处理搜索关键词

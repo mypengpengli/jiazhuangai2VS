@@ -150,7 +150,7 @@ const AdminArticlesPage = () => {
                   <td className="py-2 px-4 border-b">{article.id}</td>
                   <td className="py-2 px-4 border-b">
                     {article.slug ? (
-                        <Link href={`/articles/${article.slug}`} target="_blank" className="text-blue-600 hover:underline">
+                        <Link href={isExperienceFilter ? `/experience?slug=${article.slug}` : `/articles/${article.slug}`} target="_blank" className="text-blue-600 hover:underline">
                             {article.title}
                         </Link>
                     ) : (
