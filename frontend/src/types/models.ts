@@ -57,6 +57,21 @@ export interface ArticleAttachment {
   created_at: string;
 }
 
+export type CommentStatus = 'approved' | 'hidden';
+
+export interface Comment {
+  id: number;
+  article_id: number;
+  user_id: number;
+  content: string;
+  status: CommentStatus;
+  created_at: string;
+  updated_at: string;
+  username: string;
+  article_title?: string;
+  article_slug?: string;
+}
+
 // (可选) 定义用于 API 响应或请求的特定类型
 // 例如，创建文章时可能不需要 id, created_at, updated_at
 // export type CreateArticleInput = Omit<Article, 'id' | 'created_at' | 'updated_at' | 'category'>;

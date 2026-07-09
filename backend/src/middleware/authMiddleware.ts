@@ -12,6 +12,8 @@ type Variables = {
     user?: { sub: string; username: string; role: string; iat: number; exp: number; }; // 匹配 JWT payload 结构
 };
 
+export type AuthUser = NonNullable<Variables['user']>;
+
 /**
  * Hono 认证中间件
  * 验证请求头中的 Authorization Bearer Token
@@ -74,4 +76,14 @@ export const authMiddleware = async (c: Context<{ Bindings: Env, Variables: Vari
     return c.json({ error: 'Unauthorized', message: 'Invalid or expired token.', details: err.message || 'Verification failed' }, 401);
   }
   // Removed await next() from here; it's now in the try block.
+};
+
+export const adminMiddleware = async (c: Context<{ Bindings: Env, Variables: Variables }>, next: Next) => {
+  const user = c.get('user');
+
+  if (!user || user.role !== 'admin') {
+    return c.json({ error: 'Forbidden', message: 'Admin permission is required.' }, 403);
+  }
+
+  await next();
 };

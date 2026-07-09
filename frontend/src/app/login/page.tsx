@@ -3,6 +3,7 @@
 import React, { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation'; // 取消注释
 import { useAuth } from '@/context/AuthContext'; // 取消注释
+import Link from 'next/link';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -59,7 +60,7 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
       <div className="p-8 bg-white shadow-md rounded-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">管理员登录</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">用户登录</h1>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
@@ -104,6 +105,9 @@ const LoginPage = () => {
           >
             {loading ? '登录中...' : '登录'}
           </button>
+          <p className="mt-4 text-center text-sm text-gray-500">
+            还没有账户？ <Link href="/register" className="text-indigo-600 hover:text-indigo-800">注册后参与评论</Link>
+          </p>
         </form>
       </div>
     </div>

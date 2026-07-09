@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2, getVipArticle, incrementViewCount } from '../services/articleService'; // 重新加入 uploadImageToR2
-import { authMiddleware } from '../middleware/authMiddleware';
+import { adminMiddleware, authMiddleware, AuthUser } from '../middleware/authMiddleware';
 import { Article, CreateArticleInput, ArticleAttachment } from '../models'; // 更新导入
 
 // 定义环境变量和变量类型
@@ -11,7 +11,7 @@ type Env = {
   BUCKET: R2Bucket;
 };
 type Variables = {
-    user?: { id: string; username: string };
+    user?: AuthUser;
 };
 
 // 实例化 Hono
@@ -136,6 +136,7 @@ articleRoutes.post(
 // --- 需要认证的路由 ---
 const protectedArticleRoutes = new Hono<{ Bindings: Env, Variables: Variables }>();
 protectedArticleRoutes.use('*', authMiddleware);
+protectedArticleRoutes.use('*', adminMiddleware);
 
 // 定义创建文章的请求体 Schema (使用 nullish 使 zod 输出 type | null | undefined)
 const createArticleSchema = z.object({

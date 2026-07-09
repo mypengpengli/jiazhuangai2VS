@@ -8,6 +8,7 @@ import articleRoutes from './routes/articles';
 import categoryRoutes from './routes/categories';
 import r2Routes from './routes/r2Routes';
 import subscribeRoutes from './routes/subscribe';
+import commentRoutes from './routes/comments';
 
 // Define the environment variables binding
 export type Env = {
@@ -28,6 +29,7 @@ app.route('/api/articles', articleRoutes);
 app.route('/api/categories', categoryRoutes);
 app.route('/api/r2', r2Routes);
 app.route('/api/subscribe', subscribeRoutes);
+app.route('/api/comments', commentRoutes);
 
 // Debug route to check bindings
 app.get('/api/debug', async (c) => {

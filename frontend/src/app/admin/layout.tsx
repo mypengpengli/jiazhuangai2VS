@@ -9,7 +9,7 @@ interface AdminLayoutProps {
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requireAdmin>
       <div className="container mx-auto px-4 py-8">
         {/* You can add admin-specific layout elements here if needed, e.g., a sidebar */}
         {children}

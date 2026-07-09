@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator'; // 导入验证器
 import { z } from 'zod'; // 导入 zod
 import { getAllCategories, getCategoryById, createCategory, updateCategory, deleteCategory } from '../services/categoryService'; // 导入服务函数
-import { authMiddleware } from '../middleware/authMiddleware'; // 导入认证中间件
+import { adminMiddleware, authMiddleware, AuthUser } from '../middleware/authMiddleware'; // 导入认证中间件
 
 // 定义环境变量和变量类型 (与 auth.ts 类似)
 type Env = {
@@ -10,7 +10,7 @@ type Env = {
   // ... 其他绑定
 };
 type Variables = {
-    user?: { id: string; username: string };
+    user?: AuthUser;
 };
 
 const categoryRoutes = new Hono<{ Bindings: Env, Variables: Variables }>();
@@ -54,6 +54,7 @@ categoryRoutes.get(
 // 应用认证中间件到后续需要保护的路由组
 const protectedCategoryRoutes = new Hono<{ Bindings: Env, Variables: Variables }>();
 protectedCategoryRoutes.use('*', authMiddleware); // 对这个 Hono 实例下的所有路由应用中间件
+protectedCategoryRoutes.use('*', adminMiddleware);
 
 // 定义创建分类的请求体 Schema
 const createCategorySchema = z.object({

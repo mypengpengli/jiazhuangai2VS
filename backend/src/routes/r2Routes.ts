@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { S3Client } from '@aws-sdk/client-s3';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { authMiddleware } from '../middleware/authMiddleware'; // 假设认证中间件路径正确
+import { adminMiddleware, authMiddleware, AuthUser } from '../middleware/authMiddleware'; // 假设认证中间件路径正确
 import { v4 as uuidv4 } from 'uuid'; // 用于生成唯一文件名
 
 // 定义环境变量/Secrets 的类型，确保从 c.env 中可以正确访问
@@ -16,10 +16,15 @@ type Bindings = {
     DB: D1Database;
 };
 
-const r2Routes = new Hono<{ Bindings: Bindings }>();
+type Variables = {
+    user?: AuthUser;
+};
+
+const r2Routes = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 
 // 应用认证中间件，保护此路由
 r2Routes.use('/presigned-url', authMiddleware);
+r2Routes.use('/presigned-url', adminMiddleware);
 
 r2Routes.post('/presigned-url', async (c) => {
     try {

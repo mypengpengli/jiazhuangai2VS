@@ -7,6 +7,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { Article } from '@/types/models'; // 复用类型定义
 import ViewCounter from '@/components/ViewCounter';
 import ReadingProgress from '@/components/ReadingProgress';
+import CommentSection from '@/components/CommentSection';
 
 // 定义页面 props 类型，包含从动态路由获取的 slug
 // params 和 searchParams 都是 Promise (Next.js 15)
@@ -178,6 +179,8 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
           </Link>
         </footer>
       </article>
+
+      <CommentSection articleSlug={article.slug} />
     </div>
   );
 }

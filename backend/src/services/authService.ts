@@ -1,12 +1,51 @@
 // import bcrypt from 'bcryptjs'; // 后续实现密码哈希时需要
 import { sign } from 'hono/jwt'; // Hono 内置的 JWT 功能
-import { User } from '../models'; // 导入用户模型
 
-// 定义环境变量类型 (如果需要访问 DB 等)
-type Env = {
-  DB: D1Database;
-  JWT_SECRET?: string; // 用于 JWT 签名的密钥，应存储在环境变量中
-  // ... 其他绑定
+type AuthDbUser = {
+  id: number;
+  username: string;
+  password_value: string;
+  role: string;
+};
+
+const getPasswordColumn = async (db: D1Database): Promise<'password_hash' | 'password'> => {
+  const tableInfo = await db.prepare('PRAGMA table_info(users)').all<{ name: string }>();
+  const columnNames = (tableInfo.results || []).map((column) => column.name);
+
+  if (columnNames.includes('password_hash')) {
+    return 'password_hash';
+  }
+  if (columnNames.includes('password')) {
+    return 'password';
+  }
+
+  throw new Error('Users table is missing a password column.');
+};
+
+const hashPassword = async (password: string): Promise<string> => {
+  const data = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return `sha256:${hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+};
+
+const isPasswordValid = async (password: string, storedPassword: string): Promise<boolean> => {
+  if (storedPassword === password) {
+    return true;
+  }
+  return storedPassword === await hashPassword(password);
+};
+
+const signUserToken = async (user: { id: number; username: string; role: string }, jwtSecret: string) => {
+  const payload = {
+    sub: user.id.toString(),
+    username: user.username,
+    role: user.role,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24)
+  };
+
+  return sign(payload, jwtSecret);
 };
 
 /**
@@ -25,45 +64,29 @@ export const loginUser = async (db: D1Database, username: string, password: stri
     throw new Error('Authentication configuration error.');
   }
 
+  const passwordColumn = await getPasswordColumn(db);
+  const normalizedUsername = username.trim();
+
   // 1. 根据 username 从 users 表查询用户
-  const userQuery = 'SELECT id, username, password_hash, role FROM users WHERE username = ?';
+  const userQuery = `SELECT id, username, ${passwordColumn} as password_value, role FROM users WHERE username = ?`;
   const userStmt = db.prepare(userQuery);
-  // 明确 password_hash 的类型，因为我们知道它暂时是明文
-  const userResult = await userStmt.bind(username).first<{ id: number; username: string; password_hash: string; role: string } | null>();
+  const userResult = await userStmt.bind(normalizedUsername).first<AuthDbUser | null>();
 
   // 2. 如果找不到用户，抛出错误
   if (!userResult) {
-    console.log(`AuthService: User ${username} not found`);
+    console.log(`AuthService: User ${normalizedUsername} not found`);
     throw new Error('Invalid username or password');
   }
 
-  // 3. 临时密码验证 (直接比较明文)
-  // 重要：这只是临时措施，后续必须用 bcrypt.compare 替换
-  const isPasswordValid = (password === userResult.password_hash);
-  if (!isPasswordValid) {
-    console.log(`AuthService: Invalid password for user ${username}`);
+  if (!await isPasswordValid(password, userResult.password_value)) {
+    console.log(`AuthService: Invalid password for user ${normalizedUsername}`);
     throw new Error('Invalid username or password');
-  }
-
-  // 3.1 检查用户角色是否为 admin
-  if (userResult.role !== 'admin') {
-    console.log(`AuthService: User ${username} is not an admin.`);
-    throw new Error('Access denied: User is not an administrator.');
   }
 
   console.log(`AuthService: User ${username} (role: ${userResult.role}) authenticated successfully`);
 
-  // 4. 生成 JWT Token
-  const payload = {
-    sub: userResult.id.toString(), // 主题，通常是用户 ID
-    username: userResult.username,
-    role: userResult.role, // 在 payload 中加入角色信息
-    iat: Math.floor(Date.now() / 1000), // 签发时间
-    exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24) // 过期时间 (例如 24 小时)
-  };
-
   try {
-    const token = await sign(payload, jwtSecret); // 使用 hono/jwt 的 sign 方法
+    const token = await signUserToken(userResult, jwtSecret);
     console.log(`AuthService: JWT generated for user ${username}`);
     return { token };
   } catch (error) {
@@ -72,4 +95,34 @@ export const loginUser = async (db: D1Database, username: string, password: stri
   }
 };
 
-// TODO: 添加其他认证相关服务函数，如验证 Token、登出等
+export const registerUser = async (db: D1Database, username: string, password: string, jwtSecret: string | undefined) => {
+  const normalizedUsername = username.trim();
+
+  if (!jwtSecret) {
+    console.error('JWT_SECRET is not configured!');
+    throw new Error('Authentication configuration error.');
+  }
+
+  const passwordColumn = await getPasswordColumn(db);
+  const existingUser = await db
+    .prepare('SELECT id FROM users WHERE username = ?')
+    .bind(normalizedUsername)
+    .first<{ id: number } | null>();
+
+  if (existingUser) {
+    throw new Error('Username already exists');
+  }
+
+  const passwordHash = await hashPassword(password);
+  const newUser = await db
+    .prepare(`INSERT INTO users (username, ${passwordColumn}, role) VALUES (?, ?, 'user') RETURNING id, username, role, created_at`)
+    .bind(normalizedUsername, passwordHash)
+    .first<{ id: number; username: string; role: string; created_at: string } | null>();
+
+  if (!newUser) {
+    throw new Error('Failed to create user.');
+  }
+
+  const token = await signUserToken(newUser, jwtSecret);
+  return { token, user: newUser };
+};

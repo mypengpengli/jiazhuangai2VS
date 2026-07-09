@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; // 导入 useRouter
+import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -11,6 +12,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter(); // 初始化 router
+  const { login } = useAuth();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -42,8 +44,12 @@ export default function RegisterPage() {
         setError(data.error || `注册失败 (${res.status})`);
       } else {
         console.log('Registration successful:', data);
-        alert('注册成功！现在将跳转到登录页面。');
-        router.push('/login'); // 注册成功后跳转到登录页
+        if (data.token) {
+          login(data.token);
+          router.push('/profile');
+        } else {
+          router.push('/login');
+        }
       }
     } catch (err) {
       console.error('Registration request error:', err);
@@ -58,6 +64,9 @@ export default function RegisterPage() {
     <div className="max-w-md mx-auto mt-10">
       <h1 className="text-3xl font-bold mb-6 text-center">用户注册</h1>
       <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <p className="mb-4 rounded bg-sky-50 px-3 py-2 text-sm text-sky-700">
+          注册后即可在文章下发表评论。
+        </p>
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
             用户名
