@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Article } from '@/types/models'; // 假设类型已定义
 import { useAuth } from '@/context/AuthContext'; // 用于获取 token
+import {
+  buildExperienceDocTree,
+  flattenExperienceDocTree,
+} from '@/lib/experienceDocs';
 
 const PAGE_SIZE = 50;
 
@@ -36,7 +40,7 @@ const AdminArticlesPage = () => {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
         const params = new URLSearchParams({
-          limit: String(PAGE_SIZE),
+          limit: String(isExperienceFilter ? 200 : PAGE_SIZE),
           page: String(page),
           sortBy: 'display_date',
           orderDirection: 'desc',
@@ -145,12 +149,21 @@ const AdminArticlesPage = () => {
               </tr>
             </thead>
             <tbody>
-              {articles.map((article) => (
+              {(isExperienceFilter
+                ? flattenExperienceDocTree(buildExperienceDocTree(articles)).map((entry) => ({ ...entry.article, docDepth: entry.depth }))
+                : articles.map((article) => ({ ...article, docDepth: 0 }))
+              ).map((article) => (
                 <tr key={article.id} className="hover:bg-gray-50">
                   <td className="py-2 px-4 border-b">{article.id}</td>
                   <td className="py-2 px-4 border-b">
                     {article.slug ? (
-                        <Link href={isExperienceFilter ? `/experience?slug=${article.slug}` : `/articles/${article.slug}`} target="_blank" className="text-blue-600 hover:underline">
+                        <Link
+                          href={isExperienceFilter ? `/experience?slug=${article.slug}` : `/articles/${article.slug}`}
+                          target="_blank"
+                          className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+                          style={isExperienceFilter ? { paddingLeft: `${article.docDepth * 1.25}rem` } : undefined}
+                        >
+                            {isExperienceFilter && article.docDepth > 0 && <span className="text-gray-400">└</span>}
                             {article.title}
                         </Link>
                     ) : (

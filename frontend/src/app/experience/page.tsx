@@ -3,6 +3,11 @@ export const runtime = 'edge';
 import React from 'react';
 import Link from 'next/link';
 import { Article } from '@/types/models';
+import {
+  ExperienceDocNode,
+  buildExperienceDocTree,
+  flattenExperienceDocTree,
+} from '@/lib/experienceDocs';
 
 const EXPERIENCE_CATEGORY = 'site-experience';
 
@@ -22,50 +27,10 @@ type Heading = {
   level: number;
 };
 
-type DocNode = Article & {
-  children: DocNode[];
-};
-
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-
-const getArticleTime = (article: Article) =>
-  new Date(article.display_date || article.created_at).getTime();
-
-const sortByDisplayDateDesc = (articles: Article[]) =>
-  [...articles].sort((a, b) => getArticleTime(b) - getArticleTime(a));
 
 const formatDate = (article: Article) =>
   new Date(article.display_date || article.created_at).toLocaleDateString('zh-CN');
-
-const buildDocTree = (articles: Article[]): DocNode[] => {
-  const sortedArticles = sortByDisplayDateDesc(articles);
-  const nodeMap = new Map<number, DocNode>();
-  const roots: DocNode[] = [];
-
-  sortedArticles.forEach((article) => {
-    nodeMap.set(article.id, { ...article, children: [] });
-  });
-
-  sortedArticles.forEach((article) => {
-    const node = nodeMap.get(article.id);
-    if (!node) {
-      return;
-    }
-
-    const parent = article.parent_id ? nodeMap.get(article.parent_id) : null;
-    if (parent && parent.id !== node.id) {
-      parent.children.push(node);
-      return;
-    }
-
-    roots.push(node);
-  });
-
-  return roots;
-};
-
-const flattenDocTree = (nodes: DocNode[]): DocNode[] =>
-  nodes.flatMap((node) => [node, ...flattenDocTree(node.children)]);
 
 const buildContentWithToc = (html?: string | null): { html: string; headings: Heading[] } => {
   if (!html) {
@@ -124,7 +89,7 @@ const DocTreeList = ({
   activeId,
   nested = false,
 }: {
-  nodes: DocNode[];
+  nodes: ExperienceDocNode[];
   activeId?: number;
   nested?: boolean;
 }) => (
@@ -167,9 +132,11 @@ const DocTreeList = ({
 export default async function ExperiencePage({ searchParams }: ExperiencePageProps) {
   const resolvedSearchParams = await searchParams;
   const articles = await getExperienceArticles();
-  const docTree = buildDocTree(articles);
-  const flattenedDocs = flattenDocTree(docTree);
-  const activeArticle = flattenedDocs.find((article) => article.slug === resolvedSearchParams.slug) || flattenedDocs[0] || null;
+  const docTree = buildExperienceDocTree(articles);
+  const flattenedDocs = flattenExperienceDocTree(docTree);
+  const activeEntry = flattenedDocs.find((entry) => entry.article.slug === resolvedSearchParams.slug) || flattenedDocs[0] || null;
+  const activeArticle = activeEntry?.article || null;
+  const activePath = activeEntry?.path || [];
   const { html, headings } = buildContentWithToc(activeArticle?.content);
 
   return (
@@ -206,8 +173,21 @@ export default async function ExperiencePage({ searchParams }: ExperiencePagePro
                     <Link href="/experience" className="font-medium text-sky-600 hover:text-sky-800">
                       本站经验分享
                     </Link>
-                    <span>/</span>
-                    <span className="line-clamp-1">{activeArticle.title}</span>
+                    {activePath.map((pathNode, index) => {
+                      const isCurrent = index === activePath.length - 1;
+                      return (
+                        <React.Fragment key={pathNode.id}>
+                          <span>/</span>
+                          {isCurrent ? (
+                            <span className="line-clamp-1">{pathNode.title}</span>
+                          ) : (
+                            <Link href={`/experience?slug=${pathNode.slug}`} className="font-medium text-slate-500 hover:text-sky-700">
+                              {pathNode.title}
+                            </Link>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </div>
                   <h2 className="text-3xl font-bold leading-tight text-slate-950">{activeArticle.title}</h2>
                   <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
@@ -266,7 +246,7 @@ export default async function ExperiencePage({ searchParams }: ExperiencePagePro
             <div className="rounded-2xl border border-white/80 bg-white/70 p-4 shadow-[0_18px_48px_rgba(15,23,42,0.07)] backdrop-blur-2xl">
               <h3 className="mb-2 text-sm font-bold text-slate-800">如何维护结构</h3>
               <p className="mb-3 text-sm leading-6 text-slate-500">
-                后台新建或编辑文章时，分类选“本站经验分享”。不选父级就是一级文档，选择父级后会作为子文档显示在左侧目录中。
+                后台新建或编辑文章时，分类选“本站经验分享”。不选父级就是一级文档，选择任意父级后会作为下一层子文档显示，三级、四级都会递归展开。
               </p>
               <div className="flex flex-col gap-2">
                 <Link href="/admin/articles?category=site-experience" className="rounded-xl border border-sky-100 bg-sky-50/75 px-3 py-2 text-sm font-medium text-sky-700 hover:bg-sky-100">

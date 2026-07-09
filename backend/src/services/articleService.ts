@@ -20,6 +20,63 @@ interface GetArticlesOptions {
 }
 
 const EXPERIENCE_CATEGORY_SLUG = 'site-experience';
+const MAX_PARENT_DEPTH = 50;
+
+type ArticleParentRow = {
+    id: number;
+    category_id: number | null;
+    parent_id: number | null;
+};
+
+const validateArticleParent = async (
+    db: D1Database,
+    parentId: number | null | undefined,
+    options: { articleId?: number; categoryId?: number | null } = {}
+) => {
+    if (!parentId) {
+        return;
+    }
+
+    if (options.articleId && parentId === options.articleId) {
+        throw new Error('Article cannot be its own parent.');
+    }
+
+    const parent = await db.prepare(
+        'SELECT id, category_id, parent_id FROM articles WHERE id = ?'
+    ).bind(parentId).first<ArticleParentRow>();
+
+    if (!parent) {
+        throw new Error('Invalid parent_id provided.');
+    }
+
+    if (options.categoryId !== undefined && options.categoryId !== null && parent.category_id !== options.categoryId) {
+        throw new Error('Parent article must belong to the same category.');
+    }
+
+    let cursor = parent.parent_id;
+    let depth = 0;
+
+    while (cursor) {
+        if (options.articleId && cursor === options.articleId) {
+            throw new Error('Article parent cycle detected.');
+        }
+
+        if (depth >= MAX_PARENT_DEPTH) {
+            throw new Error('Article parent hierarchy is too deep.');
+        }
+
+        const nextParent = await db.prepare(
+            'SELECT id, category_id, parent_id FROM articles WHERE id = ?'
+        ).bind(cursor).first<ArticleParentRow>();
+
+        if (!nextParent) {
+            return;
+        }
+
+        cursor = nextParent.parent_id;
+        depth += 1;
+    }
+};
 
 // 定义 getVipArticle 的返回类型
 type VipArticleResult =
@@ -217,6 +274,8 @@ export const createArticle = async (db: D1Database, articleData: CreateArticleIn
     console.log(`ArticleService: Creating article with slug: ${slug}, content_type: ${content_type}, display_date: ${finalDisplayDate}`);
 
     try {
+        await validateArticleParent(db, parent_id ?? null, { categoryId: category_id ?? null });
+
         // 1. 插入文章
         const createdArticleResult = await db.prepare(
             `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id, display_date)
@@ -468,7 +527,23 @@ console.log(`ArticleService: Attempting to update article with ID: ${id}. Receiv
     // 解构时排除 attachments，单独处理
     const { attachments, display_date, ...articleBaseFields } = articleData;
     const { title, slug, content_type, content, category_id, parent_id } = articleBaseFields;
+    const currentArticleForParent = await db.prepare(
+        'SELECT id, category_id, parent_id FROM articles WHERE id = ?'
+    ).bind(id).first<ArticleParentRow>();
 
+    if (!currentArticleForParent) {
+        console.log(`ArticleService: Article with ID ${id} not found before update.`);
+        return null;
+    }
+
+    const hasCategoryField = Object.prototype.hasOwnProperty.call(articleData, 'category_id');
+    const hasParentField = Object.prototype.hasOwnProperty.call(articleData, 'parent_id');
+
+    if (hasCategoryField || hasParentField) {
+        const finalCategoryId = hasCategoryField ? (category_id ?? null) : (currentArticleForParent.category_id ?? null);
+        const finalParentId = hasParentField ? (parent_id ?? null) : (currentArticleForParent.parent_id ?? null);
+        await validateArticleParent(db, finalParentId, { articleId: id, categoryId: finalCategoryId });
+    }
 
     // 构建 SET 子句
     const setClauses: string[] = [];

@@ -209,6 +209,13 @@ protectedArticleRoutes.post(
             if (error.message?.includes('FOREIGN KEY constraint failed')) {
                  return c.json({ error: 'Bad Request', message: 'Invalid category_id or parent_id.' }, 400);
             }
+            if (
+                error.message?.includes('parent_id') ||
+                error.message?.includes('parent') ||
+                error.message?.includes('Parent')
+            ) {
+                 return c.json({ error: 'Bad Request', message: error.message }, 400);
+            }
             return c.json({ error: 'Failed to create article', message: error.message }, 500);
         }
     }
@@ -286,6 +293,13 @@ protectedArticleRoutes.put(
             }
             if (error.message?.includes('FOREIGN KEY constraint failed')) {
                  return c.json({ error: 'Bad Request', message: 'Invalid category_id or parent_id.' }, 400);
+            }
+            if (
+                error.message?.includes('parent_id') ||
+                error.message?.includes('parent') ||
+                error.message?.includes('Parent')
+            ) {
+                 return c.json({ error: 'Bad Request', message: error.message }, 400);
             }
             return c.json({ error: 'Failed to update article', message: error.message }, 500);
         }

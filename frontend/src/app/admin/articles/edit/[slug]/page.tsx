@@ -19,6 +19,12 @@ import TableRow from '@tiptap/extension-table-row';
 import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import MenuBar from '@/components/MenuBar';
+import {
+  buildExperienceDocTree,
+  collectDescendantIds,
+  flattenExperienceDocTree,
+  formatDocOptionLabel,
+} from '@/lib/experienceDocs';
 
 const FileUpload = dynamic(() => import('@/components/FileUpload'), { ssr: false });
 
@@ -53,6 +59,13 @@ const EditArticlePage = () => {
   const selectedCategory = categories.find((cat) => cat.id.toString() === categoryId) || article?.category;
   const isExperienceArticle = selectedCategory?.slug === 'site-experience';
   const listHref = isExperienceArticle ? '/admin/articles?category=site-experience' : '/admin/articles';
+  const experienceDocTree = buildExperienceDocTree(experienceArticles);
+  const blockedParentIds = article
+    ? new Set([article.id, ...collectDescendantIds(experienceDocTree, article.id)])
+    : new Set<number>();
+  const parentOptions = flattenExperienceDocTree(experienceDocTree).filter(
+    (option) => !blockedParentIds.has(option.article.id)
+  );
 
   const editor = useEditor({
     extensions: [
@@ -309,16 +322,14 @@ const EditArticlePage = () => {
               className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-md"
             >
               <option value="0">-- 作为一级文档 --</option>
-              {experienceArticles
-                .filter((item) => item.id !== article?.id)
-                .map((item) => (
-                  <option key={item.id} value={item.id.toString()}>
-                    {item.parent_id ? '　└ ' : ''}{item.title}
+              {parentOptions.map((option) => (
+                  <option key={option.article.id} value={option.article.id.toString()}>
+                    {formatDocOptionLabel(option.depth, option.article.title)}
                   </option>
                 ))}
             </select>
             <p className="mt-2 text-xs text-slate-500">
-              用它维护类似文档中心的层级目录；不选父级时会显示在左侧目录顶层。
+              可以挂到任意层级下面。当前文档及其子文档不会出现在候选里，避免目录循环。
             </p>
           </div>
         )}

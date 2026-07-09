@@ -18,6 +18,11 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import dynamic from 'next/dynamic';
 import MenuBar from '@/components/MenuBar';
+import {
+  buildExperienceDocTree,
+  flattenExperienceDocTree,
+  formatDocOptionLabel,
+} from '@/lib/experienceDocs';
 
 const FileUpload = dynamic(() => import('@/components/FileUpload'), { ssr: false });
 
@@ -48,6 +53,7 @@ const CreateArticlePage = () => {
   const presetCategory = searchParams.get('category');
   const selectedCategory = categories.find((cat) => cat.id.toString() === categoryId);
   const isExperienceArticle = selectedCategory?.slug === 'site-experience';
+  const parentOptions = flattenExperienceDocTree(buildExperienceDocTree(experienceArticles));
 
   const editor = useEditor({
     extensions: [
@@ -272,14 +278,14 @@ const CreateArticlePage = () => {
                         className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm rounded-md"
                     >
                         <option value="0">-- 作为一级文档 --</option>
-                        {experienceArticles.map((article) => (
-                            <option key={article.id} value={article.id.toString()}>
-                                {article.parent_id ? '　└ ' : ''}{article.title}
+                        {parentOptions.map((option) => (
+                            <option key={option.article.id} value={option.article.id.toString()}>
+                                {formatDocOptionLabel(option.depth, option.article.title)}
                             </option>
                         ))}
                     </select>
                     <p className="mt-2 text-xs text-slate-500">
-                        用它维护类似飞书/IDEA 文档的层级目录；不选父级时会显示在左侧目录顶层。
+                        用它维护类似飞书/IDEA 文档的递归目录；选一级会创建二级，选二级会创建三级，不选父级就是一级文档。
                     </p>
                 </div>
             )}
