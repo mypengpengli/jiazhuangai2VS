@@ -3,8 +3,8 @@ export const runtime = 'edge';
 import React from 'react';
 import Link from 'next/link';
 import { Article } from '@/types/models';
+import ExperienceDocTree from '@/components/ExperienceDocTree';
 import {
-  ExperienceDocNode,
   buildExperienceDocTree,
   flattenExperienceDocTree,
 } from '@/lib/experienceDocs';
@@ -28,9 +28,6 @@ type Heading = {
 };
 
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-
-const formatDate = (article: Article) =>
-  new Date(article.display_date || article.created_at).toLocaleDateString('zh-CN');
 
 const buildContentWithToc = (html?: string | null): { html: string; headings: Heading[] } => {
   if (!html) {
@@ -84,51 +81,6 @@ const getExcerpt = (article: Article) => {
   return stripTags(article.content || '').slice(0, 110);
 };
 
-const DocTreeList = ({
-  nodes,
-  activeId,
-  nested = false,
-}: {
-  nodes: ExperienceDocNode[];
-  activeId?: number;
-  nested?: boolean;
-}) => (
-  <ul className={nested ? 'mt-1 space-y-1 border-l border-slate-200/80 pl-3' : 'space-y-1'}>
-    {nodes.map((node) => {
-      const active = activeId === node.id;
-      const hasChildren = node.children.length > 0;
-
-      return (
-        <li key={node.id}>
-          <Link href={`/experience?slug=${node.slug}`} aria-current={active ? 'page' : undefined}>
-            <span
-              className={`flex items-start gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${
-                active
-                  ? 'border-cyan-200 bg-cyan-50/90 text-sky-800 shadow-sm shadow-cyan-500/10'
-                  : 'border-transparent text-slate-600 hover:border-white/80 hover:bg-white/80 hover:text-sky-700'
-              }`}
-            >
-              <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-white/70 text-xs">
-                {hasChildren ? '▣' : '□'}
-              </span>
-              <span className="min-w-0">
-                <span className="line-clamp-2 font-medium">{node.title}</span>
-                <span className="mt-0.5 block text-xs text-slate-400">{formatDate(node)}</span>
-              </span>
-            </span>
-          </Link>
-
-          {hasChildren && (
-            <div className="ml-4">
-              <DocTreeList nodes={node.children} activeId={activeId} nested />
-            </div>
-          )}
-        </li>
-      );
-    })}
-  </ul>
-);
-
 export default async function ExperiencePage({ searchParams }: ExperiencePageProps) {
   const resolvedSearchParams = await searchParams;
   const articles = await getExperienceArticles();
@@ -154,7 +106,11 @@ export default async function ExperiencePage({ searchParams }: ExperiencePagePro
 
             <nav aria-label="经验分享文档目录">
               {docTree.length > 0 ? (
-                <DocTreeList nodes={docTree} activeId={activeArticle?.id} />
+                <ExperienceDocTree
+                  nodes={docTree}
+                  activeId={activeArticle?.id}
+                  activePathIds={activePath.map((node) => node.id)}
+                />
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-white/60 px-3 py-4 text-sm text-slate-500">
                   还没有经验文档。后台新建文章时选择“本站经验分享”分类即可显示在这里。
