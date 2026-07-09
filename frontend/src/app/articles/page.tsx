@@ -3,7 +3,9 @@ export const runtime = 'edge';
 import React from 'react';
 import Link from 'next/link';
 import { Article } from '@/types/models';
-import ArticleTimeline from '@/components/ArticleTimeline';
+import ArticleFeed from '@/components/ArticleFeed';
+
+const ARTICLE_PAGE_SIZE = 50;
 
 // 更新分类映射，使用图片中正确的数据库slug
 const categoryMappings = {
@@ -50,6 +52,8 @@ interface ArticlesData {
   items: Article[];
   pageTitle: string;
   totalCount: number;
+  currentPage: number;
+  totalPages: number;
 }
 
 // 定义页面 props 类型
@@ -65,7 +69,7 @@ interface ArticlesPageProps {
 // 获取文章数据
 async function getArticlesData(categoryParam?: string, categoriesParam?: string, searchParam?: string): Promise<ArticlesData | null> {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-  let apiUrl = `${backendUrl}/api/articles?limit=100`;
+  let apiUrl = `${backendUrl}/api/articles?limit=${ARTICLE_PAGE_SIZE}&page=1&sortBy=display_date&orderDirection=desc`;
 
   let actualCategorySlugs: string[] = [];
   let pageTitle = 'AI新鲜事';
@@ -114,10 +118,10 @@ async function getArticlesData(categoryParam?: string, categoriesParam?: string,
       return null;
     }
 
-    const responseData: { items: Article[] } = await res.json();
+    const responseData: { items: Article[]; current_page?: number; total_pages?: number; total_items?: number } = await res.json();
     
     if (!responseData || !responseData.items) {
-      return { items: [], pageTitle, totalCount: 0 };
+      return { items: [], pageTitle, totalCount: 0, currentPage: 1, totalPages: 0 };
     }
     
     responseData.items.sort((a, b) => {
@@ -126,7 +130,13 @@ async function getArticlesData(categoryParam?: string, categoriesParam?: string,
       return dateB - dateA;
     });
     
-    return { items: responseData.items, pageTitle, totalCount: responseData.items.length };
+    return {
+      items: responseData.items,
+      pageTitle,
+      totalCount: responseData.total_items ?? responseData.items.length,
+      currentPage: responseData.current_page || 1,
+      totalPages: responseData.total_pages || 1,
+    };
   } catch (error) {
     console.error('Error fetching articles data:', error);
     return null;
@@ -174,6 +184,11 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
   }
 
   const { items: articles, pageTitle, totalCount } = articlesData;
+  const feedQuery: Record<string, string | undefined> = {
+    search: searchFromQuery?.trim() || undefined,
+    category: !categoriesFromQuery && categoryFromQuery !== 'all' ? categoryFromQuery : undefined,
+    categories: categoriesFromQuery,
+  };
 
   return (
     <div className="min-h-screen bg-[linear-gradient(135deg,#f7fbff_0%,#e8f8f5_42%,#f7f0ff_100%)]">
@@ -211,7 +226,13 @@ export default async function ArticlesPage(props: ArticlesPageProps) {
             </Link>
           </div>
         ) : (
-          <ArticleTimeline articles={articles} />
+          <ArticleFeed
+            initialArticles={articles}
+            initialPage={articlesData.currentPage}
+            totalPages={articlesData.totalPages}
+            totalItems={totalCount}
+            query={feedQuery}
+          />
         )}
       </div>
     </div>

@@ -17,6 +17,7 @@ interface TopLevelCategory {
 
 const topLevelCategories: TopLevelCategory[] = [
   { name: 'AI新鲜事', slug: 'all', description: '所有最新AI文章' },
+  { name: '本站经验分享', slug: 'site-experience', description: '本站建设、工具配置和AI工作流复盘' },
   { name: '大语言模型', slug: 'language-models', children: ['test'], description: '各大厂商的语言模型动态' },
   { name: '生图模型', slug: 'image-generation', children: ['s', 'thyroid-basics'], description: '最新的文生图、图生图技术' },
   { name: '视频模型', slug: 'video-models', children: ['video'], description: '探索视频生成与编辑的未来' },
@@ -69,7 +70,7 @@ export default async function CategoriesPage() {
         {topLevelCategories.map((category) => (
           <Link
             key={category.slug}
-            href={category.slug === 'about' ? '/about' : category.slug === 'all' ? '/articles' : category.children && category.children.length === 1 ? `/articles?category=${category.children[0]}` : category.children && category.children.length > 1 ? `/articles?categories=${category.children.join(',')}` : `/articles?category=${category.slug}`}
+            href={category.slug === 'site-experience' ? '/experience' : category.slug === 'about' ? '/about' : category.slug === 'all' ? '/articles' : category.children && category.children.length === 1 ? `/articles?category=${category.children[0]}` : category.children && category.children.length > 1 ? `/articles?categories=${category.children.join(',')}` : `/articles?category=${category.slug}`}
           >
             <div className="group block rounded-xl border border-white/80 bg-white/85 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-sky-200/90 hover:shadow-xl hover:shadow-sky-500/12">
               <h2 className="text-lg font-semibold mb-2 text-slate-800 group-hover:text-sky-700 transition-colors duration-300">{category.name}</h2>

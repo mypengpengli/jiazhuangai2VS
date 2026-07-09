@@ -18,6 +18,12 @@ const AdminDashboardPage = () => {
         <Link href="/admin/comments" className="block p-4 border rounded hover:bg-gray-100">
           评论管理
         </Link>
+        <Link href="/admin/articles?category=site-experience" className="block p-4 border rounded hover:bg-gray-100">
+          本站经验分享
+        </Link>
+        <Link href="/admin/articles/new?category=site-experience" className="block p-4 border rounded hover:bg-gray-100">
+          新建经验文章
+        </Link>
         {/* Add more links as needed */}
       </div>
     </div>

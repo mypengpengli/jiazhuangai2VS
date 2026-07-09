@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { Article } from '@/types/models';
-
-const PAGE_SIZE = 20;
 
 interface ArticleTimelineProps {
   articles: Article[];
@@ -23,6 +21,7 @@ const getCategoryIcon = (categoryName: string | undefined) => {
     'AI开源软件工具': '🔓',
     'AI未开源软件工具': '🔒',
     '本站推荐': '⭐',
+    '本站经验分享': '📘',
   };
   return iconMap[categoryName || ''] || '📄';
 };
@@ -86,42 +85,9 @@ const ArticleCard = React.memo(({ article }: { article: Article }) => (
 ArticleCard.displayName = 'ArticleCard';
 
 const ArticleTimeline: React.FC<ArticleTimelineProps> = ({ articles }) => {
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const loaderRef = useRef<HTMLDivElement>(null);
-
-  // 当 articles 变化时（比如切换分类），重置可见数量
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [articles]);
-
-  const hasMore = visibleCount < articles.length;
-
-  const loadMore = useCallback(() => {
-    setVisibleCount(prev => Math.min(prev + PAGE_SIZE, articles.length));
-  }, [articles.length]);
-
-  // IntersectionObserver 实现无限滚动
-  useEffect(() => {
-    if (!hasMore || !loaderRef.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          loadMore();
-        }
-      },
-      { rootMargin: '200px' }
-    );
-
-    observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, loadMore]);
-
-  // 只对可见的文章进行分组
   const { sortedDates, groupedByDate } = useMemo(() => {
-    const visible = articles.slice(0, visibleCount);
     const grouped: { [date: string]: Article[] } = {};
-    visible.forEach(article => {
+    articles.forEach(article => {
       const date = new Date(article.display_date || article.created_at);
       const dateKey = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
       if (!grouped[dateKey]) {
@@ -137,7 +103,7 @@ const ArticleTimeline: React.FC<ArticleTimelineProps> = ({ articles }) => {
     });
 
     return { sortedDates: sorted, groupedByDate: grouped };
-  }, [articles, visibleCount]);
+  }, [articles]);
 
   if (!articles || articles.length === 0) {
     return <p className="text-center text-gray-600">暂无文章可显示。</p>;
@@ -162,26 +128,6 @@ const ArticleTimeline: React.FC<ArticleTimelineProps> = ({ articles }) => {
           </div>
         </div>
       ))}
-
-      {/* 加载更多触发器 */}
-      {hasMore && (
-        <div ref={loaderRef} className="flex justify-center py-8">
-          <div className="inline-flex items-center gap-2 text-gray-400 text-sm">
-            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            加载更多...
-          </div>
-        </div>
-      )}
-
-      {/* 到底提示 */}
-      {!hasMore && articles.length > PAGE_SIZE && (
-        <div className="text-center py-6 text-gray-400 text-sm">
-          — 已显示全部 {articles.length} 篇文章 —
-        </div>
-      )}
     </div>
   );
 };

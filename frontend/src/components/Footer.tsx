@@ -59,6 +59,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/articles?categories=soft,locksoft" className="text-gray-400 hover:text-cyan-400 transition-colors flex items-center gap-2">⚡ AI软件工具</Link></li>
               <li><Link href="/articles?category=hardware" className="text-gray-400 hover:text-cyan-400 transition-colors flex items-center gap-2">🔧 AI硬件</Link></li>
+              <li><Link href="/experience" className="text-gray-400 hover:text-cyan-400 transition-colors flex items-center gap-2">📘 本站经验分享</Link></li>
               <li><Link href="/" className="text-gray-400 hover:text-cyan-400 transition-colors flex items-center gap-2">🔥 AI新鲜事</Link></li>
               <li><Link href="/about" className="text-gray-400 hover:text-cyan-400 transition-colors flex items-center gap-2">📖 关于我们</Link></li>
             </ul>

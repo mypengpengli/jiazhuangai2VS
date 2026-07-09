@@ -6,6 +6,29 @@ type Env = {
   // ... 其他绑定
 };
 
+const SYSTEM_CATEGORIES: Array<Pick<Category, 'name' | 'slug' | 'description'>> = [
+  {
+    name: '本站经验分享',
+    slug: 'site-experience',
+    description: '沉淀本站实操经验、工具配置和工作流复盘',
+  },
+];
+
+export const ensureSystemCategories = async (db: D1Database): Promise<void> => {
+  await db.batch(
+    SYSTEM_CATEGORIES.map((category) =>
+      db.prepare(`
+        INSERT INTO categories (name, slug, description)
+        VALUES (?, ?, ?)
+        ON CONFLICT(slug) DO UPDATE SET
+          name = excluded.name,
+          description = COALESCE(categories.description, excluded.description),
+          updated_at = CURRENT_TIMESTAMP
+      `).bind(category.name, category.slug, category.description || null)
+    )
+  );
+};
+
 /**
  * 获取所有分类
  * @param db D1Database 实例
@@ -14,6 +37,7 @@ type Env = {
 export const getAllCategories = async (db: D1Database): Promise<Category[]> => {
   console.log('CategoryService: Fetching all categories');
   try {
+    await ensureSystemCategories(db);
     const stmt = db.prepare('SELECT id, name, slug, description, created_at, updated_at FROM categories ORDER BY name ASC');
     const { results } = await stmt.all<Category>();
     console.log(`CategoryService: Found ${results?.length ?? 0} categories`);

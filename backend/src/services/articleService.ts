@@ -1,5 +1,6 @@
 import { Article, Category, ArticleWithCategoryAndAttachments, CreateArticleInput, ArticleAttachment } from '../models'; // 导入模型
 import { PaginatedArticlesResponse } from '../types/api'; // 导入分页响应类型 (需要创建)
+import { ensureSystemCategories } from './categoryService';
 
 // 定义环境变量类型
 type Env = {
@@ -33,6 +34,7 @@ type VipArticleResult =
 export const getArticles = async (db: D1Database, options: GetArticlesOptions = {}): Promise<PaginatedArticlesResponse> => {
     const { page = 1, limit = 10, categorySlug, categorySlugs, search, sortBy = 'display_date', orderDirection = 'desc' } = options; // 默认按 display_date 降序
     const offset = (page - 1) * limit;
+    await ensureSystemCategories(db);
 
     console.log(`ArticleService: Fetching articles - Page: ${page}, Limit: ${limit}, CategorySlug: ${categorySlug}, CategorySlugs: ${categorySlugs}, Search: ${search}, SortBy: ${sortBy}, Order: ${orderDirection}, Offset: ${offset}`);
 
@@ -69,7 +71,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
         } else {
             console.log(`ArticleService: Category slugs '${effectiveCategorySlugs.join(', ')}' not found, returning empty list.`);
             // 如果分类 slug 无效，直接返回空结果
-            return { items: [], total_pages: 0, current_page: page }; // 使用 items
+            return { items: [], total_pages: 0, current_page: page, total_items: 0 }; // 使用 items
         }
     }
 
@@ -185,6 +187,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
             items: articles, // 使用 items
             total_pages: totalPages,
             current_page: page,
+            total_items: totalArticles,
         };
 
     } catch (error) {

@@ -2,28 +2,50 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Article } from '@/types/models'; // 假设类型已定义
 import { useAuth } from '@/context/AuthContext'; // 用于获取 token
+
+const PAGE_SIZE = 50;
 
 const AdminArticlesPage = () => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const { token } = useAuth(); // 获取 token 用于 API 请求
+  const searchParams = useSearchParams();
+  const categoryFilter = searchParams.get('category') || '';
+  const isExperienceFilter = categoryFilter === 'site-experience';
 
-  useEffect(() => {
-    const fetchArticles = async () => {
+  const fetchArticles = async (page = 1, append = false) => {
       if (!token) {
         setError('用户未认证，无法加载文章。');
         setIsLoading(false);
         return;
       }
-      setIsLoading(true);
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+      }
       setError(null);
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-        // 明确按 display_date 降序排序
-        const response = await fetch(`${backendUrl}/api/articles?limit=100&sortBy=display_date&orderDirection=desc`, {
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          page: String(page),
+          sortBy: 'display_date',
+          orderDirection: 'desc',
+        });
+        if (categoryFilter) {
+          params.set('category', categoryFilter);
+        }
+
+        const response = await fetch(`${backendUrl}/api/articles?${params.toString()}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -33,7 +55,10 @@ const AdminArticlesPage = () => {
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        setArticles(data.items || []); // API 返回的数据结构是 { items: [], ... }
+        setArticles((current) => append ? [...current, ...(data.items || [])] : (data.items || []));
+        setCurrentPage(data.current_page || page);
+        setTotalPages(data.total_pages || 1);
+        setTotalItems(data.total_items || (data.items || []).length);
       } catch (err: unknown) {
         console.error('Failed to fetch articles:', err);
         if (err instanceof Error) {
@@ -43,11 +68,14 @@ const AdminArticlesPage = () => {
         }
       } finally {
         setIsLoading(false);
+        setIsLoadingMore(false);
       }
     };
 
-    fetchArticles();
-  }, [token]);
+  useEffect(() => {
+    fetchArticles(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, categoryFilter]);
 
   const handleDeleteArticle = async (articleId: number) => {
     if (!token) {
@@ -92,9 +120,12 @@ const AdminArticlesPage = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">文章管理</h1>
-        <Link href="/admin/articles/new" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          创建新文章
+        <div>
+          <h1 className="text-3xl font-bold">{isExperienceFilter ? '本站经验分享' : '文章管理'}</h1>
+          <p className="mt-1 text-sm text-gray-500">已加载 {articles.length} / {totalItems || articles.length} 篇</p>
+        </div>
+        <Link href={isExperienceFilter ? '/admin/articles/new?category=site-experience' : '/admin/articles/new'} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+          {isExperienceFilter ? '新建经验文章' : '创建新文章'}
         </Link>
       </div>
 
@@ -152,6 +183,19 @@ const AdminArticlesPage = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {currentPage < totalPages && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => fetchArticles(currentPage + 1, true)}
+            disabled={isLoadingMore}
+            className="rounded bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+          >
+            {isLoadingMore ? '加载中...' : '加载更多'}
+          </button>
         </div>
       )}
     </div>

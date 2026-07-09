@@ -1,20 +1,25 @@
 export const runtime = 'edge';
 import React from 'react';
 import { Article } from '@/types/models';
-import ArticleTimeline from '@/components/ArticleTimeline';
+import ArticleFeed from '@/components/ArticleFeed';
 import SearchBox from '@/components/SearchBox';
 import Link from 'next/link';
+
+const ARTICLE_PAGE_SIZE = 50;
 
 // 定义从 API 获取的数据结构
 interface ArticlesData {
   items: Article[];
   pageTitle: string;
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
 }
 
 // 获取所有文章数据
 async function getAllArticlesData(): Promise<ArticlesData | null> {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-  const apiUrl = `${backendUrl}/api/articles?limit=100`;
+  const apiUrl = `${backendUrl}/api/articles?limit=${ARTICLE_PAGE_SIZE}&page=1&sortBy=display_date&orderDirection=desc`;
 
   try {
     console.log(`Fetching articles from: ${apiUrl}`);
@@ -29,11 +34,11 @@ async function getAllArticlesData(): Promise<ArticlesData | null> {
       return null;
     }
 
-    const responseData: { items: Article[] } = await res.json();
+    const responseData: { items: Article[]; current_page?: number; total_pages?: number; total_items?: number } = await res.json();
     
     if (!responseData || !responseData.items) {
       console.error('Fetched data is not in the expected format (missing items):', responseData);
-      return { items: [], pageTitle: 'AI新鲜事' };
+      return { items: [], pageTitle: 'AI新鲜事', currentPage: 1, totalPages: 0, totalItems: 0 };
     }
     
     console.log(`Fetched ${responseData.items.length} articles.`);
@@ -44,7 +49,13 @@ async function getAllArticlesData(): Promise<ArticlesData | null> {
       return dateB - dateA;
     });
     
-    return { items: responseData.items, pageTitle: 'AI新鲜事' };
+    return {
+      items: responseData.items,
+      pageTitle: 'AI新鲜事',
+      currentPage: responseData.current_page || 1,
+      totalPages: responseData.total_pages || 1,
+      totalItems: responseData.total_items ?? responseData.items.length,
+    };
   } catch (error) {
     console.error('Error fetching articles data:', error);
     return null;
@@ -123,7 +134,12 @@ export default async function Home() {
                 <p className="text-gray-600 text-lg">暂无文章发布，敬请期待...</p>
               </div>
             ) : (
-              <ArticleTimeline articles={articles} />
+              <ArticleFeed
+                initialArticles={articles}
+                initialPage={articlesData.currentPage}
+                totalPages={articlesData.totalPages}
+                totalItems={articlesData.totalItems}
+              />
             )}
           </div>
 
@@ -186,6 +202,7 @@ export default async function Home() {
               <div className="p-4">
                 <div className="grid grid-cols-2 gap-2">
                   {[
+                    { icon: '📘', name: '本站经验分享', href: '/experience' },
                     { icon: '💬', name: '大语言模型', href: '/articles?category=test' },
                     { icon: '🎨', name: '生图模型', href: '/articles?categories=s,thyroid-basics' },
                     { icon: '🎬', name: '视频模型', href: '/articles?category=video' },

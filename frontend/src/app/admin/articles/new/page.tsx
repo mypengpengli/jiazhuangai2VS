@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Category } from '@/types/models'; // 假设 Category 类型已定义
@@ -42,6 +42,8 @@ const CreateArticlePage = () => {
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const presetCategory = searchParams.get('category');
 
   const editor = useEditor({
     extensions: [
@@ -86,6 +88,17 @@ const CreateArticlePage = () => {
     };
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (!presetCategory || categories.length === 0 || categoryId !== '0') {
+      return;
+    }
+
+    const matchedCategory = categories.find((cat) => cat.slug === presetCategory);
+    if (matchedCategory) {
+      setCategoryId(matchedCategory.id.toString());
+    }
+  }, [categories, categoryId, presetCategory]);
 
   const handleAttachmentUpload = (attachment: { key: string; file_url: string; file_type: string; filename?: string; publicUrl?: string }) => {
     setAttachments(prev => [...prev, { ...attachment }]);

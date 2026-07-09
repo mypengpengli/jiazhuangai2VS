@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
 // 定义导航分类
 const categories = [
   { name: '🏠 首页', href: '/', slug: 'home' },
+  { name: '📘 本站经验分享', href: '/experience', slug: 'site-experience' },
   { name: '💬 大语言模型', href: '/articles?category=test', slug: 'language-models' },
   { name: '🎨 生图模型', href: '/articles?categories=s,thyroid-basics', slug: 'image-generation' },
   { name: '🎬 视频模型', href: '/articles?category=video', slug: 'video-models' },
