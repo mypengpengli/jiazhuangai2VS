@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
 
 // 定义导航分类
 const categories = [
+  { name: '🏠 首页', href: '/', slug: 'home' },
   { name: '💬 大语言模型', href: '/articles?category=test', slug: 'language-models' },
   { name: '🎨 生图模型', href: '/articles?categories=s,thyroid-basics', slug: 'image-generation' },
   { name: '🎬 视频模型', href: '/articles?category=video', slug: 'video-models' },
@@ -27,7 +28,7 @@ const Header: React.FC = () => {
 
   const isActiveCategory = (href: string) => {
     if (href === '/') {
-      return pathname === '/' || (pathname === '/articles' && !searchParams.get('category') && !searchParams.get('categories') && !searchParams.get('search'));
+      return pathname === '/';
     }
 
     const [hrefPath, hrefQuery = ''] = href.split('?');
