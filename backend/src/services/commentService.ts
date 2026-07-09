@@ -1,5 +1,36 @@
 import { CommentStatus, CommentWithAuthor } from '../models';
 
+let ensureCommentsTablePromise: Promise<void> | null = null;
+
+const ensureCommentsTable = async (db: D1Database): Promise<void> => {
+  if (!ensureCommentsTablePromise) {
+    ensureCommentsTablePromise = (async () => {
+      await db.prepare(`
+        CREATE TABLE IF NOT EXISTS comments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          article_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          content TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'approved',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+      `).run();
+
+      await db.batch([
+        db.prepare('CREATE INDEX IF NOT EXISTS idx_comments_article_id ON comments (article_id)'),
+        db.prepare('CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments (user_id)'),
+        db.prepare('CREATE INDEX IF NOT EXISTS idx_comments_status ON comments (status)'),
+        db.prepare('CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments (created_at)'),
+      ]);
+    })();
+  }
+
+  return ensureCommentsTablePromise;
+};
+
 const mapCommentRow = (row: any): CommentWithAuthor => ({
   id: row.id,
   article_id: row.article_id,
@@ -14,6 +45,8 @@ const mapCommentRow = (row: any): CommentWithAuthor => ({
 });
 
 export const getCommentsByArticleSlug = async (db: D1Database, slug: string): Promise<CommentWithAuthor[]> => {
+  await ensureCommentsTable(db);
+
   const result = await db.prepare(`
     SELECT
       cm.id, cm.article_id, cm.user_id, cm.content, cm.status, cm.created_at, cm.updated_at,
@@ -36,6 +69,8 @@ export const createComment = async (
   userId: number,
   content: string
 ): Promise<CommentWithAuthor | null> => {
+  await ensureCommentsTable(db);
+
   const article = await db
     .prepare('SELECT id FROM articles WHERE slug = ?')
     .bind(articleSlug)
@@ -59,6 +94,8 @@ export const createComment = async (
 };
 
 export const getAdminComments = async (db: D1Database): Promise<CommentWithAuthor[]> => {
+  await ensureCommentsTable(db);
+
   const result = await db.prepare(`
     SELECT
       cm.id, cm.article_id, cm.user_id, cm.content, cm.status, cm.created_at, cm.updated_at,
@@ -76,6 +113,8 @@ export const getAdminComments = async (db: D1Database): Promise<CommentWithAutho
 };
 
 export const getCommentById = async (db: D1Database, id: number): Promise<CommentWithAuthor | null> => {
+  await ensureCommentsTable(db);
+
   const row = await db.prepare(`
     SELECT
       cm.id, cm.article_id, cm.user_id, cm.content, cm.status, cm.created_at, cm.updated_at,
@@ -96,6 +135,8 @@ export const updateCommentStatus = async (
   id: number,
   status: CommentStatus
 ): Promise<CommentWithAuthor | null> => {
+  await ensureCommentsTable(db);
+
   const updated = await db.prepare(`
     UPDATE comments
     SET status = ?, updated_at = CURRENT_TIMESTAMP
@@ -111,6 +152,8 @@ export const updateCommentStatus = async (
 };
 
 export const deleteComment = async (db: D1Database, id: number): Promise<boolean> => {
+  await ensureCommentsTable(db);
+
   const result = await db.prepare('DELETE FROM comments WHERE id = ?').bind(id).run();
   return result.meta.changes > 0;
 };
