@@ -20,7 +20,9 @@ type UserProfile = {
 type UserColumn = { name: string };
 type PasswordCheck = { valid: boolean; needsUpgrade: boolean };
 
-const PBKDF2_ITERATIONS = 600_000;
+// Cloudflare Workers has a bounded request CPU budget. This remains salted
+// PBKDF2-HMAC-SHA256 while allowing legacy passwords to upgrade on login.
+const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_PREFIX = 'pbkdf2-sha256';
 const encoder = new TextEncoder();
 

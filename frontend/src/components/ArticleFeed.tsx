@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Article } from '@/types/models';
 import ArticleTimeline from './ArticleTimeline';
 
@@ -36,6 +36,16 @@ const ArticleFeed: React.FC<ArticleFeedProps> = ({
   const [knownTotalItems, setKnownTotalItems] = useState(totalItems);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryKey = useMemo(() => JSON.stringify(query), [query]);
+
+  useEffect(() => {
+    setArticles(initialArticles);
+    setCurrentPage(initialPage);
+    setKnownTotalPages(totalPages);
+    setKnownTotalItems(totalItems);
+    setIsLoadingMore(false);
+    setError(null);
+  }, [initialArticles, initialPage, queryKey, totalItems, totalPages]);
 
   const hasMore = currentPage < knownTotalPages;
   const shownCount = articles.length;

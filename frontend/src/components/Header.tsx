@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import Link from 'next/link';
 import { LogIn, LogOut, Menu, Rocket, Settings, Sparkles, UserRound, X } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { primaryNavigation } from '@/lib/navigation';
 
@@ -11,7 +12,10 @@ const Header = () => {
   const { isLoading, logout, token, user } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isMounted, setIsMounted] = useState(false);
   const displayName = user?.display_name || user?.username || '个人资料';
+
+  useEffect(() => { setIsMounted(true); }, []);
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -26,7 +30,7 @@ const Header = () => {
       ? 'flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium text-slate-700 transition hover:bg-sky-50 hover:text-sky-800'
       : 'inline-flex min-h-10 items-center gap-2 rounded-control border border-sky-200 bg-white/75 px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-white';
 
-    if (isLoading) {
+    if (!isMounted || isLoading) {
       return <span className="px-3 text-sm text-slate-400">正在读取账户...</span>;
     }
 
