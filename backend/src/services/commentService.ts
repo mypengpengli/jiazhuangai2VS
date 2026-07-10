@@ -12,7 +12,7 @@ const ensureCommentsTable = async (db: D1Database): Promise<void> => {
           article_id INTEGER NOT NULL,
           user_id INTEGER NOT NULL,
           content TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'approved',
+          status TEXT NOT NULL DEFAULT 'pending',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
@@ -85,7 +85,7 @@ export const createComment = async (
 
   const inserted = await db.prepare(`
     INSERT INTO comments (article_id, user_id, content, status)
-    VALUES (?, ?, ?, 'approved')
+    VALUES (?, ?, ?, 'pending')
     RETURNING id
   `).bind(article.id, userId, content.trim()).first<{ id: number } | null>();
 

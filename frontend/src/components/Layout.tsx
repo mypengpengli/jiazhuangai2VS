@@ -1,25 +1,21 @@
 import React, { Suspense } from 'react';
-import Header from './Header';
-import Footer from './Footer';
 import BackToTop from './BackToTop';
+import Footer from './Footer';
+import Header from './Header';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Suspense fallback={null}>
-        <Header />
-      </Suspense>
-      <main className="flex-grow container mx-auto px-4 py-4">
-        {children}
-      </main>
-      <Footer />
-      <BackToTop />
-    </div>
-  );
-};
+const Layout: React.FC<LayoutProps> = ({ children }) => (
+  <div className="flex min-h-screen flex-col">
+    <Suspense fallback={null}>
+      <Header />
+    </Suspense>
+    <main className="min-w-0 flex-1">{children}</main>
+    <Footer />
+    <BackToTop />
+  </div>
+);
 
 export default Layout;

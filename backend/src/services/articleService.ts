@@ -17,6 +17,7 @@ interface GetArticlesOptions {
     search?: string; // 新增：搜索关键词
     sortBy?: 'created_at' | 'updated_at' | 'title' | 'display_date' | 'view_count'; // 添加 display_date 和 view_count
     orderDirection?: 'asc' | 'desc';
+    includeContent?: boolean;
 }
 
 const EXPERIENCE_CATEGORY_SLUG = 'site-experience';
@@ -91,15 +92,14 @@ type VipArticleResult =
  * @returns 分页后的文章列表及总页数
  */
 export const getArticles = async (db: D1Database, options: GetArticlesOptions = {}): Promise<PaginatedArticlesResponse> => {
-    const { page = 1, limit = 10, categorySlug, categorySlugs, search, sortBy = 'display_date', orderDirection = 'desc' } = options; // 默认按 display_date 降序
+    const { page = 1, limit = 10, categorySlug, categorySlugs, search, sortBy = 'display_date', orderDirection = 'desc', includeContent = false } = options; // 默认按 display_date 降序
     const offset = (page - 1) * limit;
     await ensureSystemCategories(db);
 
-    console.log(`ArticleService: Fetching articles - Page: ${page}, Limit: ${limit}, CategorySlug: ${categorySlug}, CategorySlugs: ${categorySlugs}, Search: ${search}, SortBy: ${sortBy}, Order: ${orderDirection}, Offset: ${offset}`);
-
     let articlesQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.view_count, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type${includeContent ? ', a.content' : ''}, a.category_id, a.parent_id, a.display_date, a.view_count, a.created_at, a.updated_at,
+            (SELECT file_url FROM article_attachments aa WHERE aa.article_id = a.id AND aa.file_type = 'image' ORDER BY aa.id ASC LIMIT 1) as cover_image,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug -- 别名避免冲突
         FROM articles a
         LEFT JOIN categories c ON a.category_id = c.id
@@ -126,9 +126,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
             queryParams.push(...categoryIds);
             countParams.push(...categoryIds);
             
-            console.log(`ArticleService: Filtering by category IDs: ${categoryIds.join(', ')}`);
         } else {
-            console.log(`ArticleService: Category slugs '${effectiveCategorySlugs.join(', ')}' not found, returning empty list.`);
             // 如果分类 slug 无效，直接返回空结果
             return { items: [], total_pages: 0, current_page: page, total_items: 0 }; // 使用 items
         }
@@ -144,7 +142,6 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
         whereClauses.push(`(a.title LIKE ? OR a.content LIKE ?)`);
         queryParams.push(searchTerm, searchTerm);
         countParams.push(searchTerm, searchTerm);
-        console.log(`ArticleService: Searching for: ${search}`);
     }
 
     // 构建 WHERE 子句
@@ -197,9 +194,6 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
     articlesQuery += ' LIMIT ? OFFSET ?';
     queryParams.push(limit, offset);
 
-    console.log('ArticleService: Executing articles query:', articlesQuery, queryParams);
-    console.log('ArticleService: Executing count query:', countQuery, countParams);
-
     try {
         // 执行查询
         const articlesStmt = db.prepare(articlesQuery);
@@ -214,8 +208,6 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
         const totalArticles = countResult?.total ?? 0;
         const totalPages = Math.ceil(totalArticles / limit);
 
-        console.log(`ArticleService: Found ${articlesResults.results?.length ?? 0} articles for page ${page}. Total articles: ${totalArticles}`);
-
         // 处理查询结果，将 category_* 字段组合成 category 对象
         const articles: ArticleWithCategoryAndAttachments[] = (articlesResults.results ?? []).map((row: any) => {
             const article: ArticleWithCategoryAndAttachments = {
@@ -228,6 +220,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
                 parent_id: row.parent_id,
                 display_date: row.display_date, // 添加 display_date
                 view_count: row.view_count ?? 0,
+                cover_image: row.cover_image || null,
                 created_at: row.created_at,
                 updated_at: row.updated_at,
                 // attachments: [] // 暂时不填充附件
@@ -337,6 +330,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
     const articleQuery = `
         SELECT
             a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.view_count, a.created_at, a.updated_at,
+            (SELECT file_url FROM article_attachments aa WHERE aa.article_id = a.id AND aa.file_type = 'image' ORDER BY aa.id ASC LIMIT 1) as cover_image,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug
         FROM articles a
         LEFT JOIN categories c ON a.category_id = c.id
@@ -373,6 +367,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
             parent_id: articleRow.parent_id,
             display_date: articleRow.display_date, // 添加 display_date
             view_count: articleRow.view_count ?? 0,
+            cover_image: articleRow.cover_image || null,
             created_at: articleRow.created_at,
             updated_at: articleRow.updated_at,
             attachments: attachmentsResult.results || [],
@@ -521,8 +516,6 @@ export const getVipArticle = async (db: D1Database): Promise<VipArticleResult> =
  * @returns 更新后的文章对象，如果找不到则返回 null
  */
 export const updateArticle = async (db: D1Database, id: number, articleData: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at'>> & { attachments?: Partial<ArticleAttachment>[] }): Promise<Article | null> => {
-console.log(`ArticleService: Attempting to update article with ID: ${id}. Received raw articleData:`, JSON.stringify(articleData, null, 2));
-    console.log(`ArticleService: Updating article with ID: ${id}`);
 
     // 解构时排除 attachments，单独处理
     const { attachments, display_date, ...articleBaseFields } = articleData;
@@ -532,7 +525,6 @@ console.log(`ArticleService: Attempting to update article with ID: ${id}. Receiv
     ).bind(id).first<ArticleParentRow>();
 
     if (!currentArticleForParent) {
-        console.log(`ArticleService: Article with ID ${id} not found before update.`);
         return null;
     }
 
@@ -560,8 +552,8 @@ console.log(`ArticleService: Attempting to update article with ID: ${id}. Receiv
         values.push(display_date === undefined ? null : display_date); // 修复类型错误，undefined 转为 null
     }
 
-    if (setClauses.length === 0 && (!attachments || attachments.length === 0)) {
-        console.log(`ArticleService: No fields or attachments to update for article ID: ${id}.`);
+    const hasAttachmentsField = Object.prototype.hasOwnProperty.call(articleData, 'attachments');
+    if (setClauses.length === 0 && !hasAttachmentsField) {
         const currentArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
         return currentArticle ?? null;
     }
@@ -569,50 +561,29 @@ console.log(`ArticleService: Attempting to update article with ID: ${id}. Receiv
     if (setClauses.length > 0 && !setClauses.some(clause => clause.startsWith('updated_at ='))) { // 确保不重复添加 updated_at
         setClauses.push('updated_at = CURRENT_TIMESTAMP');
     }
-console.log(`ArticleService: SQL Update - Constructed SET Clauses: ${setClauses.join(', ')}`);
-    console.log(`ArticleService: SQL Update - Constructed Values for bind: ${JSON.stringify(values)}`);
-    
-    // TODO: 实现附件的更新逻辑 (删除旧的，添加新的)
-    // 这部分比较复杂，暂时跳过，仅更新文章主表字段
-    // if (attachments) {
-    //     // 1. 删除与此文章关联的所有旧附件 (简单策略，或者可以做更细致的比较)
-    //     const deleteAttachmentsStmt = db.prepare('DELETE FROM article_attachments WHERE article_id = ?').bind(id);
-    //     updateStatements.push(deleteAttachmentsStmt);
-    //     // 2. 插入新的附件
-    //     attachments.forEach(att => {
-    //         if (att.file_type && att.file_url) { // 确保基本字段存在
-    //             const insertAttachmentStmt = db.prepare(
-    //                 `INSERT INTO article_attachments (article_id, file_type, file_url, filename, description)
-    //                  VALUES (?, ?, ?, ?, ?)`
-    //             ).bind(id, att.file_type, att.file_url, att.filename || null, att.description || null);
-    //             updateStatements.push(insertAttachmentStmt);
-    //         }
-    //     });
-    // }
-
-
     try {
         let updatedArticle: Article | null = null;
         if (setClauses.length > 0) {
             const articleUpdateSql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at`;
             updatedArticle = await db.prepare(articleUpdateSql).bind(...values, id).first<Article>();
-console.log('ArticleService: SQL Update - RETURNING updatedArticle from DB:', JSON.stringify(updatedArticle, null, 2));
-        } else if (attachments && attachments.length > 0) {
-            // 如果只更新附件 (当前附件更新逻辑未完成)，需要先获取当前文章信息
+        } else if (hasAttachmentsField) {
             updatedArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
         }
 
 
         if (!updatedArticle) {
-            console.log(`ArticleService: Article with ID ${id} not found for update.`);
             return null;
         }
-        
-        // TODO: 在事务中处理附件更新
-        // if (attachments) { ... }
 
+        if (hasAttachmentsField) {
+            const attachmentStatements = [db.prepare('DELETE FROM article_attachments WHERE article_id = ?').bind(id)];
+            for (const attachment of attachments || []) {
+                if (!attachment.file_type || !attachment.file_url) continue;
+                attachmentStatements.push(db.prepare('INSERT INTO article_attachments (article_id, file_type, file_url, filename, description) VALUES (?, ?, ?, ?, ?)').bind(id, attachment.file_type, attachment.file_url, attachment.filename || null, attachment.description || null));
+            }
+            await db.batch(attachmentStatements);
+        }
 
-        console.log(`ArticleService: Article ${id} updated successfully.`);
         return updatedArticle;
     } catch (error: any) {
         console.error(`Error in updateArticle for ID ${id}:`, error);

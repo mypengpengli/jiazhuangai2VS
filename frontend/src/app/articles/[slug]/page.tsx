@@ -1,186 +1,94 @@
 export const runtime = 'edge';
-import React from 'react';
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import MarkdownRenderer from '@/components/MarkdownRenderer';
-import { Article } from '@/types/models'; // 复用类型定义
-import ViewCounter from '@/components/ViewCounter';
-import ReadingProgress from '@/components/ReadingProgress';
-import CommentSection from '@/components/CommentSection';
 
-// 定义页面 props 类型，包含从动态路由获取的 slug
-// params 和 searchParams 都是 Promise (Next.js 15)
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { ArrowLeft, ArrowRight, CalendarDays, ChevronRight, FolderOpen } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import CommentSection from '@/components/CommentSection';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
+import ReadingProgress from '@/components/ReadingProgress';
+import ViewCounter from '@/components/ViewCounter';
+import { extractPlainText, normalizeMarkdownContent, prepareArticleHtml } from '@/lib/content';
+import { formatArticleDate } from '@/lib/formatters';
+import { resolveMediaUrl } from '@/lib/media';
+import { Article } from '@/types/models';
+
 interface ArticleDetailPageProps {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-
-// 在服务器组件中获取单篇文章数据
-async function getArticleData(slug: string): Promise<Article | null> {
+const getArticleData = async (slug: string): Promise<Article | null> => {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-  const apiUrl = `${backendUrl}/api/articles/${slug}`;
+  const response = await fetch(`${backendUrl}/api/articles/${slug}`, { next: { revalidate: 60 } });
+  if (response.status === 404 || !response.ok) return null;
+  return response.json() as Promise<Article>;
+};
 
-  try {
-    console.log(`Fetching article details from: ${apiUrl}`);
-    const res = await fetch(apiUrl);
+const extractDescription = (content?: string, maxLength = 155) => extractPlainText(content).slice(0, maxLength);
 
-    if (res.status === 404) {
-      console.log(`Article with slug '${slug}' not found (404).`);
-      return null; // 文章不存在
-    }
-
-    if (!res.ok) {
-      console.error(`Failed to fetch article ${slug}: ${res.status} ${res.statusText}`);
-      const errorBody = await res.text();
-      console.error(`Error body: ${errorBody}`);
-      return null;
-    }
-
-    const article: Article = await res.json();
-    console.log(`Fetched article: ${article.title}`);
-
-    // Construct publicUrl for attachments if prefix is available
-    if (article && article.attachments && Array.isArray(article.attachments)) {
-      const r2PublicUrlPrefix = process.env.NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX;
-      if (r2PublicUrlPrefix) {
-        article.attachments = article.attachments.map(att => {
-          const fileKey = typeof att.file_url === 'string' ? att.file_url : '';
-          return {
-            ...att,
-            publicUrl: `${r2PublicUrlPrefix.replace(/\/$/, '')}/${fileKey}`
-          };
-        });
-      } else {
-        console.warn("NEXT_PUBLIC_R2_PUBLIC_URL_PREFIX is not set, publicUrls for attachments might be incorrect.");
-        article.attachments = article.attachments.map(att => ({
-          ...att,
-          publicUrl: att.file_url
-        }));
-      }
-    }
-    return article;
-  } catch (error) {
-    console.error(`Error fetching article data for slug ${slug}:`, error);
-    return null;
-  }
-}
-
-// 从 HTML/Markdown 内容中提取纯文本摘要（用于 SEO 描述）
-function extractDescription(content: string | undefined, maxLength = 160): string {
-  if (!content) return '加装AI助手 - AI资讯与工具导航';
-  const plainText = content
-    .replace(/<[^>]+>/g, ' ')          // 去掉 HTML 标签
-    .replace(/[#*`>\-\[\]()!|]/g, ' ') // 去掉常见 Markdown 符号
-    .replace(/\s+/g, ' ')
-    .trim();
-  return plainText.slice(0, maxLength) || '加装AI助手 - AI资讯与工具导航';
-}
-
-// 为每篇文章生成独立的 SEO 元数据
 export async function generateMetadata({ params }: ArticleDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticleData(slug);
-  if (!article) {
-    return { title: '文章未找到 - 加装AI助手' };
-  }
-  const description = extractDescription(article.content);
+  if (!article) return { title: '文章未找到' };
+  const description = extractDescription(article.content) || '加装AI助手的 AI 资讯与实践内容。';
+  const image = resolveMediaUrl(article.cover_image);
   return {
-    title: `${article.title} - 加装AI助手`,
+    title: article.title,
     description,
-    openGraph: {
-      title: article.title,
-      description,
-      type: 'article',
-    },
+    alternates: { canonical: `/articles/${article.slug}` },
+    openGraph: { type: 'article', title: article.title, description, url: `/articles/${article.slug}`, images: image ? [{ url: image }] : undefined },
+    twitter: { card: image ? 'summary_large_image' : 'summary', title: article.title, description, images: image ? [image] : undefined },
   };
 }
 
-// 文章详情页面组件 (异步服务器组件)
 export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
   const { slug } = await params;
-
   const article = await getArticleData(slug);
+  if (!article) notFound();
 
-  // 如果获取数据失败或文章不存在，显示 404 页面
-  if (!article) {
-    notFound();
-  }
-
-  const displayDate = new Date(article.display_date || article.created_at);
   const categoryName = article.category?.name || '未分类';
   const categoryHref = article.category?.slug ? `/articles?category=${article.category.slug}` : '/articles';
+  const displayDate = article.display_date || article.created_at;
+  const preparedHtml = article.content_type === 'html' ? await prepareArticleHtml(article.content, article.title) : null;
+  const markdown = article.content_type === 'html' ? '' : normalizeMarkdownContent(article.content, article.title);
+  const image = resolveMediaUrl(article.cover_image);
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: article.title,
+    datePublished: article.created_at,
+    dateModified: article.updated_at || article.created_at,
+    mainEntityOfPage: `https://jiazhuangai.com/articles/${article.slug}`,
+    author: { '@type': 'Organization', name: '加装AI助手', url: 'https://jiazhuangai.com/about' },
+    publisher: { '@type': 'Organization', name: '加装AI助手', url: 'https://jiazhuangai.com' },
+    ...(image ? { image: [image] } : {}),
+  };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* 阅读进度条 */}
+    <div className="page-shell py-5 sm:py-8">
       <ReadingProgress />
-
-      {/* 面包屑导航 */}
-      <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <Link href="/" className="hover:text-purple-600 transition-colors">首页</Link>
-        <span>/</span>
-        <Link href={categoryHref} className="hover:text-purple-600 transition-colors">{categoryName}</Link>
-        <span>/</span>
-        <span className="text-gray-700 truncate max-w-[50%]">{article.title}</span>
+      <nav className="mx-auto mb-5 flex max-w-[var(--reading-max)] items-center gap-1.5 overflow-hidden whitespace-nowrap text-sm text-slate-500" aria-label="面包屑">
+        <Link href="/" className="hover:text-brand-strong">首页</Link><ChevronRight className="size-3.5 shrink-0" /><Link href={categoryHref} className="hover:text-brand-strong">{categoryName}</Link><ChevronRight className="size-3.5 shrink-0" /><span className="truncate text-slate-400">{article.title}</span>
       </nav>
 
-      <article className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-10">
-        {/* 文章头部 */}
-        <header className="mb-8 pb-6 border-b border-gray-100">
-          <Link href={categoryHref}>
-            <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-cyan-50 to-purple-50 text-purple-700 rounded-full text-xs font-semibold border border-purple-100 mb-4 hover:border-purple-300 transition-colors">
-              {categoryName}
-            </span>
-          </Link>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight mb-4">{article.title}</h1>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500">
-            <span className="inline-flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {displayDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </span>
-            <ViewCounter slug={article.slug} initialCount={article.view_count ?? 0} />
-          </div>
+      <article className="mx-auto max-w-[var(--reading-max)]">
+        <header className="border-b border-slate-200 pb-7">
+          <Link href={categoryHref} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-sky-50 px-2.5 text-xs font-semibold text-brand-strong transition hover:bg-sky-100"><FolderOpen className="size-3.5" />{categoryName}</Link>
+          <h1 className="mt-4 text-[2rem] font-bold leading-[1.25] text-slate-950 sm:text-[2.65rem]">{article.title}</h1>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500"><span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" />{formatArticleDate(displayDate)}</span><ViewCounter slug={article.slug} initialCount={article.view_count ?? 0} /></div>
         </header>
 
-        {/* 文章内容 */}
-        {article.content ? (
-          article.content_type === 'html' ? (
-            <div className="article-content" dangerouslySetInnerHTML={{ __html: article.content }} />
-          ) : (
-            <div className="article-content">
-              <MarkdownRenderer content={article.content} />
-            </div>
-          )
-        ) : (
-          <p className="text-gray-500">文章内容为空。</p>
-        )}
+        {image && <img src={image} alt="" className="mt-7 aspect-[16/8] w-full rounded-panel border border-slate-200 object-cover" />}
+        {preparedHtml?.html ? <div className="content-prose mt-7" dangerouslySetInnerHTML={{ __html: preparedHtml.html }} /> : markdown ? <div className="content-prose mt-7"><MarkdownRenderer content={markdown} /></div> : <p className="mt-7 text-slate-500">文章内容暂未填写。</p>}
 
-        {/* 文章底部操作 */}
-        <footer className="mt-10 pt-6 border-t border-gray-100 flex flex-wrap gap-3">
-          <Link href="/">
-            <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm font-medium transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              返回首页
-            </span>
-          </Link>
-          <Link href={categoryHref}>
-            <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white rounded-full text-sm font-medium transition-colors">
-              更多{categoryName}文章
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </span>
-          </Link>
+        <footer className="mt-10 flex flex-wrap gap-3 border-t border-slate-200 pt-5">
+          <Link href="/" className="inline-flex min-h-11 items-center gap-2 rounded-control border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"><ArrowLeft className="size-4" />返回首页</Link>
+          <Link href={categoryHref} className="inline-flex min-h-11 items-center gap-2 rounded-control bg-brand px-4 text-sm font-medium text-white transition hover:bg-brand-strong">更多{categoryName}<ArrowRight className="size-4" /></Link>
         </footer>
       </article>
 
-      <CommentSection articleSlug={article.slug} />
+      <div className="mx-auto max-w-[var(--reading-max)]"><CommentSection articleSlug={article.slug} /></div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
     </div>
   );
 }

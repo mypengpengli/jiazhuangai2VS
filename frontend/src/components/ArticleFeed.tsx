@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Article } from '@/types/models';
 import ArticleTimeline from './ArticleTimeline';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 12;
 
 interface ArticleFeedProps {
   initialArticles: Article[];
@@ -107,7 +107,7 @@ const ArticleFeed: React.FC<ArticleFeedProps> = ({
             type="button"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="rounded-full border border-cyan-200/80 bg-white/80 px-6 py-2.5 text-sm font-medium text-sky-700 shadow-[0_12px_30px_rgba(14,165,233,0.12)] backdrop-blur-xl transition hover:border-cyan-300 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 rounded-control border border-sky-200 bg-white px-5 text-sm font-medium text-brand-strong shadow-sm transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoadingMore ? '加载中...' : '加载更多'}
           </button>

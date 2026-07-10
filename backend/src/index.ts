@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { bearerAuth } from 'hono/bearer-auth';
 
 // Import individual route handlers
 import authRoutes from './routes/auth';
@@ -9,6 +8,7 @@ import categoryRoutes from './routes/categories';
 import r2Routes from './routes/r2Routes';
 import subscribeRoutes from './routes/subscribe';
 import commentRoutes from './routes/comments';
+import userRoutes from './routes/users';
 
 // Define the environment variables binding
 export type Env = {
@@ -20,8 +20,26 @@ export type Env = {
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Apply CORS middleware to all routes
-app.use('*', cors());
+const allowedOrigins = new Set([
+  'https://jiazhuangai.com',
+  'https://www.jiazhuangai.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+]);
+
+app.use('/api/*', cors({
+  origin: (origin) => (allowedOrigins.has(origin) ? origin : ''),
+  allowHeaders: ['Authorization', 'Content-Type'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  maxAge: 86400,
+}));
+
+app.use('*', async (c, next) => {
+  await next();
+  c.header('X-Content-Type-Options', 'nosniff');
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+});
 
 // Register existing API routes
 app.route('/api/auth', authRoutes);
@@ -30,49 +48,12 @@ app.route('/api/categories', categoryRoutes);
 app.route('/api/r2', r2Routes);
 app.route('/api/subscribe', subscribeRoutes);
 app.route('/api/comments', commentRoutes);
-
-// Debug route to check bindings
-app.get('/api/debug', async (c) => {
-  const env = c.env;
-  const bindings = {
-    hasDB: !!env.DB,
-    hasKV: !!(env as any).KV,
-    hasBucket: !!(env as any).R2_BUCKET || !!(env as any).BUCKET,
-    hasJWT: !!env.JWT_SECRET,
-    envKeys: Object.keys(env),
-  };
-  
-  // Try to query categories if DB exists
-  let categoriesError = null;
-  let categoriesCount = 0;
-  
-  if (env.DB) {
-    try {
-      const result = await env.DB.prepare('SELECT COUNT(*) as count FROM categories').first<{count: number}>();
-      categoriesCount = result?.count || 0;
-    } catch (e: any) {
-      categoriesError = e.message || String(e);
-    }
-  }
-  
-  return c.json({
-    bindings,
-    database: {
-      bound: !!env.DB,
-      categoriesCount,
-      error: categoriesError,
-    },
-    request: {
-      url: c.req.url,
-      headers: Object.fromEntries(c.req.raw.headers.entries()),
-    },
-  });
-});
+app.route('/api/users', userRoutes);
 
 // Global error handler
 app.onError((err, c) => {
   console.error(`${err}`);
-  return c.json({ error: 'Internal Server Error', message: err.message }, 500);
+  return c.json({ error: 'Internal Server Error', message: '服务暂时不可用，请稍后再试。' }, 500);
 });
 
 export default app;

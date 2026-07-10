@@ -25,18 +25,21 @@ const r2Routes = new Hono<{ Bindings: Bindings, Variables: Variables }>();
 // 应用认证中间件，保护此路由
 r2Routes.use('/presigned-url', authMiddleware);
 r2Routes.use('/presigned-url', adminMiddleware);
+r2Routes.use('/temp-upload', authMiddleware);
+r2Routes.use('/temp-upload', adminMiddleware);
 
 r2Routes.post('/presigned-url', async (c) => {
     try {
-        console.log('Received request for /api/r2/presigned-url');
         const body = await c.req.json<{ filename: string; contentType: string; directoryPrefix?: string }>();
-        console.log('Request body for presigned URL:', JSON.stringify(body));
         
         const { filename, contentType, directoryPrefix } = body;
 
-        if (!filename || filename.trim() === '' || !contentType || contentType.trim() === '') {
-            console.error('Validation failed: filename or contentType is missing or empty.', { filename, contentType });
+        if (!filename || filename.trim() === '' || filename.length > 180 || !contentType || contentType.trim() === '') {
             return c.json({ error: 'Bad Request', message: 'Filename and contentType are required and cannot be empty.' }, 400);
+        }
+
+        if (!/^(image\/(png|jpe?g|webp|gif)|video\/(mp4|webm)|application\/pdf)$/.test(contentType)) {
+            return c.json({ error: 'Bad Request', message: 'Unsupported upload content type.' }, 400);
         }
 
         const {
@@ -51,19 +54,15 @@ r2Routes.post('/presigned-url', async (c) => {
         const r2ConfigAvailable = R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_PUBLIC_URL_PREFIX;
         
         if (!r2ConfigAvailable) {
-            console.warn('R2 configuration not available, returning temporary response');
-            // 返回一个临时的响应，避免前端报错
-            const uniqueKey = `${directoryPrefix || 'uploads/'}${uuidv4()}.${filename.split('.').pop() || 'jpg'}`;
-            return c.json({
-                uploadUrl: 'https://api.jiazhuangai.com/api/r2/temp-upload',
-                key: uniqueKey,
-                publicUrl: `https://api.jiazhuangai.com/files/${uniqueKey}`,
-                isTemporary: true
-            });
+            console.warn('R2 configuration is not available.');
+            return c.json({ error: 'Service Unavailable', message: '文件上传服务暂时不可用。' }, 503);
         }
 
         // 清理和准备目录前缀
         let prefix = directoryPrefix || 'uploads/'; // 默认 "uploads/"
+        if (prefix.includes('..') || prefix.includes('\\')) {
+            return c.json({ error: 'Bad Request', message: 'Invalid upload directory.' }, 400);
+        }
         if (prefix.startsWith('/')) {
             prefix = prefix.substring(1);
         }
@@ -108,7 +107,7 @@ r2Routes.post('/presigned-url', async (c) => {
 
     } catch (error) {
         console.error('Error generating presigned URL:', error);
-        return c.json({ error: 'Failed to generate presigned URL', details: error instanceof Error ? error.message : String(error) }, 500);
+        return c.json({ error: '生成上传凭证失败，请稍后重试。' }, 500);
     }
 });
 
@@ -125,13 +124,7 @@ r2Routes.post('/temp-upload', async (c) => {
         // 生成唯一文件名
         const uniqueKey = `uploads/${uuidv4()}.jpg`;
         
-        // 这里可以添加文件存储逻辑，比如存储到KV或者返回文件内容
-        // 暂时返回成功响应
-        return c.json({
-            success: true,
-            key: uniqueKey,
-            publicUrl: `https://api.jiazhuangai.com/files/${uniqueKey}`
-        });
+        return c.json({ error: 'Not Implemented', message: `临时上传不可用：${uniqueKey}` }, 501);
     } catch (error) {
         console.error('Error in temp upload:', error);
         return c.json({ error: 'Upload failed' }, 500);

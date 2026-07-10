@@ -6,7 +6,9 @@ CREATE TABLE IF NOT EXISTS users (
     bio TEXT,
     password TEXT NOT NULL, -- 存储哈希后的密码
     role TEXT NOT NULL DEFAULT 'user', -- 添加角色列，默认为 'user'
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 分类表
@@ -64,7 +66,7 @@ CREATE TABLE IF NOT EXISTS comments (
     article_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     content TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'approved', -- approved=显示, hidden=隐藏
+    status TEXT NOT NULL DEFAULT 'pending', -- pending=待审核, approved=显示, hidden=隐藏
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,

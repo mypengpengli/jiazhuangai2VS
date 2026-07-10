@@ -17,14 +17,13 @@ const categoryRoutes = new Hono<{ Bindings: Env, Variables: Variables }>();
 
 // 获取所有分类 (公开访问)
 categoryRoutes.get('/', async (c) => {
-  console.log('Route: GET /api/categories');
   try {
     const categories = await getAllCategories(c.env.DB); // 调用服务函数
     return c.json({ items: categories }); // 修改为返回 { items: [...] } 格式
     // --- 移除临时占位符 ---
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching categories:', error);
-    return c.json({ error: 'Failed to fetch categories', message: error.message }, 500);
+    return c.json({ error: '分类列表加载失败，请稍后重试。' }, 500);
   }
 });
 
@@ -35,17 +34,15 @@ categoryRoutes.get(
   async (c) => {
     const { id } = c.req.valid('param');
     const categoryId = parseInt(id, 10);
-    console.log(`Route: GET /api/categories/${categoryId}`);
-
     try {
       const category = await getCategoryById(c.env.DB, categoryId);
       if (!category) {
         return c.json({ error: 'Not Found', message: `Category with ID ${categoryId} not found.` }, 404);
       }
       return c.json(category);
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error fetching category ${categoryId}:`, error);
-      return c.json({ error: 'Failed to fetch category', message: error.message }, 500);
+      return c.json({ error: '分类加载失败，请稍后重试。' }, 500);
     }
   }
 );
@@ -69,9 +66,6 @@ protectedCategoryRoutes.post(
     zValidator('json', createCategorySchema), // 应用请求体验证
     async (c) => {
         const categoryData = c.req.valid('json');
-        const user = c.get('user'); // 从上下文中获取认证用户信息
-        console.log(`Route: POST /api/categories by user: ${user?.username} with data:`, categoryData);
-
         try {
             const newCategory = await createCategory(c.env.DB, categoryData);
             return c.json(newCategory, 201); // 返回 201 Created 和新创建的资源
@@ -79,9 +73,9 @@ protectedCategoryRoutes.post(
             console.error('Error creating category:', error);
             // 如果是唯一性约束错误，返回 409 Conflict
             if (error.message?.includes('already exists')) {
-                return c.json({ error: 'Conflict', message: error.message }, 409);
+                return c.json({ error: '分类名称或 URL 标识已存在。' }, 409);
             }
-            return c.json({ error: 'Failed to create category', message: error.message }, 500);
+            return c.json({ error: '分类创建失败，请稍后重试。' }, 500);
         }
     }
 );
@@ -97,10 +91,7 @@ protectedCategoryRoutes.put(
     async (c) => {
         const { id } = c.req.valid('param');
         const categoryData = c.req.valid('json');
-        const user = c.get('user');
         const categoryId = parseInt(id, 10); // 将 ID 转换为数字
-
-        console.log(`Route: PUT /api/categories/${categoryId} by user: ${user?.username} with data:`, categoryData);
 
         if (Object.keys(categoryData).length === 0) {
             return c.json({ error: 'Bad Request', message: 'No fields provided for update.' }, 400);
@@ -116,9 +107,9 @@ protectedCategoryRoutes.put(
             console.error(`Error updating category ${categoryId}:`, error);
             // 处理唯一性约束错误
             if (error.message?.includes('already exists')) {
-                return c.json({ error: 'Conflict', message: error.message }, 409);
+                return c.json({ error: '分类名称或 URL 标识已存在。' }, 409);
             }
-            return c.json({ error: 'Failed to update category', message: error.message }, 500);
+            return c.json({ error: '分类保存失败，请稍后重试。' }, 500);
         }
     }
 );
@@ -129,10 +120,7 @@ protectedCategoryRoutes.delete(
     zValidator('param', z.object({ id: z.string().regex(/^\d+$/, "ID 必须是数字") })), // 验证路径参数 ID
     async (c) => {
         const { id } = c.req.valid('param');
-        const user = c.get('user');
         const categoryId = parseInt(id, 10);
-
-        console.log(`Route: DELETE /api/categories/${categoryId} by user: ${user?.username}`);
 
         try {
             const deleted = await deleteCategory(c.env.DB, categoryId);
@@ -147,9 +135,9 @@ protectedCategoryRoutes.delete(
             console.error(`Error deleting category ${categoryId}:`, error);
             // 处理外键约束错误
             if (error.message?.includes('FOREIGN KEY constraint failed')) {
-                return c.json({ error: 'Conflict', message: error.message }, 409);
+                return c.json({ error: '分类下仍有文章，不能删除。' }, 409);
             }
-            return c.json({ error: 'Failed to delete category', message: error.message }, 500);
+            return c.json({ error: '分类删除失败，请稍后重试。' }, 500);
         }
     }
 );

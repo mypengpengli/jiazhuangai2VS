@@ -1,197 +1,119 @@
-'use client'; // Header needs to be a client component to use context
+'use client';
 
-import React, { useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import Link from 'next/link';
+import { LogIn, LogOut, Menu, Rocket, Settings, Sparkles, UserRound, X } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth hook
+import { useAuth } from '@/context/AuthContext';
+import { primaryNavigation } from '@/lib/navigation';
 
-// 定义导航分类
-const categories = [
-  { name: '🏠 首页', href: '/', slug: 'home' },
-  { name: '💬 大语言模型', href: '/articles?category=test', slug: 'language-models' },
-  { name: '🎨 生图模型', href: '/articles?categories=s,thyroid-basics', slug: 'image-generation' },
-  { name: '🎬 视频模型', href: '/articles?category=video', slug: 'video-models' },
-  { name: '🎵 音频模型', href: '/articles?categories=voice,music', slug: 'audio-models' },
-  { name: '🔧 AI硬件', href: '/articles?category=hardware', slug: 'ai-hardware' },
-  { name: '⚡ AI工具', href: '/articles?categories=soft,locksoft', slug: 'ai-tools' },
-  { name: '📘 本站经验分享', href: '/experience', slug: 'site-experience' },
-];
-
-const Header: React.FC = () => {
-  const { user, token, isLoading, logout } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+const Header = () => {
+  const { isLoading, logout, token, user } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const displayUserName = user?.display_name || user?.username;
+  const displayName = user?.display_name || user?.username || '个人资料';
 
-  const handleLogout = () => {
-    logout();
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/';
+    const [path, query] = href.split('?');
+    if (pathname !== path) return false;
+    if (!query) return true;
+    return Array.from(new URLSearchParams(query)).every(([key, value]) => searchParams.get(key) === value);
   };
 
-  const isActiveCategory = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
+  const accountLinks = (mobile = false) => {
+    const itemClass = mobile
+      ? 'flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium text-slate-700 transition hover:bg-sky-50 hover:text-sky-800'
+      : 'inline-flex min-h-10 items-center gap-2 rounded-control border border-sky-200 bg-white/75 px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-white';
+
+    if (isLoading) {
+      return <span className="px-3 text-sm text-slate-400">正在读取账户...</span>;
     }
 
-    const [hrefPath, hrefQuery = ''] = href.split('?');
-    if (pathname !== hrefPath) {
-      return false;
+    if (!token) {
+      return (
+        <>
+          <Link href="/login" className={itemClass}><LogIn className="size-4" />登录</Link>
+          <Link href="/register" className={`${mobile ? itemClass : 'inline-flex min-h-10 items-center gap-2 rounded-control bg-brand px-3 text-sm font-medium text-white shadow-sm transition hover:bg-brand-strong'}`}>
+            <Sparkles className="size-4" />注册
+          </Link>
+        </>
+      );
     }
 
-    if (hrefQuery) {
-      const expected = new URLSearchParams(hrefQuery);
-      return Array.from(expected.entries()).every(([key, value]) => searchParams.get(key) === value);
-    }
-
-    return pathname === href;
+    return (
+      <>
+        <Link href="/profile" className={itemClass}><UserRound className="size-4" />{displayName}</Link>
+        {user?.role === 'admin' && (
+          <Link href="/admin" className={mobile ? itemClass : 'inline-flex min-h-10 items-center gap-2 rounded-control bg-amber-500 px-3 text-sm font-medium text-white shadow-sm transition hover:bg-amber-600'}>
+            <Settings className="size-4" />管理后台
+          </Link>
+        )}
+        <button type="button" onClick={logout} className={mobile ? itemClass : 'inline-flex min-h-10 items-center gap-2 rounded-control border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100'}>
+          <LogOut className="size-4" />退出
+        </button>
+      </>
+    );
   };
+
+  const navLinks = (mobile = false) => (
+    <div className={mobile ? 'grid gap-1' : 'flex min-w-0 items-center justify-center gap-1'}>
+      {primaryNavigation.map(({ href, icon: Icon, label }) => {
+        const active = isActive(href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? 'page' : undefined}
+            className={mobile
+              ? `flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium transition ${active ? 'bg-sky-50 text-sky-800 ring-1 ring-sky-200' : 'text-slate-700 hover:bg-slate-50 hover:text-sky-800'}`
+              : `inline-flex h-10 items-center gap-1.5 rounded-control px-2.5 text-sm font-medium transition ${active ? 'bg-white text-brand-strong shadow-sm ring-1 ring-sky-200' : 'text-slate-600 hover:bg-white/80 hover:text-brand-strong'}`}
+          >
+            <Icon className="size-4 shrink-0" aria-hidden="true" />
+            <span className="whitespace-nowrap">{label}</span>
+          </Link>
+        );
+      })}
+    </div>
+  );
 
   return (
-    <header className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.82),rgba(236,254,255,0.68),rgba(245,243,255,0.72))] text-slate-800 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
-      <nav className="container mx-auto px-4">
-        <div className="flex flex-col gap-3 py-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center justify-between gap-3 lg:flex-shrink-0">
-            <Link href="/">
-              <span className="flex items-center gap-2 text-xl font-bold transition-colors duration-300">
-                <span className="text-3xl">🚀</span>
-                <span className="bg-gradient-to-r from-sky-600 via-cyan-500 to-violet-600 bg-clip-text text-transparent">加装AI助手</span>
-              </span>
-            </Link>
+    <header className="sticky top-0 z-50 border-b border-white/80 bg-white/78 shadow-[0_6px_24px_rgb(15_23_42_/_0.06)] backdrop-blur-xl">
+      <nav className="page-shell flex min-h-16 items-center gap-4 py-2" aria-label="主导航">
+        <Link href="/" className="inline-flex shrink-0 items-center gap-2 text-lg font-bold text-slate-900" aria-label="加装AI助手首页">
+          <span className="flex size-9 items-center justify-center rounded-control bg-sky-50 text-brand"><Rocket className="size-5" /></span>
+          <span>加装<span className="text-brand">AI</span>助手</span>
+        </Link>
 
-            <button
-              className="lg:hidden p-2 rounded-lg border border-white/60 bg-white/45 hover:bg-white/70 transition-colors"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-
-          <div className={`${isMenuOpen ? 'block' : 'hidden'} lg:block lg:min-w-0 lg:flex-1`}>
-            <div className="flex max-w-full flex-col gap-1 overflow-x-auto rounded-2xl border border-white/75 bg-white/48 p-1.5 shadow-[0_12px_34px_rgba(15,23,42,0.07)] backdrop-blur-2xl lg:flex-row lg:items-center lg:justify-center">
-              {categories.map((category) => {
-                const isActive = isActiveCategory(category.href);
-
-                return (
-                  <Link
-                    key={category.slug}
-                    href={category.href}
-                  >
-                    <span 
-                      className={`block whitespace-nowrap rounded-xl border px-3.5 py-2 text-sm font-medium transition-all duration-300 ${
-                        isActive
-                          ? 'border-cyan-200/80 bg-white/90 text-sky-700 shadow-md shadow-cyan-500/12'
-                          : 'border-transparent text-slate-600 hover:border-white/80 hover:bg-white/75 hover:text-sky-700 hover:shadow-sm hover:shadow-sky-900/5'
-                      }`}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {category.name}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="hidden lg:flex items-center space-x-3 lg:flex-shrink-0">
-            {isLoading ? (
-              <div className="px-4 py-2 text-sm animate-pulse">加载中...</div>
-            ) : token ? (
-              <div className="flex items-center space-x-3">
-                <Link href="/profile">
-                  <span className="px-4 py-2 bg-white/55 hover:bg-white/80 border border-sky-200/80 rounded-full transition-all duration-300 text-sm font-medium text-slate-700 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
-                    👤 {displayUserName || '个人资料'}
-                  </span>
-                </Link>
-                {user?.role === 'admin' && (
-                  <Link href="/admin">
-                    <span className="px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-orange-500/20">
-                      ⚙️ 管理后台
-                    </span>
-                  </Link>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-rose-500/20"
-                >
-                  🚪 注销
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-3">
-                <Link href="/login">
-                  <span className="px-4 py-2 bg-white/55 hover:bg-white/80 border border-sky-200/80 rounded-full transition-all duration-300 text-sm font-medium text-slate-700 shadow-sm shadow-sky-900/5 backdrop-blur-xl">
-                    🔑 登录
-                  </span>
-                </Link>
-                <Link href="/register">
-                  <span className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 rounded-full transition-all duration-300 text-sm font-medium text-white shadow-lg shadow-cyan-500/20">
-                    ✨ 注册
-                  </span>
-                </Link>
-              </div>
-            )}
-          </div>
+        <div className="glass-surface hidden min-w-0 flex-1 px-1.5 py-1 lg:block">
+          {navLinks()}
         </div>
 
-        {/* 移动端用户操作 */}
-        {isMenuOpen && (
-          <div className="lg:hidden border-t border-white/70 py-4">
-            {isLoading ? (
-              <div className="px-4 py-2 text-sm animate-pulse">加载中...</div>
-            ) : token ? (
-              <div className="space-y-2">
-                <Link href="/profile">
-                  <span 
-                    className="block px-4 py-2 bg-white/55 hover:bg-white/80 rounded-lg transition-all duration-300 text-sm font-medium text-slate-700"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    👤 {displayUserName || '个人资料'}
-                  </span>
-                </Link>
-                {user?.role === 'admin' && (
-                  <Link href="/admin">
-                    <span 
-                      className="block px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg transition-all duration-300 text-sm font-medium text-white"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      ⚙️ 管理后台
-                    </span>
-                  </Link>
-                )}
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition-all duration-300 text-sm font-medium text-white"
-                >
-                  🚪 注销
-                </button>
+        <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
+          {accountLinks()}
+        </div>
+
+        <Dialog.Root>
+          <Dialog.Trigger asChild>
+            <button type="button" className="ml-auto inline-flex size-11 items-center justify-center rounded-control border border-slate-200 bg-white text-slate-800 shadow-sm lg:hidden" aria-label="打开导航菜单">
+              <Menu className="size-5" />
+            </button>
+          </Dialog.Trigger>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-950/25 backdrop-blur-sm" />
+            <Dialog.Content className="fixed inset-x-3 top-3 z-50 max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-panel border border-white/80 bg-white p-3 shadow-raised sm:left-auto sm:right-4 sm:w-96">
+              <div className="mb-3 flex items-center justify-between">
+                <Dialog.Title className="text-base font-semibold text-slate-900">导航</Dialog.Title>
+                <Dialog.Close asChild>
+                  <button type="button" className="inline-flex size-10 items-center justify-center rounded-control text-slate-600 transition hover:bg-slate-100" aria-label="关闭导航菜单"><X className="size-5" /></button>
+                </Dialog.Close>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <Link href="/login">
-                  <span 
-                    className="block px-4 py-2 bg-white/55 hover:bg-white/80 rounded-lg transition-all duration-300 text-sm font-medium text-slate-700"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    🔑 登录
-                  </span>
-                </Link>
-                <Link href="/register">
-                  <span 
-                    className="block px-4 py-2 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600 rounded-lg transition-all duration-300 text-sm font-medium text-white"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    ✨ 注册
-                  </span>
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
+              <Dialog.Close asChild><div>{navLinks(true)}</div></Dialog.Close>
+              <div className="my-3 border-t border-slate-200" />
+              <Dialog.Close asChild><div className="grid gap-1">{accountLinks(true)}</div></Dialog.Close>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
       </nav>
     </header>
   );

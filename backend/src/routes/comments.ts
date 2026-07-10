@@ -34,7 +34,7 @@ const createCommentSchema = z.object({
 });
 
 const updateCommentSchema = z.object({
-  status: z.enum(['approved', 'hidden']),
+  status: z.enum(['pending', 'approved', 'hidden']),
 });
 
 commentRoutes.get(
@@ -46,9 +46,9 @@ commentRoutes.get(
     try {
       const comments = await getCommentsByArticleSlug(c.env.DB, slug);
       return c.json({ items: comments });
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error fetching comments for article ${slug}:`, error);
-      return c.json({ error: 'Failed to fetch comments', message: error.message }, 500);
+      return c.json({ error: '评论加载失败，请稍后重试。' }, 500);
     }
   }
 );
@@ -73,9 +73,9 @@ commentRoutes.post(
         return c.json({ error: 'Not Found', message: `Article with slug '${slug}' not found.` }, 404);
       }
       return c.json(comment, 201);
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error creating comment for article ${slug}:`, error);
-      return c.json({ error: 'Failed to create comment', message: error.message }, 500);
+      return c.json({ error: '评论提交失败，请稍后重试。' }, 500);
     }
   }
 );
@@ -88,9 +88,9 @@ protectedCommentRoutes.get('/', async (c) => {
   try {
     const comments = await getAdminComments(c.env.DB);
     return c.json({ items: comments });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching admin comments:', error);
-    return c.json({ error: 'Failed to fetch comments', message: error.message }, 500);
+    return c.json({ error: '评论列表加载失败，请稍后重试。' }, 500);
   }
 });
 
@@ -108,9 +108,9 @@ protectedCommentRoutes.patch(
         return c.json({ error: 'Not Found', message: `Comment with ID ${id} not found.` }, 404);
       }
       return c.json(comment);
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error updating comment ${id}:`, error);
-      return c.json({ error: 'Failed to update comment', message: error.message }, 500);
+      return c.json({ error: '评论更新失败，请稍后重试。' }, 500);
     }
   }
 );
@@ -127,9 +127,9 @@ protectedCommentRoutes.delete(
         return c.json({ error: 'Not Found', message: `Comment with ID ${id} not found.` }, 404);
       }
       return c.body(null, 204);
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error deleting comment ${id}:`, error);
-      return c.json({ error: 'Failed to delete comment', message: error.message }, 500);
+      return c.json({ error: '评论删除失败，请稍后重试。' }, 500);
     }
   }
 );

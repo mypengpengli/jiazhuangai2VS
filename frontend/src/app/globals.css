@@ -1,29 +1,32 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-canvas: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f8fafc;
+  --color-ink: #111827;
+  --color-ink-muted: #64748b;
+  --color-line: #e2e8f0;
+  --color-brand: #0284c7;
+  --color-brand-strong: #0369a1;
+  --color-accent: #7c3aed;
+  --color-hot: #ea580c;
+  --radius-control: 0.5rem;
+  --radius-panel: 0.625rem;
+  --shadow-float: 0 12px 32px rgb(15 23 42 / 0.08);
+  --shadow-raised: 0 18px 44px rgb(15 23 42 / 0.12);
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  /* 从 @theme 块移动过来的变量 */
-  --color-background: var(--background); /* 通常可以直接使用 --background */
-  --color-foreground: var(--foreground); /* 通常可以直接使用 --foreground */
-  /* --font-sans: var(--font-geist-sans); /* 假设 --font-geist-sans 已在 layout.tsx 或其他地方定义 */
-  /* --font-mono: var(--font-geist-mono); /* 假设 --font-geist-mono 已在 layout.tsx 或其他地方定义 */
+  --page-max: 1280px;
+  --reading-max: 760px;
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
 }
 
-/* 移除了无效的 @theme 块 */
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-/* Tailwind Typography prose 内图片居中 */
-.prose img {
-  margin-left: auto;
-  margin-right: auto;
-  display: block; /* 确保 img 是块级元素以便 margin auto 生效 */
+* {
+  border-color: var(--color-line);
 }
 
 html {
@@ -31,373 +34,112 @@ html {
 }
 
 body {
-  background: var(--background);
+  min-width: 320px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.72), rgb(245 247 250 / 0.92) 24rem),
+    var(--color-canvas);
   color: var(--foreground);
-  /* Geist 仅含拉丁字符，补充中文字体回退栈 */
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
-/* 选中文字配色与品牌色呼应 */
 ::selection {
-  background: #ddd6fe;
-  color: #312e81;
+  background: #bae6fd;
+  color: #0c4a6e;
 }
 
-/* 更细更柔和的滚动条 (WebKit) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* ===== 文章正文排版样式 (.article-content) =====
-   用于文章详情页的 HTML / Markdown 渲染内容 */
-.article-content {
-  color: #374151;
-  line-height: 1.75;
-  font-size: 1.0625rem;
-}
-
-.article-content h1,
-.article-content h2,
-.article-content h3,
-.article-content h4,
-.article-content h5,
-.article-content h6 {
-  color: #111827;
-  font-weight: 700;
-  line-height: 1.3;
-  margin-top: 2rem;
-  margin-bottom: 0.875rem;
-}
-
-.article-content h1 { font-size: 1.875rem; }
-.article-content h2 {
-  font-size: 1.5rem;
-  padding-bottom: 0.375rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-.article-content h3 { font-size: 1.25rem; }
-.article-content h4 { font-size: 1.125rem; }
-
-.article-content p {
-  margin: 1rem 0;
-}
-
-.article-content a {
-  color: #7c3aed;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.article-content a:hover {
-  color: #6d28d9;
-}
-
-.article-content strong {
-  color: #111827;
-  font-weight: 600;
-}
-
-.article-content ul,
-.article-content ol {
-  padding-left: 1.625rem;
-  margin: 1rem 0;
-}
-
-.article-content ul { list-style-type: disc; }
-.article-content ol { list-style-type: decimal; }
-
-.article-content li {
-  margin: 0.375rem 0;
-}
-
-.article-content blockquote {
-  border-left: 4px solid #a78bfa;
-  background: #f5f3ff;
-  padding: 0.75rem 1.25rem;
-  margin: 1.25rem 0;
-  border-radius: 0 0.5rem 0.5rem 0;
-  color: #4b5563;
-}
-
-.article-content blockquote p {
-  margin: 0.25rem 0;
-}
-
-.article-content code {
-  background-color: #f3f4f6;
-  color: #be185d;
-  border-radius: 0.25rem;
-  padding: 0.125rem 0.375rem;
-  font-family: 'JetBrainsMono', 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', monospace;
-  font-size: 0.875em;
-}
-
-.article-content pre {
-  background: #1f2937;
-  color: #e5e7eb;
-  padding: 1rem 1.25rem;
-  border-radius: 0.75rem;
-  overflow-x: auto;
-  margin: 1.25rem 0;
-  font-size: 0.875rem;
-  line-height: 1.7;
-}
-
-.article-content pre code {
-  background: transparent;
-  color: inherit;
-  padding: 0;
-  font-size: inherit;
-}
-
-.article-content table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 1.25rem 0;
-  font-size: 0.9375rem;
-  display: block;
-  overflow-x: auto;
-}
-
-.article-content table th,
-.article-content table td {
-  border: 1px solid #d1d5db;
-  padding: 0.5rem 0.875rem;
-  text-align: left;
-}
-
-.article-content table th {
-  background-color: #f3f4f6;
-  font-weight: 600;
-  color: #111827;
-}
-
-.article-content table tr:nth-child(even) {
-  background-color: #f9fafb;
-}
-
-.article-content img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-  margin: 1.5rem auto;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.article-content hr {
-  border: none;
-  border-top: 2px solid #e5e7eb;
-  margin: 2rem 0;
-}
-
-.article-content video {
-  max-width: 100%;
-  border-radius: 0.75rem;
-  margin: 1.5rem auto;
-}
-
-/* 限制 Tiptap 编辑器中图片的最大宽度，并保持其纵横比 */
-.ProseMirror img {
-  max-width: 400px; /* 设置一个更具体的默认最大宽度，例如400px */
-  width: auto;      /* 允许图片在不超过max-width时按自身宽度显示 */
-  height: auto;     /* 高度自动调整以保持原始纵横比 */
-  display: block;   /* 帮助处理图片下方的额外空白，并使其可应用 margin:auto */
-  margin-left: auto;  /* 图片在块内居中显示 */
-  margin-right: auto; /* 图片在块内居中显示 */
-  border: 1px solid #ddd; /* 轻微调整边框颜色 */
-  padding: 2px;
-  border-radius: 4px;
-  cursor: pointer;  /* 添加鼠标手型，提示可点击 */
-}
-
-/* TipTap编辑器样式 */
-.ProseMirror {
-  outline: none;
-}
-
-/* 表格样式 */
-.ProseMirror table {
-  border-collapse: collapse;
-  table-layout: fixed;
-  width: 100%;
-  overflow: hidden;
-  margin: 1rem 0;
-}
-
-.ProseMirror table td,
-.ProseMirror table th {
-  min-width: 1em;
-  border: 1px solid #d1d5db;
-  padding: 8px 12px;
-  vertical-align: top;
-  box-sizing: border-box;
-  position: relative;
-}
-
-.ProseMirror table th {
-  font-weight: bold;
-  text-align: left;
-  background-color: #f3f4f6;
-}
-
-.ProseMirror table .selectedCell:after {
-  z-index: 2;
-  position: absolute;
-  content: "";
-  left: 0; right: 0; top: 0; bottom: 0;
-  background: rgba(200, 200, 255, 0.4);
-  pointer-events: none;
-}
-
-.ProseMirror table .column-resize-handle {
-  position: absolute;
-  right: -2px;
-  top: 0;
-  bottom: -2px;
-  width: 4px;
-  background-color: #adf;
-  pointer-events: none;
-}
-
-.ProseMirror table p {
-  margin: 0;
-}
-
-/* 列表样式 */
-.ProseMirror ul,
-.ProseMirror ol {
-  padding-left: 1.5rem;
-  margin: 0.5rem 0;
-}
-
-.ProseMirror li {
-  margin: 0.25rem 0;
-}
-
-.ProseMirror li > p {
-  margin: 0;
-}
-
-/* 引用块样式 */
-.ProseMirror blockquote {
-  border-left: 4px solid #e5e7eb;
-  padding-left: 1rem;
-  margin: 1rem 0;
-  font-style: italic;
-  color: #6b7280;
-}
-
-/* 代码块样式 */
-.ProseMirror pre {
-  background: #f3f4f6;
-  color: #374151;
-  font-family: 'JetBrainsMono', 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', monospace;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin: 1rem 0;
-}
-
-.ProseMirror code {
-  background-color: #f3f4f6;
-  border-radius: 0.25rem;
-  padding: 0.125rem 0.25rem;
-  font-family: 'JetBrainsMono', 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', monospace;
-  font-size: 0.875em;
-}
-
-/* 分隔线样式 */
-.ProseMirror hr {
-  border: none;
-  border-top: 2px solid #e5e7eb;
-  margin: 2rem 0;
-}
-
-/* 标题样式 */
-.ProseMirror h1,
-.ProseMirror h2,
-.ProseMirror h3,
-.ProseMirror h4,
-.ProseMirror h5,
-.ProseMirror h6 {
-  line-height: 1.1;
-  margin-top: 2.5rem;
-  margin-bottom: 1rem;
-  text-wrap: pretty;
-}
-
-.ProseMirror h1 {
-  font-size: 1.875rem;
-  font-weight: 800;
-}
-
-.ProseMirror h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.ProseMirror h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-/* 段落样式 */
-.ProseMirror p {
-  margin: 0.75rem 0;
-  line-height: 1.625;
-}
-
-/* 链接样式 */
-.ProseMirror a {
-  color: #2563eb;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.ProseMirror a:hover {
-  color: #1d4ed8;
-}
-
-/* 图片样式 */
-.ProseMirror img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  margin: 1rem 0;
-}
-
-/* 选中状态 */
-.ProseMirror .ProseMirror-selectednode {
-  outline: 2px solid #2563eb;
+:focus-visible {
+  outline: 3px solid rgb(14 165 233 / 0.4);
   outline-offset: 2px;
 }
 
-/* 焦点状态 */
-.ProseMirror-focused {
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  background: #cbd5e1;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+.page-shell {
+  margin-inline: auto;
+  max-width: var(--page-max);
+  padding-inline: 1rem;
+}
+
+.surface-card {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+.glass-surface {
+  border: 1px solid rgb(255 255 255 / 0.72);
+  border-radius: var(--radius-panel);
+  background: rgb(255 255 255 / 0.78);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(16px) saturate(1.08);
+}
+
+.content-prose {
+  color: #334155;
+  font-size: 1.0625rem;
+  line-height: 1.85;
+}
+
+.content-prose > :first-child {
+  margin-top: 0;
+}
+
+.content-prose h1,
+.content-prose h2,
+.content-prose h3,
+.content-prose h4 {
+  scroll-margin-top: 6rem;
+  color: #0f172a;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.content-prose h1 { font-size: 2rem; margin: 2.75rem 0 1rem; }
+.content-prose h2 { border-bottom: 1px solid #e2e8f0; font-size: 1.5rem; margin: 2.5rem 0 1rem; padding-bottom: 0.65rem; }
+.content-prose h3 { font-size: 1.2rem; margin: 2rem 0 0.75rem; }
+.content-prose p { margin: 1.1rem 0; }
+.content-prose a { color: var(--color-brand-strong); text-decoration: underline; text-decoration-color: #7dd3fc; text-underline-offset: 3px; }
+.content-prose strong { color: #0f172a; font-weight: 700; }
+.content-prose ul,
+.content-prose ol { margin: 1.1rem 0; padding-left: 1.5rem; }
+.content-prose li { margin: 0.45rem 0; }
+.content-prose blockquote { border-left: 3px solid #38bdf8; background: #f0f9ff; color: #475569; margin: 1.5rem 0; padding: 0.9rem 1rem; }
+.content-prose code { border-radius: 4px; background: #f1f5f9; color: #be123c; padding: 0.15rem 0.35rem; }
+.content-prose pre { border-radius: 8px; background: #0f172a; color: #e2e8f0; margin: 1.5rem 0; overflow-x: auto; padding: 1rem 1.15rem; }
+.content-prose pre code { background: transparent; color: inherit; padding: 0; }
+.content-prose img { border-radius: 8px; height: auto; margin: 1.5rem auto; max-width: 100%; }
+.content-prose table { display: block; margin: 1.5rem 0; max-width: 100%; overflow-x: auto; width: 100%; }
+.content-prose th,
+.content-prose td { border: 1px solid #dbe3ee; padding: 0.55rem 0.75rem; text-align: left; }
+.content-prose th { background: #f8fafc; color: #0f172a; }
+
+.ProseMirror {
+  min-height: 24rem;
   outline: none;
 }
 
-/* 占位符样式 */
-.ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: #9ca3af;
-  pointer-events: none;
-  height: 0;
+.ProseMirror > *:first-child { margin-top: 0; }
+.ProseMirror img { border: 1px solid #dbe3ee; border-radius: 8px; height: auto; margin: 1rem auto; max-width: 100%; }
+.ProseMirror table { border-collapse: collapse; margin: 1rem 0; width: 100%; }
+.ProseMirror th,
+.ProseMirror td { border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: left; }
+.ProseMirror th { background: #f8fafc; }
+.ProseMirror p.is-editor-empty:first-child::before { color: #94a3b8; content: attr(data-placeholder); float: left; height: 0; pointer-events: none; }
+
+@media (max-width: 640px) {
+  .page-shell { padding-inline: 0.875rem; }
+  .content-prose { font-size: 1rem; line-height: 1.78; }
+  .content-prose h1 { font-size: 1.7rem; }
+  .content-prose h2 { font-size: 1.32rem; }
 }

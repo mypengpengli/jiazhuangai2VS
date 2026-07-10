@@ -1,8 +1,9 @@
-'use client'; // 表单交互需要客户端组件
+'use client';
 
-import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // 导入 useRouter
+import { Sparkles } from 'lucide-react';
+import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterPage() {
@@ -10,130 +11,24 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter(); // 初始化 router
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const { login } = useAuth();
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-
-    if (password !== confirmPassword) {
-      setError('两次输入的密码不一致');
-      return;
-    }
-
-    setIsLoading(true);
-    // console.log('Registration attempt with:', { username, password }); // 保留用于调试
-
-    // --- Call API ---
+  const submit = async (event: FormEvent) => {
+    event.preventDefault(); setError(null);
+    if (password.length < 8) { setError('密码至少需要 8 个字符。'); return; }
+    if (password !== confirmPassword) { setError('两次输入的密码不一致。'); return; }
+    setLoading(true);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-      const res = await fetch(`${backendUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error('Registration failed:', data);
-        setError(data.error || `注册失败 (${res.status})`);
-      } else {
-        console.log('Registration successful:', data);
-        if (data.token) {
-          login(data.token);
-          router.push('/profile');
-        } else {
-          router.push('/login');
-        }
-      }
-    } catch (err) {
-      console.error('Registration request error:', err);
-      setError('发生网络错误，请稍后重试。');
-    } finally {
-      setIsLoading(false);
-    }
-    // --- End of API Call ---
+      const response = await fetch(`${backendUrl}/api/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.token) throw new Error(data.error || data.message || '注册失败');
+      login(data.token); router.replace('/profile');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : '注册失败'); }
+    finally { setLoading(false); }
   };
 
-  return (
-    <div className="max-w-md mx-auto mt-10">
-      <h1 className="text-3xl font-bold mb-6 text-center">用户注册</h1>
-      <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-        <p className="mb-4 rounded bg-sky-50 px-3 py-2 text-sm text-sky-700">
-          注册后即可在文章下发表评论。
-        </p>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
-            用户名
-          </label>
-          <input
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            id="username"
-            type="text"
-            placeholder="请输入用户名"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-            密码
-          </label>
-          <input
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            id="password"
-            type="password"
-            placeholder="******************"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-        </div>
-        <div className="mb-6">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
-            确认密码
-          </label>
-          <input
-            className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline ${password !== confirmPassword && confirmPassword ? 'border-red-500' : ''}`}
-            id="confirmPassword"
-            type="password"
-            placeholder="******************"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            disabled={isLoading}
-          />
-           {password !== confirmPassword && confirmPassword && (
-             <p className="text-red-500 text-xs italic">两次输入的密码不一致。</p>
-           )}
-        </div>
-        {error && password === confirmPassword && ( // 只在密码一致时显示后端错误
-          <p className="text-red-500 text-xs italic mb-4">{error}</p>
-        )}
-        <div className="flex items-center justify-center">
-          <button
-            className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            type="submit"
-            disabled={isLoading || (password !== confirmPassword && confirmPassword !== '')}
-          >
-            {isLoading ? '注册中...' : '注册'}
-          </button>
-        </div>
-         <p className="text-center text-gray-500 text-xs mt-4">
-           已有账户？ <Link href="/login" className="text-blue-500 hover:text-blue-800">前往登录</Link>
-         </p>
-      </form>
-      <p className="text-center text-gray-500 text-xs">
-        &copy;{new Date().getFullYear()} 家装AI助手.
-      </p>
-    </div>
-  );
+  return <div className="page-shell flex min-h-[calc(100vh-11rem)] items-center justify-center py-8"><section className="surface-card w-full max-w-md p-6 sm:p-8"><div className="flex size-11 items-center justify-center rounded-control bg-violet-50 text-accent"><Sparkles className="size-5" /></div><h1 className="mt-5 text-2xl font-bold text-slate-950">注册账户</h1><p className="mt-2 text-sm leading-6 text-slate-500">注册后可以维护显示昵称，并在文章下发表待审核评论。</p><form onSubmit={submit} className="mt-6 grid gap-4"><label className="grid gap-2 text-sm font-medium text-slate-700">用户名<input type="text" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" minLength={2} maxLength={40} required className="min-h-11 rounded-control border border-slate-200 px-3 text-slate-900 outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100" /></label><label className="grid gap-2 text-sm font-medium text-slate-700">密码<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={8} required className="min-h-11 rounded-control border border-slate-200 px-3 text-slate-900 outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100" /></label><label className="grid gap-2 text-sm font-medium text-slate-700">确认密码<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={8} required className="min-h-11 rounded-control border border-slate-200 px-3 text-slate-900 outline-none focus:border-sky-300 focus:ring-4 focus:ring-sky-100" /></label>{error && <p className="rounded-control bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}<button type="submit" disabled={loading} className="mt-1 min-h-11 rounded-control bg-brand text-sm font-medium text-white transition hover:bg-brand-strong disabled:opacity-50">{loading ? '正在注册...' : '注册并登录'}</button></form><p className="mt-5 text-sm text-slate-500">已有账户？<Link href="/login" className="font-medium text-brand hover:underline">前往登录</Link></p></section></div>;
 }

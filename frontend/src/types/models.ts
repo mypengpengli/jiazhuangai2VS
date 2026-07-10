@@ -40,6 +40,7 @@ export interface Article {
   parent_id?: number;
   display_date?: string | null; // 用户设定的显示日期，用于排序
   view_count?: number; // 浏览量
+  cover_image?: string | null;
   // image_urls 已移除，使用 attachments
   created_at: string;
   updated_at: string;
@@ -59,7 +60,7 @@ export interface ArticleAttachment {
   created_at: string;
 }
 
-export type CommentStatus = 'approved' | 'hidden';
+export type CommentStatus = 'pending' | 'approved' | 'hidden';
 
 export interface Comment {
   id: number;

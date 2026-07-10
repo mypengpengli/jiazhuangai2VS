@@ -20,10 +20,11 @@ const articleRoutes = new Hono<{ Bindings: Env, Variables: Variables }>();
 // 定义获取文章列表的查询参数 Schema
 const getArticlesSchema = z.object({
     page: z.string().regex(/^\d+$/).optional().default('1').transform(Number),
-    limit: z.string().regex(/^\d+$/).optional().default('10').transform(Number),
+    limit: z.string().regex(/^\d+$/).optional().default('10').transform(Number).pipe(z.number().min(1).max(200)),
     category: z.string().optional(),
     categories: z.string().optional(), // 新增：支持多个分类，逗号分隔
     search: z.string().optional(), // 新增：搜索关键词
+    includeContent: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
     sortBy: z.enum(['created_at', 'updated_at', 'title', 'display_date', 'view_count']).optional().default('display_date'),
     orderDirection: z.enum(['asc', 'desc']).optional().default('desc'),
 });
@@ -33,8 +34,7 @@ articleRoutes.get(
     '/',
     zValidator('query', getArticlesSchema),
     async (c) => {
-        const { page, limit, category, categories, search, sortBy, orderDirection } = c.req.valid('query');
-        console.log(`Route: GET /api/articles - Page: ${page}, Limit: ${limit}, Category: ${category}, Categories: ${categories}, Search: ${search}, SortBy: ${sortBy}, Order: ${orderDirection}`);
+        const { page, limit, category, categories, search, sortBy, orderDirection, includeContent } = c.req.valid('query');
         try {
             // 处理单个或多个分类
             let categorySlugs: string[] = [];
@@ -44,18 +44,18 @@ articleRoutes.get(
                 categorySlugs = [category];
             }
             
-            const result = await getArticles(c.env.DB, { page, limit, categorySlugs, search, sortBy, orderDirection });
+            const result = await getArticles(c.env.DB, { page, limit, categorySlugs, search, sortBy, orderDirection, includeContent });
+            c.header('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
             return c.json(result);
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error fetching articles:', error);
-            return c.json({ error: 'Failed to fetch articles', message: error.message }, 500);
+            return c.json({ error: '文章列表加载失败，请稍后重试。' }, 500);
         }
     }
 );
 
 // 获取 VIP 文章
 articleRoutes.get('/vip', async (c) => {
-    console.log(`Route: GET /api/articles/vip`);
     try {
         const result = await getVipArticle(c.env.DB);
 
@@ -78,17 +78,17 @@ articleRoutes.get('/vip', async (c) => {
         // Handle 'error' status
         if (result.status === 'error') {
             console.error('Error fetching VIP article (from service):', result.message);
-            return c.json({ error: 'Failed to fetch VIP article', message: result.message }, 500);
+            return c.json({ error: 'VIP 文章加载失败，请稍后重试。' }, 500);
         }
 
         // Fallback for any other unhandled cases
         return c.json({ error: 'Internal Server Error', message: 'An unexpected result status was received.' }, 500);
 
-    } catch (error: any) {
+    } catch (error) {
         // This catch block will now mostly handle errors from the Hono framework itself
         // or issues before getVipArticle is even called.
         console.error('Error in VIP article route handler:', error);
-        return c.json({ error: 'Failed to process request for VIP article', message: error.message }, 500);
+        return c.json({ error: 'VIP 文章加载失败，请稍后重试。' }, 500);
     }
 });
 
@@ -98,16 +98,16 @@ articleRoutes.get(
     zValidator('param', z.object({ slug: z.string().min(1, "Slug 不能为空") })),
     async (c) => {
         const { slug } = c.req.valid('param');
-        console.log(`Route: GET /api/articles/${slug}`);
         try {
             const article = await getArticleBySlug(c.env.DB, slug);
             if (!article) {
                 return c.json({ error: 'Not Found', message: `Article with slug '${slug}' not found.` }, 404);
             }
+            c.header('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
             return c.json(article);
-        } catch (error: any) {
+        } catch (error) {
             console.error(`Error fetching article with slug ${slug}:`, error);
-            return c.json({ error: 'Failed to fetch article', message: error.message }, 500);
+            return c.json({ error: '文章加载失败，请稍后重试。' }, 500);
         }
     }
 );
@@ -119,16 +119,15 @@ articleRoutes.post(
     zValidator('param', z.object({ slug: z.string().min(1, "Slug 不能为空") })),
     async (c) => {
         const { slug } = c.req.valid('param');
-        console.log(`Route: POST /api/articles/${slug}/view`);
         try {
             const viewCount = await incrementViewCount(c.env.DB, slug);
             if (viewCount === null) {
                 return c.json({ error: 'Not Found', message: `Article with slug '${slug}' not found.` }, 404);
             }
             return c.json({ view_count: viewCount });
-        } catch (error: any) {
+        } catch (error) {
             console.error(`Error incrementing view count for slug ${slug}:`, error);
-            return c.json({ error: 'Failed to increment view count', message: error.message }, 500);
+            return c.json({ error: '阅读数更新失败，请稍后重试。' }, 500);
         }
     }
 );
@@ -173,9 +172,7 @@ protectedArticleRoutes.post(
     '/',
     zValidator('json', createArticleSchema), // 使用 zValidator 验证 JSON 请求体
     async (c) => {
-        const user = c.get('user');
         const rawJsonData = c.req.valid('json'); // 获取通过 Zod 验证的数据
-        console.log(`Route: POST /api/articles (json) by user: ${user?.username}`, rawJsonData);
 
         try {
             // 如果 slug 未提供，则根据 title 生成
@@ -192,8 +189,6 @@ protectedArticleRoutes.post(
                 attachments: rawJsonData.attachments || undefined,
             };
             
-            console.log('Data prepared for createArticle service:', articleDataForService);
-
             const newArticle = await createArticle(c.env.DB, articleDataForService);
             // newArticle 此时不包含附件的详细信息，如果需要，可以再次查询
             return c.json(newArticle, 201);
@@ -204,19 +199,19 @@ protectedArticleRoutes.post(
                 return c.json({ error: 'Validation Failed', issues: error.errors }, 400);
             }
             if (error.message?.includes('already exists')) {
-                return c.json({ error: 'Conflict', message: error.message }, 409);
+                return c.json({ error: '文章 URL 标识已存在，请修改标题或 slug。' }, 409);
             }
             if (error.message?.includes('FOREIGN KEY constraint failed')) {
-                 return c.json({ error: 'Bad Request', message: 'Invalid category_id or parent_id.' }, 400);
+                 return c.json({ error: '分类或父级文档设置无效。' }, 400);
             }
             if (
                 error.message?.includes('parent_id') ||
                 error.message?.includes('parent') ||
                 error.message?.includes('Parent')
             ) {
-                 return c.json({ error: 'Bad Request', message: error.message }, 400);
+                 return c.json({ error: '父级文档设置无效，不能形成循环目录。' }, 400);
             }
-            return c.json({ error: 'Failed to create article', message: error.message }, 500);
+            return c.json({ error: '文章创建失败，请稍后重试。' }, 500);
         }
     }
 );
@@ -234,13 +229,8 @@ protectedArticleRoutes.put(
     zValidator('json', updateArticleSchema), // 恢复使用 zValidator 验证 JSON 请求体
     async (c) => {
         const { id } = c.req.valid('param');
-        const rawRequestBody = await c.req.json().catch(e => { console.error("Error parsing raw request body:", e); return {}; });
-        console.log(`Route: PUT /api/articles/${id} - Raw Request Body:`, JSON.stringify(rawRequestBody, null, 2));
-        
         const articleDataFromRequest = c.req.valid('json'); // 获取通过 Zod 验证的 JSON 数据
-        const user = c.get('user');
         const articleId = parseInt(id, 10);
-        console.log(`Route: PUT /api/articles/${articleId} (json) by user: ${user?.username}`, articleDataFromRequest);
 
         try {
             // 准备传递给服务层的数据
@@ -278,8 +268,6 @@ protectedArticleRoutes.put(
                 dataToUpdate.slug = undefined;
             }
 
-            console.log('Data prepared for updateArticle service:', dataToUpdate);
-
             const updatedArticle = await updateArticle(c.env.DB, articleId, dataToUpdate);
             if (!updatedArticle) {
                  // 这个情况理论上不应该发生
@@ -289,19 +277,19 @@ protectedArticleRoutes.put(
         } catch (error: any) {
             console.error(`Error updating article ${articleId}:`, error);
             if (error.message?.includes('already exists')) {
-                return c.json({ error: 'Conflict', message: error.message }, 409);
+                return c.json({ error: '文章 URL 标识已存在，请修改标题或 slug。' }, 409);
             }
             if (error.message?.includes('FOREIGN KEY constraint failed')) {
-                 return c.json({ error: 'Bad Request', message: 'Invalid category_id or parent_id.' }, 400);
+                 return c.json({ error: '分类或父级文档设置无效。' }, 400);
             }
             if (
                 error.message?.includes('parent_id') ||
                 error.message?.includes('parent') ||
                 error.message?.includes('Parent')
             ) {
-                 return c.json({ error: 'Bad Request', message: error.message }, 400);
+                 return c.json({ error: '父级文档设置无效，不能形成循环目录。' }, 400);
             }
-            return c.json({ error: 'Failed to update article', message: error.message }, 500);
+            return c.json({ error: '文章保存失败，请稍后重试。' }, 500);
         }
     }
 );
@@ -312,9 +300,7 @@ protectedArticleRoutes.delete(
     zValidator('param', z.object({ id: z.string().regex(/^\d+$/, "ID 必须是数字") })),
     async (c) => {
         const { id } = c.req.valid('param');
-        const user = c.get('user');
         const articleId = parseInt(id, 10);
-        console.log(`Route: DELETE /api/articles/${articleId} by user: ${user?.username}`);
 
         try {
             // TODO: 服务层的 deleteArticle 应该负责处理关联附件的删除 (如果需要)
@@ -329,7 +315,7 @@ protectedArticleRoutes.delete(
             return c.body(null, 204);
         } catch (error: any) {
             console.error(`Error deleting article ${articleId}:`, error);
-            return c.json({ error: 'Failed to delete article', message: error.message }, 500);
+            return c.json({ error: '文章删除失败，请稍后重试。' }, 500);
         }
     }
 );
