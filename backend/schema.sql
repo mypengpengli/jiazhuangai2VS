@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS articles (
     content TEXT,
     category_id INTEGER,
     parent_id INTEGER, -- 用于树形结构 (AI相关纪事)
+    sort_order INTEGER NOT NULL DEFAULT 0, -- 同级经验文档的手动排序值，数值越小越靠前
     display_date TIMESTAMP NULL, -- 用户设定的显示日期，用于排序
     view_count INTEGER NOT NULL DEFAULT 0, -- 浏览量
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -57,6 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories (slug);
 CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles (slug);
 CREATE INDEX IF NOT EXISTS idx_articles_category_id ON articles (category_id);
 CREATE INDEX IF NOT EXISTS idx_articles_parent_id ON articles (parent_id);
+CREATE INDEX IF NOT EXISTS idx_articles_experience_order ON articles (category_id, parent_id, sort_order);
 CREATE INDEX IF NOT EXISTS idx_articles_display_date ON articles (display_date); -- 为显示日期添加索引
 CREATE INDEX IF NOT EXISTS idx_articles_view_count ON articles (view_count); -- 为浏览量添加索引
 

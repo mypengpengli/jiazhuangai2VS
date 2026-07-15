@@ -38,6 +38,7 @@ export interface Article {
   summary?: string; // 新增：文章摘要
   category_id?: number;
   parent_id?: number;
+  sort_order?: number;
   display_date?: string | null; // 用户设定的显示日期，用于排序
   view_count?: number; // 浏览量
   cover_image?: string | null;

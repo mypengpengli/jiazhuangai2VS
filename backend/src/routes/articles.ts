@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2, getVipArticle, incrementViewCount } from '../services/articleService'; // 重新加入 uploadImageToR2
+import { getArticles, getArticleBySlug, createArticle, updateArticle, deleteArticle, uploadImageToR2, deleteImageFromR2, getVipArticle, incrementViewCount, moveExperienceArticle } from '../services/articleService'; // 重新加入 uploadImageToR2
 import { adminMiddleware, authMiddleware, AuthUser } from '../middleware/authMiddleware';
 import { Article, CreateArticleInput, ArticleAttachment } from '../models'; // 更新导入
 
@@ -295,6 +295,27 @@ protectedArticleRoutes.put(
 );
 
 // 删除文章 (需要认证)
+protectedArticleRoutes.post(
+    '/:id/reorder',
+    zValidator('param', z.object({ id: z.string().regex(/^\d+$/, 'ID must be numeric') })),
+    zValidator('json', z.object({ direction: z.enum(['up', 'down']) })),
+    async (c) => {
+        const { id } = c.req.valid('param');
+        const { direction } = c.req.valid('json');
+
+        try {
+            const result = await moveExperienceArticle(c.env.DB, parseInt(id, 10), direction);
+            return c.json(result);
+        } catch (error: any) {
+            console.error(`Error reordering experience article ${id}:`, error);
+            if (error.message === 'Experience document not found.') {
+                return c.json({ error: '经验文档不存在或不可排序。' }, 404);
+            }
+            return c.json({ error: '调整文档顺序失败，请稍后重试。' }, 500);
+        }
+    }
+);
+
 protectedArticleRoutes.delete(
     '/:id',
     zValidator('param', z.object({ id: z.string().regex(/^\d+$/, "ID 必须是数字") })),

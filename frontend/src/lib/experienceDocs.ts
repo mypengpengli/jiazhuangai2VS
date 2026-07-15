@@ -13,8 +13,13 @@ export type FlattenedExperienceDoc = {
 const getArticleTime = (article: Article) =>
   new Date(article.display_date || article.created_at).getTime();
 
-const sortByDisplayDateDesc = (articles: Article[]) =>
-  [...articles].sort((a, b) => getArticleTime(b) - getArticleTime(a));
+const sortExperienceDocuments = (articles: Article[]) =>
+  [...articles].sort((a, b) => {
+    const orderDelta = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    if (orderDelta !== 0) return orderDelta;
+
+    return getArticleTime(b) - getArticleTime(a);
+  });
 
 const createsCycle = (
   articleId: number,
@@ -41,7 +46,7 @@ const createsCycle = (
 };
 
 export const buildExperienceDocTree = (articles: Article[]): ExperienceDocNode[] => {
-  const sortedArticles = sortByDisplayDateDesc(articles);
+  const sortedArticles = sortExperienceDocuments(articles);
   const nodeMap = new Map<number, ExperienceDocNode>();
   const roots: ExperienceDocNode[] = [];
 
@@ -114,3 +119,18 @@ export const collectDescendantIds = (
 
 export const formatDocOptionLabel = (depth: number, title: string) =>
   `${'　'.repeat(depth)}${depth > 0 ? '└ ' : ''}${title}`;
+
+export const getExperienceSiblingPosition = (
+  nodes: ExperienceDocNode[],
+  articleId: number
+): { index: number; siblingCount: number } | null => {
+  const index = nodes.findIndex((node) => node.id === articleId);
+  if (index >= 0) return { index, siblingCount: nodes.length };
+
+  for (const node of nodes) {
+    const position = getExperienceSiblingPosition(node.children, articleId);
+    if (position) return position;
+  }
+
+  return null;
+};

@@ -29,6 +29,12 @@ type ArticleParentRow = {
     parent_id: number | null;
 };
 
+type ExperienceSiblingRow = ArticleParentRow & {
+    sort_order: number;
+    display_date: string | null;
+    created_at: string;
+};
+
 const validateArticleParent = async (
     db: D1Database,
     parentId: number | null | undefined,
@@ -98,7 +104,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
 
     let articlesQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content_type${includeContent ? ', a.content' : ''}, a.category_id, a.parent_id, a.display_date, a.view_count, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type${includeContent ? ', a.content' : ''}, a.category_id, a.parent_id, a.sort_order, a.display_date, a.view_count, a.created_at, a.updated_at,
             (SELECT file_url FROM article_attachments aa WHERE aa.article_id = a.id AND aa.file_type = 'image' ORDER BY aa.id ASC LIMIT 1) as cover_image,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug -- 别名避免冲突
         FROM articles a
@@ -218,6 +224,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
                 content: row.content,
                 category_id: row.category_id,
                 parent_id: row.parent_id,
+                sort_order: row.sort_order ?? 0,
                 display_date: row.display_date, // 添加 display_date
                 view_count: row.view_count ?? 0,
                 cover_image: row.cover_image || null,
@@ -269,11 +276,24 @@ export const createArticle = async (db: D1Database, articleData: CreateArticleIn
     try {
         await validateArticleParent(db, parent_id ?? null, { categoryId: category_id ?? null });
 
+        const experienceCategory = category_id
+            ? await db.prepare('SELECT slug FROM categories WHERE id = ?').bind(category_id).first<{ slug: string }>()
+            : null;
+        const isExperienceDocument = experienceCategory?.slug === EXPERIENCE_CATEGORY_SLUG;
+        const siblingOrder = isExperienceDocument
+            ? await db.prepare(
+                'SELECT MIN(sort_order) AS min_sort_order FROM articles WHERE category_id = ? AND parent_id IS ?'
+            ).bind(category_id, parent_id ?? null).first<{ min_sort_order: number | null }>()
+            : null;
+        const sortOrder = siblingOrder?.min_sort_order === null || siblingOrder?.min_sort_order === undefined
+            ? 0
+            : siblingOrder.min_sort_order - 10;
+
         // 1. 插入文章
         const createdArticleResult = await db.prepare(
-            `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id, display_date)
-             VALUES (?, ?, ?, ?, ?, ?, ?)
-             RETURNING id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at`
+            `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id, sort_order, display_date)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             RETURNING id, title, slug, content_type, content, category_id, parent_id, sort_order, display_date, created_at, updated_at`
         ).bind(
             title,
             slug,
@@ -281,6 +301,7 @@ export const createArticle = async (db: D1Database, articleData: CreateArticleIn
             content || null,
             category_id || null,
             parent_id || null,
+            sortOrder,
             finalDisplayDate // 绑定处理后的 display_date
         ).first<Article>();
 
@@ -329,7 +350,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
     console.log(`ArticleService: Fetching article with slug: ${slug}`);
     const articleQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.view_count, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.sort_order, a.display_date, a.view_count, a.created_at, a.updated_at,
             (SELECT file_url FROM article_attachments aa WHERE aa.article_id = a.id AND aa.file_type = 'image' ORDER BY aa.id ASC LIMIT 1) as cover_image,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug
         FROM articles a
@@ -365,6 +386,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
             content: articleRow.content,
             category_id: articleRow.category_id,
             parent_id: articleRow.parent_id,
+            sort_order: articleRow.sort_order ?? 0,
             display_date: articleRow.display_date, // 添加 display_date
             view_count: articleRow.view_count ?? 0,
             cover_image: articleRow.cover_image || null,
@@ -451,7 +473,7 @@ export const getVipArticle = async (db: D1Database): Promise<VipArticleResult> =
         // 4. 如果所有检查都通过，获取完整的文章信息
         const fullArticleQuery = `
             SELECT
-                a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.display_date, a.created_at, a.updated_at,
+                a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.sort_order, a.display_date, a.created_at, a.updated_at,
                 c.id as category_cat_id, c.name as category_name, c.slug as category_slug
             FROM articles a
             JOIN categories c ON a.category_id = c.id
@@ -485,6 +507,7 @@ export const getVipArticle = async (db: D1Database): Promise<VipArticleResult> =
             content: articleRow.content,
             category_id: articleRow.category_id,
             parent_id: articleRow.parent_id,
+            sort_order: articleRow.sort_order ?? 0,
             display_date: articleRow.display_date,
             created_at: articleRow.created_at,
             updated_at: articleRow.updated_at,
@@ -515,6 +538,48 @@ export const getVipArticle = async (db: D1Database): Promise<VipArticleResult> =
  * @param articleData 更新的数据 (部分字段)
  * @returns 更新后的文章对象，如果找不到则返回 null
  */
+export const moveExperienceArticle = async (
+    db: D1Database,
+    id: number,
+    direction: 'up' | 'down'
+): Promise<{ moved: boolean }> => {
+    const article = await db.prepare(
+        `SELECT a.id, a.category_id, a.parent_id
+         FROM articles a
+         JOIN categories c ON c.id = a.category_id
+         WHERE a.id = ? AND c.slug = ?`
+    ).bind(id, EXPERIENCE_CATEGORY_SLUG).first<ArticleParentRow>();
+
+    if (!article) {
+        throw new Error('Experience document not found.');
+    }
+
+    const siblingResult = await db.prepare(
+        `SELECT id, category_id, parent_id, sort_order, display_date, created_at
+         FROM articles
+         WHERE category_id = ? AND parent_id IS ?
+         ORDER BY sort_order ASC, COALESCE(display_date, created_at) DESC, id DESC`
+    ).bind(article.category_id, article.parent_id).all<ExperienceSiblingRow>();
+    const siblings = siblingResult.results || [];
+    const currentIndex = siblings.findIndex((sibling) => sibling.id === id);
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= siblings.length) {
+        return { moved: false };
+    }
+
+    [siblings[currentIndex], siblings[targetIndex]] = [siblings[targetIndex], siblings[currentIndex]];
+    await db.batch(
+        siblings.map((sibling, index) =>
+            db.prepare(
+                'UPDATE articles SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+            ).bind(index * 10, sibling.id)
+        )
+    );
+
+    return { moved: true };
+};
+
 export const updateArticle = async (db: D1Database, id: number, articleData: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at'>> & { attachments?: Partial<ArticleAttachment>[] }): Promise<Article | null> => {
 
     // 解构时排除 attachments，单独处理
