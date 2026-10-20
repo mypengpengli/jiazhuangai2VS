@@ -1,6 +1,5 @@
 import { Article, Category, ArticleWithCategoryAndAttachments, CreateArticleInput, ArticleAttachment } from '../models'; // 导入模型
 import { PaginatedArticlesResponse } from '../types/api'; // 导入分页响应类型 (需要创建)
-import { ensureSystemCategories } from './categoryService';
 
 // 定义环境变量类型
 type Env = {
@@ -100,7 +99,6 @@ type VipArticleResult =
 export const getArticles = async (db: D1Database, options: GetArticlesOptions = {}): Promise<PaginatedArticlesResponse> => {
     const { page = 1, limit = 10, categorySlug, categorySlugs, search, sortBy = 'display_date', orderDirection = 'desc', includeContent = false } = options; // 默认按 display_date 降序
     const offset = (page - 1) * limit;
-    await ensureSystemCategories(db);
 
     let articlesQuery = `
         SELECT
@@ -155,6 +153,15 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
         const whereClause = ' WHERE ' + whereClauses.join(' AND ');
         articlesQuery += whereClause;
         countQuery += whereClause;
+    }
+
+    // Preserve exact totals and the existing API contract. For the unfiltered feed,
+    // count all articles once, then subtract the small indexed excluded category.
+    // Search/category requests keep their original WHERE clauses and exact totals.
+    if (effectiveCategorySlugs.length === 0 && !search?.trim()) {
+        countQuery = `SELECT (SELECT COUNT(*) FROM articles) -
+            (SELECT COUNT(*) FROM articles WHERE category_id =
+                (SELECT id FROM categories WHERE slug = ?)) AS total`;
     }
 
     // 添加排序

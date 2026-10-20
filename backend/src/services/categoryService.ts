@@ -37,7 +37,7 @@ export const ensureSystemCategories = async (db: D1Database): Promise<void> => {
 export const getAllCategories = async (db: D1Database): Promise<Category[]> => {
   console.log('CategoryService: Fetching all categories');
   try {
-    await ensureSystemCategories(db);
+    // System categories are initialized once by migration 0005.
     const stmt = db.prepare('SELECT id, name, slug, description, created_at, updated_at FROM categories ORDER BY name ASC');
     const { results } = await stmt.all<Category>();
     console.log(`CategoryService: Found ${results?.length ?? 0} categories`);
