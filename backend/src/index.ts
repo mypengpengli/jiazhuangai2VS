@@ -3,7 +3,6 @@ import { cors } from 'hono/cors';
 
 // Import individual route handlers
 import authRoutes from './routes/auth';
-import articleListOptimizedRoutes from './routes/articleListOptimized';
 import articleRoutes from './routes/articles';
 import categoryRoutes from './routes/categories';
 import r2Routes from './routes/r2Routes';
@@ -42,9 +41,7 @@ app.use('*', async (c, next) => {
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 });
 
-// Register the optimized public list route before the legacy article router.
-// The optimized route handles GET /api/articles and avoids the legacy full-table COUNT scan.
-app.route('/api/articles', articleListOptimizedRoutes);
+// Register existing API routes
 app.route('/api/auth', authRoutes);
 app.route('/api/articles', articleRoutes);
 app.route('/api/categories', categoryRoutes);
