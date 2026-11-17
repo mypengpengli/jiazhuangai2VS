@@ -44,6 +44,11 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
+        {/* Impact requires the verification token in the value attribute. */}
+        <meta
+          name="impact-site-verification"
+          {...{ value: "fb005b75-acc7-41df-b494-d2946f4fdebf" }}
+        />
         <script
           async
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT_ID}`}
