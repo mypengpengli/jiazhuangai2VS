@@ -8,14 +8,12 @@ export function middleware(request: NextRequest) {
     : preferredLocale(request.headers.get('accept-language'));
 
   if (locale === 'en') {
-    return new NextResponse(null, {
-      status: 307,
-      headers: {
-        Location: `/en${request.nextUrl.search}`,
-        'Cache-Control': 'private, no-store',
-        Vary: 'Accept-Language, Cookie',
-      },
-    });
+    const destination = request.nextUrl.clone();
+    destination.pathname = '/en';
+    const response = NextResponse.redirect(destination);
+    response.headers.set('Cache-Control', 'private, no-store');
+    response.headers.set('Vary', 'Accept-Language, Cookie');
+    return response;
   }
 
   const response = NextResponse.next();
