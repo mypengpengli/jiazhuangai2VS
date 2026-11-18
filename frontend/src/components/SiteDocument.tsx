@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import { headers } from "next/headers";
-import "./globals.css";
+import "@/app/globals.css";
 import Layout from "@/components/Layout"; // Import the Layout component
 import { AuthProvider } from "@/context/AuthContext"; // Import the AuthProvider
+import type { Locale } from "@/lib/locale";
 
 // Google Analytics 测量 ID
 const GA_MEASUREMENT_ID = "G-7NJ868H0TH";
@@ -36,14 +36,13 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: '#f5f7fa', colorScheme: 'light' };
 
-export const runtime = 'edge';
-
-export default async function RootLayout({
+export default function SiteDocument({
   children,
+  locale,
 }: Readonly<{
   children: React.ReactNode;
+  locale: Locale;
 }>) {
-  const locale = (await headers()).get('x-site-locale') === 'en' ? 'en' : 'zh-CN';
   return (
     <html lang={locale}>
       <head>

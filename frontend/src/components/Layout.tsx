@@ -16,7 +16,7 @@ const Layout: React.FC<LayoutProps> = ({ children, locale }) => (
     </Suspense>
     <main className="min-w-0 flex-1">{children}</main>
     <Footer locale={locale} />
-    <BackToTop />
+    <BackToTop locale={locale} />
   </div>
 );
 

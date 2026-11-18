@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import ExperiencePage, { type ExperiencePageProps } from '@/components/pages/ExperiencePage';
 
 export default function Page(props: ExperiencePageProps) {

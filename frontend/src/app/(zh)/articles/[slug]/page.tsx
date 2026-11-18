@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import ArticleDetailPage, { articleMetadata, type ArticleDetailPageProps } from '@/components/pages/ArticleDetailPage';
 
 export const generateMetadata = articleMetadata;
