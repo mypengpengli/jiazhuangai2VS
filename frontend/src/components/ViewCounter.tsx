@@ -3,13 +3,15 @@
 import { Eye } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatNumber } from '@/lib/formatters';
+import type { Locale } from '@/lib/locale';
 
 interface ViewCounterProps {
   slug: string;
   initialCount: number;
+  locale?: Locale;
 }
 
-const ViewCounter = ({ slug, initialCount }: ViewCounterProps) => {
+const ViewCounter = ({ slug, initialCount, locale = 'zh-CN' }: ViewCounterProps) => {
   const [count, setCount] = useState(initialCount);
 
   useEffect(() => {
@@ -30,7 +32,7 @@ const ViewCounter = ({ slug, initialCount }: ViewCounterProps) => {
       .catch(() => undefined);
   }, [slug]);
 
-  return <span className="inline-flex items-center gap-1.5"><Eye className="size-4" />{formatNumber(count)} 次阅读</span>;
+  return <span className="inline-flex items-center gap-1.5"><Eye className="size-4" />{formatNumber(count)} {locale === 'en' ? 'views' : '次阅读'}</span>;
 };
 
 export default ViewCounter;

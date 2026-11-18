@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Article } from '@/types/models';
 import ArticleTimeline from './ArticleTimeline';
+import type { Locale } from '@/lib/locale';
 
 const PAGE_SIZE = 12;
 
@@ -12,6 +13,7 @@ interface ArticleFeedProps {
   totalPages: number;
   totalItems: number;
   query?: Record<string, string | undefined>;
+  locale?: Locale;
 }
 
 type ArticlesResponse = {
@@ -29,7 +31,10 @@ const ArticleFeed: React.FC<ArticleFeedProps> = ({
   totalPages,
   totalItems,
   query = {},
+  locale = 'zh-CN',
 }) => {
+  const en = locale === 'en';
+  const loadError = en ? 'Could not load more articles.' : '加载更多文章失败';
   const [articles, setArticles] = useState<Article[]>(initialArticles);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [knownTotalPages, setKnownTotalPages] = useState(totalPages);
@@ -65,6 +70,7 @@ const ArticleFeed: React.FC<ArticleFeedProps> = ({
         page: String(currentPage + 1),
         sortBy: 'display_date',
         orderDirection: 'desc',
+        language: locale,
       });
 
       Object.entries(query).forEach(([key, value]) => {
@@ -77,7 +83,7 @@ const ArticleFeed: React.FC<ArticleFeedProps> = ({
       const data: ArticlesResponse = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error((data as { message?: string }).message || '加载更多文章失败');
+        throw new Error(loadError);
       }
 
       const incoming = data.items || [];
@@ -90,7 +96,7 @@ const ArticleFeed: React.FC<ArticleFeedProps> = ({
       setKnownTotalItems(data.total_items ?? knownTotalItems);
     } catch (err) {
       console.error('Failed to load more articles:', err);
-      setError(err instanceof Error ? err.message : '加载更多文章失败');
+      setError(loadError);
     } finally {
       setIsLoadingMore(false);
     }
@@ -98,12 +104,12 @@ const ArticleFeed: React.FC<ArticleFeedProps> = ({
 
   return (
     <div>
-      <ArticleTimeline articles={articles} />
+      <ArticleTimeline articles={articles} locale={locale} />
 
       <div className="mt-8 flex flex-col items-center gap-3">
         <div className="text-sm text-slate-400">
-          已显示 {shownCount}
-          {displayTotal ? ` / ${displayTotal}` : ''} 篇文章
+          {en ? 'Showing' : '已显示'} {shownCount}
+          {displayTotal ? ` / ${displayTotal}` : ''} {en ? 'articles' : '篇文章'}
         </div>
 
         {error && (
@@ -119,11 +125,11 @@ const ArticleFeed: React.FC<ArticleFeedProps> = ({
             disabled={isLoadingMore}
             className="min-h-11 rounded-control border border-sky-200 bg-white px-5 text-sm font-medium text-brand-strong shadow-sm transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoadingMore ? '加载中...' : '加载更多'}
+            {isLoadingMore ? (en ? 'Loading...' : '加载中...') : (en ? 'Load More' : '加载更多')}
           </button>
         ) : (
           <div className="py-2 text-sm text-slate-400">
-            — 已显示全部文章 —
+            {en ? 'All articles shown' : '已显示全部文章'}
           </div>
         )}
       </div>

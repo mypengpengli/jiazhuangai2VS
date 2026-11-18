@@ -22,6 +22,7 @@ import {
   getExperienceSiblingPosition,
 } from '@/lib/experienceDocs';
 import { formatArticleDate } from '@/lib/formatters';
+import { articlePath, localizedPath } from '@/lib/locale';
 
 const PAGE_SIZE = 30;
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
@@ -31,6 +32,7 @@ export default function AdminArticlesPage() {
   const searchParams = useSearchParams();
   const categoryFilter = searchParams.get('category') || '';
   const isExperience = categoryFilter === 'site-experience';
+  const language = searchParams.get('language') === 'en' ? 'en' : 'zh-CN';
   const [articles, setArticles] = useState<Article[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -42,8 +44,8 @@ export default function AdminArticlesPage() {
   const [error, setError] = useState<string | null>(null);
 
   const experienceTree = useMemo(
-    () => (isExperience ? buildExperienceDocTree(articles) : []),
-    [articles, isExperience]
+    () => (isExperience ? buildExperienceDocTree(articles.filter((article) => (article.language ?? 'zh-CN') === language)) : []),
+    [articles, isExperience, language]
   );
   const visibleArticles = useMemo(
     () => isExperience
@@ -66,6 +68,7 @@ export default function AdminArticlesPage() {
         orderDirection: 'desc',
       });
       if (categoryFilter) query.set('category', categoryFilter);
+      query.set('language', isExperience ? language : 'all');
 
       const response = await fetch(`${backendUrl}/api/articles?${query}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -83,7 +86,7 @@ export default function AdminArticlesPage() {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [categoryFilter, isExperience, token]);
+  }, [categoryFilter, isExperience, language, token]);
 
   useEffect(() => {
     void fetchArticles(1);
@@ -136,7 +139,7 @@ export default function AdminArticlesPage() {
   };
 
   const addHref = isExperience
-    ? '/admin/articles/new?category=site-experience'
+    ? `/admin/articles/new?category=site-experience&language=${language}`
     : '/admin/articles/new';
 
   return (
@@ -163,6 +166,16 @@ export default function AdminArticlesPage() {
           {isExperience ? '新建经验文档' : '新建文章'}
         </Link>
       </div>
+
+      {isExperience && (
+        <nav className="mt-4 flex flex-wrap gap-2 text-sm" aria-label="文档语言">
+          {(['zh-CN', 'en'] as const).map((value) => (
+            <Link key={value} href={`/admin/articles?category=site-experience&language=${value}`} aria-current={value === language ? 'page' : undefined} className={`rounded-control border px-3 py-2 ${value === language ? 'border-sky-200 bg-sky-50 text-brand-strong' : 'border-slate-200 text-slate-600'}`}>
+              {value === 'en' ? 'English' : '简体中文'}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       {isExperience && (
         <div className="mt-5 flex items-start gap-3 rounded-control border border-sky-100 bg-sky-50/70 p-4 text-sm leading-6 text-slate-700">
@@ -196,6 +209,9 @@ export default function AdminArticlesPage() {
               const siblingPosition = isExperience
                 ? getExperienceSiblingPosition(experienceTree, article.id)
                 : null;
+              const previewHref = isExperience
+                ? localizedPath(`/experience?slug=${encodeURIComponent(article.slug)}`, article.language)
+                : articlePath(article);
               const canMoveUp = Boolean(siblingPosition && siblingPosition.index > 0);
               const canMoveDown = Boolean(
                 siblingPosition && siblingPosition.index < siblingPosition.siblingCount - 1
@@ -210,7 +226,7 @@ export default function AdminArticlesPage() {
                     <div className="flex min-w-0 items-center gap-2">
                       {isExperience && <FolderTree className="size-4 shrink-0 text-slate-300" />}
                       <Link
-                        href={article.slug ? (isExperience ? `/experience?slug=${article.slug}` : `/articles/${article.slug}`) : '#'}
+                        href={previewHref}
                         target="_blank"
                         className="truncate font-medium text-slate-900 hover:text-brand"
                       >
@@ -219,6 +235,7 @@ export default function AdminArticlesPage() {
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-400">
                       <span>{article.category?.name || '未分类'}</span>
+                      <span>{article.language === 'en' ? 'EN' : '中文'} · ID {article.id}</span>
                       <span>{formatArticleDate(article.display_date || article.created_at)}</span>
                       <span>{article.view_count || 0} 次阅读</span>
                     </div>
@@ -250,7 +267,7 @@ export default function AdminArticlesPage() {
                       </>
                     )}
                     <Link
-                      href={article.slug ? (isExperience ? `/experience?slug=${article.slug}` : `/articles/${article.slug}`) : '#'}
+                      href={previewHref}
                       target="_blank"
                       title="预览"
                       className="inline-flex size-9 items-center justify-center rounded-control text-slate-500 hover:bg-slate-100"

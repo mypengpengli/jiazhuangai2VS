@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { headers } from "next/headers";
 import "./globals.css";
 import Layout from "@/components/Layout"; // Import the Layout component
 import { AuthProvider } from "@/context/AuthContext"; // Import the AuthProvider
@@ -24,7 +25,6 @@ export const metadata: Metadata = {
   title: { default: '加装AI助手 - AI资讯与工具导航', template: '%s | 加装AI助手' },
   description: "加装AI助手，为你加装最新AI能力。探索大语言模型、生图模型、视频模型等前沿 AI 技术资讯与工具推荐。",
   keywords: ['AI资讯', '人工智能', '大语言模型', '生图模型', 'AI工具', 'AI硬件'],
-  alternates: { canonical: '/' },
   openGraph: { type: 'website', locale: 'zh_CN', url: '/', siteName: '加装AI助手', title: '加装AI助手 - AI资讯与工具导航', description: '探索最新 AI 技术资讯、模型动态与实用工具。' },
   twitter: { card: 'summary', title: '加装AI助手 - AI资讯与工具导航', description: '探索最新 AI 技术资讯、模型动态与实用工具。' },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
@@ -36,13 +36,16 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: '#f5f7fa', colorScheme: 'light' };
 
-export default function RootLayout({
+export const runtime = 'edge';
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = (await headers()).get('x-site-locale') === 'en' ? 'en' : 'zh-CN';
   return (
-    <html lang="zh-CN">
+    <html lang={locale}>
       <head>
         {/* Impact requires the verification token in the value attribute. */}
         <meta
@@ -72,7 +75,7 @@ export default function RootLayout({
           `}
         </Script>
         <AuthProvider> {/* Wrap Layout (and thus children) with AuthProvider */}
-          <Layout>{children}</Layout>
+          <Layout locale={locale}>{children}</Layout>
         </AuthProvider>
       </body>
     </html>

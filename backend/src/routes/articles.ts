@@ -25,6 +25,7 @@ const getArticlesSchema = z.object({
     categories: z.string().optional(), // 新增：支持多个分类，逗号分隔
     search: z.string().optional(), // 新增：搜索关键词
     includeContent: z.enum(['true', 'false']).optional().default('false').transform((value) => value === 'true'),
+    language: z.enum(['zh-CN', 'en', 'all']).default('zh-CN'),
     sortBy: z.enum(['created_at', 'updated_at', 'title', 'display_date', 'view_count']).optional().default('display_date'),
     orderDirection: z.enum(['asc', 'desc']).optional().default('desc'),
 });
@@ -34,7 +35,7 @@ articleRoutes.get(
     '/',
     zValidator('query', getArticlesSchema),
     async (c) => {
-        const { page, limit, category, categories, search, sortBy, orderDirection, includeContent } = c.req.valid('query');
+        const { page, limit, category, categories, search, sortBy, orderDirection, includeContent, language } = c.req.valid('query');
         try {
             // 处理单个或多个分类
             let categorySlugs: string[] = [];
@@ -44,7 +45,7 @@ articleRoutes.get(
                 categorySlugs = [category];
             }
             
-            const result = await getArticles(c.env.DB, { page, limit, categorySlugs, search, sortBy, orderDirection, includeContent });
+            const result = await getArticles(c.env.DB, { page, limit, categorySlugs, search, sortBy, orderDirection, includeContent, language: language === 'all' ? undefined : language });
             c.header('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
             return c.json(result);
         } catch (error) {
@@ -146,6 +147,8 @@ const createArticleSchema = z.object({
     content: z.string().nullish(),
     category_id: z.number().int().positive().nullish(),
     parent_id: z.number().int().positive().nullish(),
+    language: z.enum(['zh-CN', 'en']).optional(),
+    translation_of: z.number().int().positive().nullish(),
     display_date: z.string().datetime({ message: "display_date 必须是有效的 ISO 8601 日期时间字符串" }).nullish(),
     attachments: z.array(z.object({ // 新增 attachments
         file_type: z.string().min(1),
@@ -176,7 +179,7 @@ protectedArticleRoutes.post(
 
         try {
             // 如果 slug 未提供，则根据 title 生成
-            const slugToUse = rawJsonData.slug || slugify(rawJsonData.title);
+            const slugToUse = rawJsonData.slug || slugify(rawJsonData.title) || crypto.randomUUID();
 
             const articleDataForService: CreateArticleInput = {
                 title: rawJsonData.title,
@@ -185,6 +188,8 @@ protectedArticleRoutes.post(
                 content: rawJsonData.content === null ? undefined : rawJsonData.content,
                 category_id: rawJsonData.category_id === null ? undefined : rawJsonData.category_id,
                 parent_id: rawJsonData.parent_id === null ? undefined : rawJsonData.parent_id,
+                language: rawJsonData.language,
+                translation_of: rawJsonData.translation_of,
                 display_date: rawJsonData.display_date === null ? undefined : rawJsonData.display_date, // 添加 display_date
                 attachments: rawJsonData.attachments || undefined,
             };
@@ -195,6 +200,12 @@ protectedArticleRoutes.post(
 
         } catch (error: any) {
             console.error('Error processing article creation:', error);
+            if (error.message === 'Invalid translation source.') {
+                return c.json({ error: 'translation_of must reference an existing Chinese article and language must be en.' }, 400);
+            }
+            if (error.message === 'Translation already exists.') {
+                return c.json({ error: 'An English translation already exists for this article.' }, 409);
+            }
             if (error instanceof z.ZodError) {
                 return c.json({ error: 'Validation Failed', issues: error.errors }, 400);
             }
@@ -217,7 +228,7 @@ protectedArticleRoutes.post(
 );
 
 // 定义更新文章的请求体 Schema
-const updateArticleSchema = createArticleSchema.partial().refine(
+const updateArticleSchema = createArticleSchema.omit({ language: true, translation_of: true }).partial().refine(
     (data) => Object.keys(data).length > 0,
     { message: "请求体不能为空，至少需要提供一个要更新的字段" }
 );

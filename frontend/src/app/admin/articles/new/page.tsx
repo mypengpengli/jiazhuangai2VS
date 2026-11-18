@@ -18,6 +18,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import dynamic from 'next/dynamic';
 import MenuBar from '@/components/MenuBar';
+import type { Locale } from '@/lib/locale';
 import {
   buildExperienceDocTree,
   flattenExperienceDocTree,
@@ -36,6 +37,7 @@ type UploadedAttachment = {
 };
 
 const CreateArticlePage = () => {
+  const searchParams = useSearchParams();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [htmlContent, setHtmlContent] = useState('');
@@ -43,17 +45,18 @@ const CreateArticlePage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<string>('0');
   const [parentId, setParentId] = useState<string>('0');
+  const [language, setLanguage] = useState<Locale>(() => searchParams.get('language') === 'en' ? 'en' : 'zh-CN');
+  const [translationOf, setTranslationOf] = useState('');
   const [experienceArticles, setExperienceArticles] = useState<Article[]>([]);
   const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const presetCategory = searchParams.get('category');
   const selectedCategory = categories.find((cat) => cat.id.toString() === categoryId);
   const isExperienceArticle = selectedCategory?.slug === 'site-experience';
-  const parentOptions = flattenExperienceDocTree(buildExperienceDocTree(experienceArticles));
+  const parentOptions = flattenExperienceDocTree(buildExperienceDocTree(experienceArticles.filter((item) => (item.language ?? 'zh-CN') === language)));
 
   const editor = useEditor({
     extensions: [
@@ -103,7 +106,7 @@ const CreateArticlePage = () => {
     const fetchExperienceArticles = async () => {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-        const response = await fetch(`${backendUrl}/api/articles?category=site-experience&limit=200&sortBy=display_date&orderDirection=desc`);
+        const response = await fetch(`${backendUrl}/api/articles?category=site-experience&limit=200&sortBy=display_date&orderDirection=desc&language=all`);
         if (!response.ok) {
           return;
         }
@@ -170,13 +173,17 @@ const CreateArticlePage = () => {
         attachments: Omit<UploadedAttachment, 'key'>[];
         category_id?: number;
         parent_id?: number;
+        language: Locale;
+        translation_of?: number;
       } = {
         title,
         content: htmlContent,
         content_type: 'html',
+        language,
         display_date: displayDate ? new Date(displayDate).toISOString() : null,
         attachments: attachments.map(({ key, ...rest }) => rest),
       };
+      if (language === 'en' && translationOf) dataToSend.translation_of = Number(translationOf);
 
       if (categoryId && categoryId !== '0') {
         dataToSend.category_id = parseInt(categoryId, 10);
@@ -251,6 +258,19 @@ const CreateArticlePage = () => {
                     className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     required
                 />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <label className="grid gap-1 text-sm font-medium text-gray-700">
+                    文章语言
+                    <select value={language} onChange={(event) => { setLanguage(event.target.value as Locale); setParentId('0'); }} className="rounded-md border border-gray-300 bg-white px-3 py-2">
+                        <option value="zh-CN">简体中文</option>
+                        <option value="en">English</option>
+                    </select>
+                </label>
+                {language === 'en' && <label className="grid gap-1 text-sm font-medium text-gray-700">
+                    中文原文 ID（可选）
+                    <input type="number" min="1" step="1" value={translationOf} onChange={(event) => setTranslationOf(event.target.value)} className="rounded-md border border-gray-300 bg-white px-3 py-2" />
+                </label>}
             </div>
             <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700">分类</label>

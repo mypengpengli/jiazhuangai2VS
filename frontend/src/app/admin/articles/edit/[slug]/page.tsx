@@ -58,8 +58,9 @@ const EditArticlePage = () => {
   const slug = params.slug as string;
   const selectedCategory = categories.find((cat) => cat.id.toString() === categoryId) || article?.category;
   const isExperienceArticle = selectedCategory?.slug === 'site-experience';
-  const listHref = isExperienceArticle ? '/admin/articles?category=site-experience' : '/admin/articles';
-  const experienceDocTree = buildExperienceDocTree(experienceArticles);
+  const language = article?.language ?? 'zh-CN';
+  const listHref = isExperienceArticle ? `/admin/articles?category=site-experience&language=${language}` : '/admin/articles';
+  const experienceDocTree = buildExperienceDocTree(experienceArticles.filter((item) => (item.language ?? 'zh-CN') === language));
   const blockedParentIds = article
     ? new Set([article.id, ...collectDescendantIds(experienceDocTree, article.id)])
     : new Set<number>();
@@ -149,7 +150,7 @@ const EditArticlePage = () => {
     const fetchExperienceArticles = async () => {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8787';
-        const response = await fetch(`${backendUrl}/api/articles?category=site-experience&limit=200&sortBy=display_date&orderDirection=desc`);
+        const response = await fetch(`${backendUrl}/api/articles?category=site-experience&limit=200&sortBy=display_date&orderDirection=desc&language=all`);
         if (!response.ok) {
           return;
         }

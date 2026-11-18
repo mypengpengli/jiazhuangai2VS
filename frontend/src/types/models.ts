@@ -39,6 +39,9 @@ export interface Article {
   category_id?: number;
   parent_id?: number;
   sort_order?: number;
+  language?: 'zh-CN' | 'en';
+  translation_of?: number | null;
+  translations?: Array<{ slug: string; language: 'zh-CN' | 'en' }>;
   display_date?: string | null; // 用户设定的显示日期，用于排序
   view_count?: number; // 浏览量
   cover_image?: string | null;

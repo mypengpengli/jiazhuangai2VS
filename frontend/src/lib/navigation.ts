@@ -11,17 +11,17 @@ import {
 } from 'lucide-react';
 
 export const primaryNavigation = [
-  { label: '首页', href: '/', icon: Home },
-  { label: '大语言模型', href: '/articles?category=test', icon: MessageSquareText },
-  { label: '生图模型', href: '/articles?categories=s,thyroid-basics', icon: ImageIcon },
-  { label: '视频模型', href: '/articles?category=video', icon: Bot },
-  { label: '音频模型', href: '/articles?categories=voice,music', icon: Music2 },
-  { label: 'AI硬件', href: '/articles?category=hardware', icon: Cpu },
-  { label: 'AI工具', href: '/articles?categories=soft,locksoft', icon: Wrench },
-  { label: '本站经验分享', href: '/experience', icon: NotebookTabs },
+  { label: '首页', en: 'Home', href: '/', icon: Home },
+  { label: '大语言模型', en: 'LLMs', href: '/articles?category=test', icon: MessageSquareText },
+  { label: '生图模型', en: 'Images', href: '/articles?categories=s,thyroid-basics', icon: ImageIcon },
+  { label: '视频模型', en: 'Video', href: '/articles?category=video', icon: Bot },
+  { label: '音频模型', en: 'Audio', href: '/articles?categories=voice,music', icon: Music2 },
+  { label: 'AI硬件', en: 'Hardware', href: '/articles?category=hardware', icon: Cpu },
+  { label: 'AI工具', en: 'Tools', href: '/articles?categories=soft,locksoft', icon: Wrench },
+  { label: '本站经验分享', en: 'Field Notes', href: '/experience', icon: NotebookTabs },
 ];
 
 export const footerNavigation = [
-  { label: 'AI 新鲜事', href: '/', icon: Lightbulb },
+  { label: 'AI 新鲜事', en: 'AI News', href: '/', icon: Lightbulb },
   ...primaryNavigation.slice(1),
 ];

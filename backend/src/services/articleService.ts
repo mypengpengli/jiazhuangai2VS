@@ -17,6 +17,7 @@ interface GetArticlesOptions {
     sortBy?: 'created_at' | 'updated_at' | 'title' | 'display_date' | 'view_count'; // 添加 display_date 和 view_count
     orderDirection?: 'asc' | 'desc';
     includeContent?: boolean;
+    language?: Article['language'];
 }
 
 const EXPERIENCE_CATEGORY_SLUG = 'site-experience';
@@ -26,6 +27,7 @@ type ArticleParentRow = {
     id: number;
     category_id: number | null;
     parent_id: number | null;
+    language?: Article['language'];
 };
 
 type ExperienceSiblingRow = ArticleParentRow & {
@@ -37,7 +39,7 @@ type ExperienceSiblingRow = ArticleParentRow & {
 const validateArticleParent = async (
     db: D1Database,
     parentId: number | null | undefined,
-    options: { articleId?: number; categoryId?: number | null } = {}
+    options: { articleId?: number; categoryId?: number | null; language?: Article['language'] } = {}
 ) => {
     if (!parentId) {
         return;
@@ -48,7 +50,7 @@ const validateArticleParent = async (
     }
 
     const parent = await db.prepare(
-        'SELECT id, category_id, parent_id FROM articles WHERE id = ?'
+        'SELECT id, category_id, parent_id, language FROM articles WHERE id = ?'
     ).bind(parentId).first<ArticleParentRow>();
 
     if (!parent) {
@@ -57,6 +59,9 @@ const validateArticleParent = async (
 
     if (options.categoryId !== undefined && options.categoryId !== null && parent.category_id !== options.categoryId) {
         throw new Error('Parent article must belong to the same category.');
+    }
+    if (options.language && parent.language !== options.language) {
+        throw new Error('Parent article must have the same language.');
     }
 
     let cursor = parent.parent_id;
@@ -97,12 +102,12 @@ type VipArticleResult =
  * @returns 分页后的文章列表及总页数
  */
 export const getArticles = async (db: D1Database, options: GetArticlesOptions = {}): Promise<PaginatedArticlesResponse> => {
-    const { page = 1, limit = 10, categorySlug, categorySlugs, search, sortBy = 'display_date', orderDirection = 'desc', includeContent = false } = options; // 默认按 display_date 降序
+    const { page = 1, limit = 10, categorySlug, categorySlugs, search, sortBy = 'display_date', orderDirection = 'desc', includeContent = false, language } = options;
     const offset = (page - 1) * limit;
 
     let articlesQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content_type${includeContent ? ', a.content' : ''}, a.category_id, a.parent_id, a.sort_order, a.display_date, a.view_count, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type${includeContent ? ', a.content' : ''}, a.category_id, a.parent_id, a.sort_order, a.language, a.translation_of, a.display_date, a.view_count, a.created_at, a.updated_at,
             (SELECT file_url FROM article_attachments aa WHERE aa.article_id = a.id AND aa.file_type = 'image' ORDER BY aa.id ASC LIMIT 1) as cover_image,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug -- 别名避免冲突
         FROM articles a
@@ -148,6 +153,12 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
         countParams.push(searchTerm, searchTerm);
     }
 
+    if (language) {
+        whereClauses.push('a.language = ?');
+        queryParams.push(language);
+        countParams.push(language);
+    }
+
     // 构建 WHERE 子句
     if (whereClauses.length > 0) {
         const whereClause = ' WHERE ' + whereClauses.join(' AND ');
@@ -158,7 +169,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
     // Preserve exact totals and the existing API contract. For the unfiltered feed,
     // count all articles once, then subtract the small indexed excluded category.
     // Search/category requests keep their original WHERE clauses and exact totals.
-    if (effectiveCategorySlugs.length === 0 && !search?.trim()) {
+    if (effectiveCategorySlugs.length === 0 && !search?.trim() && !language) {
         countQuery = `SELECT (SELECT COUNT(*) FROM articles) -
             (SELECT COUNT(*) FROM articles WHERE category_id =
                 (SELECT id FROM categories WHERE slug = ?)) AS total`;
@@ -201,7 +212,7 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
     }
 
 
-    articlesQuery += ` ${orderByClause}`;
+    articlesQuery += ` ${orderByClause}, a.id DESC`;
 
     // 添加分页
     articlesQuery += ' LIMIT ? OFFSET ?';
@@ -232,6 +243,8 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
                 category_id: row.category_id,
                 parent_id: row.parent_id,
                 sort_order: row.sort_order ?? 0,
+                language: row.language,
+                translation_of: row.translation_of,
                 display_date: row.display_date, // 添加 display_date
                 view_count: row.view_count ?? 0,
                 cover_image: row.cover_image || null,
@@ -275,13 +288,20 @@ export const getArticles = async (db: D1Database, options: GetArticlesOptions = 
  */
 export const createArticle = async (db: D1Database, articleData: CreateArticleInput): Promise<Article> => {
     // display_date 现在是可选的，在 CreateArticleInput 中定义
-    const { title, slug, content_type, content, category_id, parent_id, attachments, display_date } = articleData;
+    const { title, slug, content_type, content, parent_id, attachments, display_date, language = 'zh-CN', translation_of } = articleData;
+    const source = translation_of == null ? null : await db.prepare(
+        "SELECT category_id, COALESCE(display_date, created_at) AS display_date FROM articles WHERE id = ? AND language = 'zh-CN'"
+    ).bind(translation_of).first<{ category_id: number | null; display_date: string | null }>();
+    if (translation_of != null && (language !== 'en' || !source)) {
+        throw new Error('Invalid translation source.');
+    }
+    const category_id = articleData.category_id ?? source?.category_id ?? null;
     // 如果 display_date 未提供或为 null，则使用当前时间作为默认值
-    const finalDisplayDate = display_date || new Date().toISOString();
+    const finalDisplayDate = display_date || source?.display_date || new Date().toISOString();
     console.log(`ArticleService: Creating article with slug: ${slug}, content_type: ${content_type}, display_date: ${finalDisplayDate}`);
 
     try {
-        await validateArticleParent(db, parent_id ?? null, { categoryId: category_id ?? null });
+        await validateArticleParent(db, parent_id ?? null, { categoryId: category_id, language });
 
         const experienceCategory = category_id
             ? await db.prepare('SELECT slug FROM categories WHERE id = ?').bind(category_id).first<{ slug: string }>()
@@ -289,8 +309,8 @@ export const createArticle = async (db: D1Database, articleData: CreateArticleIn
         const isExperienceDocument = experienceCategory?.slug === EXPERIENCE_CATEGORY_SLUG;
         const siblingOrder = isExperienceDocument
             ? await db.prepare(
-                'SELECT MIN(sort_order) AS min_sort_order FROM articles WHERE category_id = ? AND parent_id IS ?'
-            ).bind(category_id, parent_id ?? null).first<{ min_sort_order: number | null }>()
+                'SELECT MIN(sort_order) AS min_sort_order FROM articles WHERE category_id = ? AND parent_id IS ? AND language = ?'
+            ).bind(category_id, parent_id ?? null, language).first<{ min_sort_order: number | null }>()
             : null;
         const sortOrder = siblingOrder?.min_sort_order === null || siblingOrder?.min_sort_order === undefined
             ? 0
@@ -298,9 +318,9 @@ export const createArticle = async (db: D1Database, articleData: CreateArticleIn
 
         // 1. 插入文章
         const createdArticleResult = await db.prepare(
-            `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id, sort_order, display_date)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-             RETURNING id, title, slug, content_type, content, category_id, parent_id, sort_order, display_date, created_at, updated_at`
+            `INSERT INTO articles (title, slug, content_type, content, category_id, parent_id, sort_order, display_date, language, translation_of)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             RETURNING id, title, slug, content_type, content, category_id, parent_id, sort_order, display_date, language, translation_of, created_at, updated_at`
         ).bind(
             title,
             slug,
@@ -309,7 +329,9 @@ export const createArticle = async (db: D1Database, articleData: CreateArticleIn
             category_id || null,
             parent_id || null,
             sortOrder,
-            finalDisplayDate // 绑定处理后的 display_date
+            finalDisplayDate,
+            language,
+            translation_of ?? null
         ).first<Article>();
 
         if (!createdArticleResult || !createdArticleResult.id) {
@@ -337,6 +359,9 @@ export const createArticle = async (db: D1Database, articleData: CreateArticleIn
 
     } catch (error: any) {
         console.error('Error in createArticle:', error);
+        if (error.message?.includes('articles.translation_of, articles.language')) {
+            throw new Error('Translation already exists.');
+        }
         if (error.message?.includes('UNIQUE constraint failed')) {
             throw new Error(`Article with slug '${slug}' already exists.`);
         }
@@ -357,7 +382,7 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
     console.log(`ArticleService: Fetching article with slug: ${slug}`);
     const articleQuery = `
         SELECT
-            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.sort_order, a.display_date, a.view_count, a.created_at, a.updated_at,
+            a.id, a.title, a.slug, a.content_type, a.content, a.category_id, a.parent_id, a.sort_order, a.language, a.translation_of, a.display_date, a.view_count, a.created_at, a.updated_at,
             (SELECT file_url FROM article_attachments aa WHERE aa.article_id = a.id AND aa.file_type = 'image' ORDER BY aa.id ASC LIMIT 1) as cover_image,
             c.id as category_cat_id, c.name as category_name, c.slug as category_slug
         FROM articles a
@@ -383,7 +408,11 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
             WHERE article_id = ?
         `;
         const attachmentsStmt = db.prepare(attachmentsQuery);
-        const attachmentsResult = await attachmentsStmt.bind(articleRow.id).all<ArticleAttachment>();
+        const [attachmentsResult, translationsResult] = await db.batch([
+            attachmentsStmt.bind(articleRow.id),
+            db.prepare('SELECT slug, language FROM articles WHERE id = ? OR translation_of = ?')
+                .bind(articleRow.translation_of, articleRow.id),
+        ]);
         
         const article: ArticleWithCategoryAndAttachments = {
             id: articleRow.id,
@@ -394,12 +423,15 @@ export const getArticleBySlug = async (db: D1Database, slug: string): Promise<Ar
             category_id: articleRow.category_id,
             parent_id: articleRow.parent_id,
             sort_order: articleRow.sort_order ?? 0,
+            language: articleRow.language,
+            translation_of: articleRow.translation_of,
+            translations: translationsResult.results as Article['translations'],
             display_date: articleRow.display_date, // 添加 display_date
             view_count: articleRow.view_count ?? 0,
             cover_image: articleRow.cover_image || null,
             created_at: articleRow.created_at,
             updated_at: articleRow.updated_at,
-            attachments: attachmentsResult.results || [],
+            attachments: attachmentsResult.results as ArticleAttachment[],
         };
 
         if (articleRow.category_cat_id) {
@@ -551,7 +583,7 @@ export const moveExperienceArticle = async (
     direction: 'up' | 'down'
 ): Promise<{ moved: boolean }> => {
     const article = await db.prepare(
-        `SELECT a.id, a.category_id, a.parent_id
+        `SELECT a.id, a.category_id, a.parent_id, a.language
          FROM articles a
          JOIN categories c ON c.id = a.category_id
          WHERE a.id = ? AND c.slug = ?`
@@ -564,9 +596,9 @@ export const moveExperienceArticle = async (
     const siblingResult = await db.prepare(
         `SELECT id, category_id, parent_id, sort_order, display_date, created_at
          FROM articles
-         WHERE category_id = ? AND parent_id IS ?
+         WHERE category_id = ? AND parent_id IS ? AND language = ?
          ORDER BY sort_order ASC, COALESCE(display_date, created_at) DESC, id DESC`
-    ).bind(article.category_id, article.parent_id).all<ExperienceSiblingRow>();
+    ).bind(article.category_id, article.parent_id, article.language).all<ExperienceSiblingRow>();
     const siblings = siblingResult.results || [];
     const currentIndex = siblings.findIndex((sibling) => sibling.id === id);
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
@@ -593,7 +625,7 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
     const { attachments, display_date, ...articleBaseFields } = articleData;
     const { title, slug, content_type, content, category_id, parent_id } = articleBaseFields;
     const currentArticleForParent = await db.prepare(
-        'SELECT id, category_id, parent_id FROM articles WHERE id = ?'
+        'SELECT id, category_id, parent_id, language FROM articles WHERE id = ?'
     ).bind(id).first<ArticleParentRow>();
 
     if (!currentArticleForParent) {
@@ -606,7 +638,7 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
     if (hasCategoryField || hasParentField) {
         const finalCategoryId = hasCategoryField ? (category_id ?? null) : (currentArticleForParent.category_id ?? null);
         const finalParentId = hasParentField ? (parent_id ?? null) : (currentArticleForParent.parent_id ?? null);
-        await validateArticleParent(db, finalParentId, { articleId: id, categoryId: finalCategoryId });
+        await validateArticleParent(db, finalParentId, { articleId: id, categoryId: finalCategoryId, language: currentArticleForParent.language });
     }
 
     // 构建 SET 子句
@@ -626,7 +658,7 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
 
     const hasAttachmentsField = Object.prototype.hasOwnProperty.call(articleData, 'attachments');
     if (setClauses.length === 0 && !hasAttachmentsField) {
-        const currentArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
+        const currentArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, display_date, language, translation_of, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
         return currentArticle ?? null;
     }
     
@@ -636,10 +668,10 @@ export const updateArticle = async (db: D1Database, id: number, articleData: Par
     try {
         let updatedArticle: Article | null = null;
         if (setClauses.length > 0) {
-            const articleUpdateSql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at`;
+            const articleUpdateSql = `UPDATE articles SET ${setClauses.join(', ')} WHERE id = ? RETURNING id, title, slug, content_type, content, category_id, parent_id, display_date, language, translation_of, created_at, updated_at`;
             updatedArticle = await db.prepare(articleUpdateSql).bind(...values, id).first<Article>();
         } else if (hasAttachmentsField) {
-            updatedArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, display_date, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
+            updatedArticle = await db.prepare('SELECT id, title, slug, content_type, content, category_id, parent_id, display_date, language, translation_of, created_at, updated_at FROM articles WHERE id = ?').bind(id).first<Article>();
         }
 
 
