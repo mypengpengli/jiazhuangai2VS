@@ -13,7 +13,7 @@ export function preferredLocale(header: string | null): Locale {
       : [];
   });
   preferences.sort((a, b) => b.weight - a.weight);
-  return preferences[0]?.language === 'en' ? 'en' : 'zh-CN';
+  return preferences[0]?.language === 'zh' ? 'zh-CN' : 'en';
 }
 
 export const localizedPath = (path: string, locale: Locale = 'zh-CN') =>
